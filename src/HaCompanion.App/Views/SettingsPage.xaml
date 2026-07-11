@@ -45,6 +45,12 @@
                       HorizontalAlignment="Stretch"
                       ItemsSource="{x:Bind ViewModel.HotkeyPresets}"
                       SelectedItem="{x:Bind ViewModel.Hotkey, Mode=TwoWay}" />
+            <Button x:Name="RecordHotkeyButton"
+                    Content="{Binding [Set_RecordHotkey], Source={StaticResource Loc}}"
+                    HorizontalAlignment="Left"
+                    Click="RecordHotkeyButton_Click"
+                    KeyDown="RecordHotkeyButton_KeyDown"
+                    LostFocus="RecordHotkeyButton_LostFocus" />
             <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                        Text="{x:Bind ViewModel.HotkeyStatus, Mode=OneWay}" />
 

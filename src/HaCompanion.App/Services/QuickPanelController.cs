@@ -25,4 +25,6 @@ public sealed class QuickPanelController : IQuickPanelController
     public void Show() => Window.ShowAnimated();
 
     public void Hide() => _window?.HideAnimated();
+
+    public void PreviewWidth() => Window.PreviewWidth();
 }

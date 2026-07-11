@@ -47,7 +47,9 @@
     "Set_Tip2": "If a hotkey shows as not registered, another app already uses it — just pick a different combo above.",
     "Set_Tip3": "The app keeps running in the system tray (bottom-right, under the ^). Right-click the tray icon → Exit to quit fully.",
     "Set_Tip4": "Favourites: use the pencil (edit) button and + to add tiles, and drag to reorder.",
-    "Set_Tip5": "Security: your token is stored encrypted (DPAPI) on this PC only. Enable 'Ignore certificate errors' only for a self-signed local HA."
+    "Set_Tip5": "Security: your token is stored encrypted (DPAPI) on this PC only. Enable 'Ignore certificate errors' only for a self-signed local HA.",
+    "Set_RecordHotkey": "Record custom hotkey",
+    "Set_RecordPrompt": "Press a key combination…"
   },
   "de": {
     "Nav_Start": "Start",
@@ -97,7 +99,9 @@
     "Set_Tip2": "Wird ein Kürzel als nicht registriert angezeigt, nutzt es schon eine andere App — wähl oben einfach ein anderes.",
     "Set_Tip3": "Die App läuft im Infobereich weiter (unten rechts, beim ^). Rechtsklick aufs Tray-Icon → Beenden schließt sie ganz.",
     "Set_Tip4": "Favoriten: mit dem Stift (Bearbeiten) und + Kacheln hinzufügen, per Ziehen umsortieren.",
-    "Set_Tip5": "Sicherheit: dein Token liegt nur auf diesem PC verschlüsselt (DPAPI). „Zertifikatsfehler ignorieren\" nur bei selbstsigniertem lokalem HA aktivieren."
+    "Set_Tip5": "Sicherheit: dein Token liegt nur auf diesem PC verschlüsselt (DPAPI). „Zertifikatsfehler ignorieren\" nur bei selbstsigniertem lokalem HA aktivieren.",
+    "Set_RecordHotkey": "Eigenes Tastenkürzel aufnehmen",
+    "Set_RecordPrompt": "Tastenkombination drücken…"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -147,7 +151,9 @@
     "Set_Tip2": "Si un atajo aparece como no registrado, ya lo usa otra app — elige otra combinación arriba.",
     "Set_Tip3": "La app sigue en la bandeja del sistema (abajo a la derecha, bajo el ^). Clic derecho en el icono → Salir para cerrarla del todo.",
     "Set_Tip4": "Favoritos: usa el botón del lápiz (editar) y + para añadir mosaicos, y arrastra para reordenar.",
-    "Set_Tip5": "Seguridad: tu token se guarda cifrado (DPAPI) solo en este PC. Activa 'Ignorar errores de certificado' solo para un HA local autofirmado."
+    "Set_Tip5": "Seguridad: tu token se guarda cifrado (DPAPI) solo en este PC. Activa 'Ignorar errores de certificado' solo para un HA local autofirmado.",
+    "Set_RecordHotkey": "Grabar atajo personalizado",
+    "Set_RecordPrompt": "Pulsa una combinación…"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -197,7 +203,9 @@
     "Set_Tip2": "Si un raccourci est indiqué non enregistré, une autre appli l'utilise déjà — choisissez-en un autre ci-dessus.",
     "Set_Tip3": "L'appli reste dans la zone de notification (en bas à droite, sous le ^). Clic droit sur l'icône → Quitter pour fermer complètement.",
     "Set_Tip4": "Favoris : utilisez le bouton crayon (édition) et + pour ajouter des tuiles, et glissez pour réorganiser.",
-    "Set_Tip5": "Sécurité : votre jeton est stocké chiffré (DPAPI) sur ce PC uniquement. N'activez « Ignorer les erreurs de certificat » que pour un HA local auto-signé."
+    "Set_Tip5": "Sécurité : votre jeton est stocké chiffré (DPAPI) sur ce PC uniquement. N'activez « Ignorer les erreurs de certificat » que pour un HA local auto-signé.",
+    "Set_RecordHotkey": "Enregistrer un raccourci personnalisé",
+    "Set_RecordPrompt": "Appuyez sur une combinaison…"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -247,7 +255,9 @@
     "Set_Tip2": "如果热键显示未注册，说明已被其他应用占用 — 在上方换一个组合即可。",
     "Set_Tip3": "应用会在系统托盘中继续运行（右下角 ^ 处）。右键点击托盘图标 → 退出可完全关闭。",
     "Set_Tip4": "收藏：用铅笔（编辑）按钮和 + 添加磁贴，拖动可重新排序。",
-    "Set_Tip5": "安全：你的令牌仅以加密方式（DPAPI）存储在本机。仅在自签名的本地 HA 时才启用“忽略证书错误”。"
+    "Set_Tip5": "安全：你的令牌仅以加密方式（DPAPI）存储在本机。仅在自签名的本地 HA 时才启用“忽略证书错误”。",
+    "Set_RecordHotkey": "录制自定义热键",
+    "Set_RecordPrompt": "请按下组合键…"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -297,6 +307,8 @@
     "Set_Tip2": "यदि कोई हॉटकी पंजीकृत नहीं दिखती, तो उसे कोई अन्य ऐप उपयोग कर रहा है — ऊपर कोई और कॉम्बो चुनें।",
     "Set_Tip3": "ऐप सिस्टम ट्रे में चलता रहता है (नीचे-दाएँ, ^ के नीचे)। ट्रे आइकन पर राइट-क्लिक → Exit से पूरी तरह बंद करें।",
     "Set_Tip4": "पसंदीदा: पेंसिल (संपादन) बटन और + से टाइल जोड़ें, और क्रम बदलने के लिए खींचें।",
-    "Set_Tip5": "सुरक्षा: आपका टोकन केवल इस PC पर एन्क्रिप्टेड (DPAPI) संग्रहीत है। 'प्रमाणपत्र त्रुटियाँ अनदेखा करें' केवल सेल्फ-साइन्ड लोकल HA के लिए चालू करें।"
+    "Set_Tip5": "सुरक्षा: आपका टोकन केवल इस PC पर एन्क्रिप्टेड (DPAPI) संग्रहीत है। 'प्रमाणपत्र त्रुटियाँ अनदेखा करें' केवल सेल्फ-साइन्ड लोकल HA के लिए चालू करें।",
+    "Set_RecordHotkey": "कस्टम हॉटकी रिकॉर्ड करें",
+    "Set_RecordPrompt": "कोई कुंजी संयोजन दबाएँ…"
   }
 }

@@ -6,6 +6,7 @@ using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -31,10 +32,12 @@ public sealed partial class QuickPanelWindow : Window
 
     private readonly IntPtr _hwnd;
     private readonly ISettingsStore _settingsStore;
+    private DispatcherQueueTimer? _previewTimer;
     private Task? _webInitTask;
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
     private bool _isOpen;
+    private bool _previewing;
 
     // How far the content is pushed off the right edge before it slides in.
     private float SlideDistance => _panelWidthDip + 48f;
@@ -74,8 +77,42 @@ public sealed partial class QuickPanelWindow : Window
         var margins = new MARGINS { Left = -1, Right = -1, Top = -1, Bottom = -1 };
         DwmExtendFrameIntoClientArea(_hwnd, ref margins);
 
+        _previewTimer = DispatcherQueue.CreateTimer();
+        _previewTimer.Interval = TimeSpan.FromMilliseconds(1400);
+        _previewTimer.Tick += (_, _) =>
+        {
+            _previewTimer!.Stop();
+            _previewing = false;
+            HideAnimated();
+        };
+
         Activated += OnActivated;
         AppWindow.Hide();
+    }
+
+    /// <summary>
+    /// Live width preview: shows/resizes the panel at the current width setting (bypassing
+    /// auto-hide) so the user sees the size while dragging the slider; auto-hides shortly after.
+    /// </summary>
+    public void PreviewWidth()
+    {
+        _previewing = true;
+        if (!_isOpen)
+        {
+            ShowAnimated();
+        }
+        else
+        {
+            // Already open — just resize in place to the new width.
+            _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
+            var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
+            var work = area.WorkArea;
+            var scale = GetDpiForWindow(_hwnd) / 96.0;
+            var width = (int)Math.Round(_panelWidthDip * scale);
+            AppWindow.MoveAndResize(new RectInt32(work.X + work.Width - width, work.Y, width, work.Height));
+        }
+        _previewTimer!.Stop();
+        _previewTimer.Start();
     }
 
     public void Toggle()
@@ -158,6 +195,7 @@ public sealed partial class QuickPanelWindow : Window
     {
         if (args.WindowActivationState == WindowActivationState.Deactivated
             && _isOpen
+            && !_previewing
             && _settingsStore.Load().AutoHideQuickPanel)
         {
             HideAnimated();

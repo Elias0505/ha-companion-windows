@@ -10,4 +10,7 @@ public interface IQuickPanelController
     void Show();
 
     void Hide();
+
+    /// <summary>Show/resize the panel at the current width setting as a live preview (auto-hides shortly after).</summary>
+    void PreviewWidth();
 }

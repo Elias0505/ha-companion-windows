@@ -14,6 +14,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ShellViewModel _shell;
     private readonly IHotkeyService _hotkeys;
     private readonly LocalizationService _localization;
+    private readonly IQuickPanelController _quickPanel;
     private bool _loading;
 
     [ObservableProperty]
@@ -56,12 +57,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         "Win+Ctrl+H", "Ctrl+Alt+H", "Ctrl+Shift+H", "Ctrl+Alt+Space", "Win+Ctrl+Space", "Ctrl+Alt+A",
     };
 
-    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization)
+    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel)
     {
         _settingsStore = settingsStore;
         _shell = shell;
         _hotkeys = hotkeys;
         _localization = localization;
+        _quickPanel = quickPanel;
         Load();
     }
 
@@ -104,8 +106,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnQuickPanelWidthChanged(double value)
     {
-        if (!_loading)
-            _settingsStore.Save(BuildSettings());
+        if (_loading)
+            return;
+        _settingsStore.Save(BuildSettings());
+        _quickPanel.PreviewWidth(); // show the panel live so the user sees the size
     }
 
     partial void OnQuickPanelStartOnDashboardChanged(bool value)
@@ -126,10 +130,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (_loading || string.IsNullOrWhiteSpace(value))
             return;
+        if (!HotkeyPresets.Contains(value))
+            HotkeyPresets.Insert(0, value); // keep a captured custom combo visible in the dropdown
         _settingsStore.Save(BuildSettings());
         _hotkeys.Register(value);
         RefreshHotkeyStatus();
     }
+
+    /// <summary>Localized prompt shown while the user is recording a custom hotkey.</summary>
+    public string RecordPrompt => _localization["Set_RecordPrompt"];
+
+    /// <summary>Re-derives the hotkey status text (used to cancel an in-progress capture).</summary>
+    public void RefreshHotkeyStatusPublic() => RefreshHotkeyStatus();
 
     private void RefreshHotkeyStatus() =>
         HotkeyStatus = _hotkeys.IsRegistered
