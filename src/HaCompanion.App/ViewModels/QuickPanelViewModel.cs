@@ -10,7 +10,7 @@ namespace HaCompanion.App.ViewModels;
 /// <summary>
 /// View model for the slide-in quick panel (Win+Ctrl+H): a dashboard picker over
 /// "Favourites" (the editable pinned tiles) plus the user's real HA dashboards,
-/// whose entities are shown as native tiles.
+/// which are shown 1:1 in an embedded chrome-less WebView.
 /// </summary>
 public sealed partial class QuickPanelViewModel : ObservableObject
 {
@@ -24,22 +24,16 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     /// <summary>Dropdown entries: Favourites + the user's HA dashboards.</summary>
     public ObservableCollection<QuickDashboard> Dashboards { get; } = new() { QuickDashboard.Favorites };
 
-    /// <summary>Tiles for the currently selected HA dashboard (empty in Favourites mode).</summary>
-    public ObservableCollection<EntityTileViewModel> DashboardTiles { get; } = new();
-
     [ObservableProperty]
     private QuickDashboard _selectedDashboard = QuickDashboard.Favorites;
 
     [ObservableProperty]
     private bool _showFavorites = true;
 
-    [ObservableProperty]
-    private bool _dashboardEmpty;
-
-    [ObservableProperty]
-    private bool _isLoadingDashboard;
-
     public bool ShowDashboard => !ShowFavorites;
+
+    /// <summary>Raised when a real HA dashboard is chosen; the window navigates the WebView.</summary>
+    public event EventHandler<QuickDashboard>? DashboardRequested;
 
     public QuickPanelViewModel(EntityCatalogViewModel catalog, ShellViewModel shell, IHaConnection connection, IUiDispatcher ui)
     {
@@ -71,41 +65,11 @@ public sealed partial class QuickPanelViewModel : ObservableObject
 
     partial void OnShowFavoritesChanged(bool value) => OnPropertyChanged(nameof(ShowDashboard));
 
-    partial void OnSelectedDashboardChanged(QuickDashboard? value) => _ = ApplySelectionAsync(value);
-
-    private async Task ApplySelectionAsync(QuickDashboard? dashboard)
+    partial void OnSelectedDashboardChanged(QuickDashboard value)
     {
-        if (dashboard is null || dashboard.IsFavorites)
-        {
-            ShowFavorites = true;
-            DashboardTiles.Clear();
-            DashboardEmpty = false;
-            return;
-        }
-
-        ShowFavorites = false;
-        IsLoadingDashboard = true;
-        DashboardTiles.Clear();
-        DashboardEmpty = false;
-        try
-        {
-            var ids = await _connection.GetDashboardEntityIdsAsync(dashboard.UrlPath);
-            var tiles = Catalog.ResolveTiles(ids).ToList();
-            _ui.Post(() =>
-            {
-                foreach (var tile in tiles)
-                    DashboardTiles.Add(tile);
-                DashboardEmpty = DashboardTiles.Count == 0;
-                IsLoadingDashboard = false;
-            });
-        }
-        catch
-        {
-            _ui.Post(() =>
-            {
-                DashboardEmpty = true;
-                IsLoadingDashboard = false;
-            });
-        }
+        ShowFavorites = value is null || value.IsFavorites;
+        OnPropertyChanged(nameof(ShowDashboard));
+        if (value is { IsFavorites: false })
+            DashboardRequested?.Invoke(this, value);
     }
 }

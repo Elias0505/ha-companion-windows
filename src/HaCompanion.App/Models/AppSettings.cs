@@ -15,6 +15,9 @@ public sealed class AppSettings
     /// <summary>Human-readable hotkey label, e.g. "Win+Ctrl+H".</summary>
     public string Hotkey { get; set; } = "Win+Ctrl+H";
 
+    /// <summary>Hide the quick panel automatically when it loses focus (you click elsewhere).</summary>
+    public bool AutoHideQuickPanel { get; set; } = true;
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 

@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -9,6 +12,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Web.WebView2.Core;
 using Windows.Graphics;
 using WinRT.Interop;
 
@@ -27,13 +31,18 @@ public sealed partial class QuickPanelWindow : Window
     public QuickPanelViewModel ViewModel { get; }
 
     private readonly IntPtr _hwnd;
+    private readonly ISettingsStore _settingsStore;
+    private Task? _webInitTask;
+    private string _baseUrl = string.Empty;
     private bool _isOpen;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
         ViewModel = viewModel;
+        _settingsStore = App.Services.GetRequiredService<ISettingsStore>();
         InitializeComponent();
         RootGrid.DataContext = viewModel;
+        ViewModel.DashboardRequested += OnDashboardRequested;
 
         Title = "HA Companion — Quick Panel";
         SystemBackdrop = new DesktopAcrylicBackdrop();
@@ -146,8 +155,54 @@ public sealed partial class QuickPanelWindow : Window
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
-        if (args.WindowActivationState == WindowActivationState.Deactivated && _isOpen)
+        if (args.WindowActivationState == WindowActivationState.Deactivated
+            && _isOpen
+            && _settingsStore.Load().AutoHideQuickPanel)
+        {
             HideAnimated();
+        }
+    }
+
+    // ----- embedded HA dashboard (WebView) -----
+
+    private async void OnDashboardRequested(object? sender, QuickDashboard dashboard)
+    {
+        try
+        {
+            await EnsureWebAsync();
+            var path = string.IsNullOrEmpty(dashboard.UrlPath) ? "lovelace" : dashboard.UrlPath;
+            PanelWeb.CoreWebView2?.Navigate($"{_baseUrl}/{path}");
+        }
+        catch
+        {
+            // If the WebView runtime is missing the panel simply stays on Favourites.
+        }
+    }
+
+    private Task EnsureWebAsync() => _webInitTask ??= InitWebAsync();
+
+    private async Task InitWebAsync()
+    {
+        var settings = _settingsStore.Load();
+        _baseUrl = settings.BaseUrl.TrimEnd('/');
+
+        var userDataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "HaCompanion", "WebView2Panel");
+        var env = await CoreWebView2Environment.CreateWithOptionsAsync(
+            null, userDataFolder, new CoreWebView2EnvironmentOptions());
+        await PanelWeb.EnsureCoreWebView2Async(env);
+
+        if (settings.IgnoreCertificateErrors)
+        {
+            PanelWeb.CoreWebView2.ServerCertificateErrorDetected += (_, e) =>
+                e.Action = CoreWebView2ServerCertificateErrorAction.AlwaysAllow;
+        }
+
+        await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+            HaWebViewHelper.BuildAuthScript(_baseUrl, settings.Token));
+        await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+            HaWebViewHelper.HideChromeScript);
     }
 
     private void OnEscape(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -195,12 +250,6 @@ public sealed partial class QuickPanelWindow : Window
     {
         if (ViewModel.Catalog.IsEditing)
             return; // in edit mode taps are for arranging, not switching
-        if (e.ClickedItem is EntityTileViewModel tile)
-            await tile.ToggleCommand.ExecuteAsync(null);
-    }
-
-    private async void Dashboard_ItemClick(object sender, ItemClickEventArgs e)
-    {
         if (e.ClickedItem is EntityTileViewModel tile)
             await tile.ToggleCommand.ExecuteAsync(null);
     }

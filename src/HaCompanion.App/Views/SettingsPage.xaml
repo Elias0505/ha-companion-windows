@@ -24,6 +24,10 @@
             <ToggleSwitch Header="Ignore certificate errors (self-signed HTTPS)"
                           IsOn="{x:Bind ViewModel.IgnoreCertificateErrors, Mode=TwoWay}" />
 
+            <ToggleSwitch Header="Auto-hide the quick panel when it loses focus"
+                          OnContent="On" OffContent="Off"
+                          IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
+
             <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                        Text="{x:Bind ViewModel.HotkeyStatus}" />
 

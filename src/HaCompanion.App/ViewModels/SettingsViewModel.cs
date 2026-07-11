@@ -26,7 +26,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _hotkey = "Win+Ctrl+H";
 
     [ObservableProperty]
+    private bool _autoHideQuickPanel = true;
+
+    [ObservableProperty]
     private string _statusMessage = string.Empty;
+
+    private bool _loading;
 
     [ObservableProperty]
     private bool _isBusy;
@@ -46,23 +51,36 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private void Load()
     {
+        _loading = true;
         var settings = _settingsStore.Load();
         BaseUrl = settings.BaseUrl;
         Token = settings.Token;
         IgnoreCertificateErrors = settings.IgnoreCertificateErrors;
         Hotkey = settings.Hotkey;
+        AutoHideQuickPanel = settings.AutoHideQuickPanel;
+        _loading = false;
+    }
+
+    private AppSettings BuildSettings() => new()
+    {
+        BaseUrl = BaseUrl.Trim(),
+        Token = Token.Trim(),
+        IgnoreCertificateErrors = IgnoreCertificateErrors,
+        Hotkey = Hotkey,
+        AutoHideQuickPanel = AutoHideQuickPanel,
+    };
+
+    // Persist the auto-hide toggle immediately (no reconnect needed).
+    partial void OnAutoHideQuickPanelChanged(bool value)
+    {
+        if (!_loading)
+            _settingsStore.Save(BuildSettings());
     }
 
     [RelayCommand]
     private async Task SaveAndConnectAsync()
     {
-        var settings = new AppSettings
-        {
-            BaseUrl = BaseUrl.Trim(),
-            Token = Token.Trim(),
-            IgnoreCertificateErrors = IgnoreCertificateErrors,
-            Hotkey = Hotkey,
-        };
+        var settings = BuildSettings();
 
         if (!settings.HasConnection)
         {

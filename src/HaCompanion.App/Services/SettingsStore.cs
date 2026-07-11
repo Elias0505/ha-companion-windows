@@ -39,6 +39,7 @@ public sealed class SettingsStore : ISettingsStore
                 BaseUrl = persisted.BaseUrl,
                 IgnoreCertificateErrors = persisted.IgnoreCertificateErrors,
                 Hotkey = string.IsNullOrWhiteSpace(persisted.Hotkey) ? "Win+Ctrl+H" : persisted.Hotkey,
+                AutoHideQuickPanel = persisted.AutoHideQuickPanel,
                 Token = Unprotect(persisted.TokenProtected),
             };
         }
@@ -57,6 +58,7 @@ public sealed class SettingsStore : ISettingsStore
             BaseUrl = settings.BaseUrl,
             IgnoreCertificateErrors = settings.IgnoreCertificateErrors,
             Hotkey = settings.Hotkey,
+            AutoHideQuickPanel = settings.AutoHideQuickPanel,
             TokenProtected = Protect(settings.Token),
         };
         File.WriteAllText(_file, JsonSerializer.Serialize(persisted, JsonOptions));
@@ -99,6 +101,7 @@ public sealed class SettingsStore : ISettingsStore
         public string BaseUrl { get; set; } = string.Empty;
         public bool IgnoreCertificateErrors { get; set; }
         public string Hotkey { get; set; } = "Win+Ctrl+H";
+        public bool AutoHideQuickPanel { get; set; } = true;
         public string TokenProtected { get; set; } = string.Empty;
     }
 }
