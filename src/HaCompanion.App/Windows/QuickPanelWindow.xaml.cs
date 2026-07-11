@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Diagnostics;
 using System.IO;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Composition;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Web.WebView2.Core;
@@ -31,12 +29,15 @@ public sealed partial class QuickPanelWindow : Window
 
     private readonly IntPtr _hwnd;
     private readonly ISettingsStore _settingsStore;
+    private readonly Stopwatch _slideClock = new();
     private Task? _webInitTask;
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
+    private double _fromX;
+    private double _toX;
+    private int _slideY;
+    private bool _slideShowing;
     private bool _isOpen;
-
-    private float SlideDistance => _panelWidthDip + 40f;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
@@ -52,12 +53,6 @@ public sealed partial class QuickPanelWindow : Window
 
         _hwnd = WindowNative.GetWindowHandle(this);
 
-        // Animate via Translation (layout-safe), starting offscreen to avoid a first-open flash.
-        // The whole opaque panel slides as one — no opacity fade (that read as a "flash").
-        ElementCompositionPreview.SetIsTranslationEnabled(RootGrid, true);
-        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
-        visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
-
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;
         presenter.IsMaximizable = false;
@@ -66,13 +61,7 @@ public sealed partial class QuickPanelWindow : Window
         presenter.SetBorderAndTitleBar(false, false);
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
-
-        // Remove the thin Win11 window border/outline and rounded corners (the faint
-        // "selected"-looking white frame) for a truly borderless overlay.
-        var noBorder = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
-        DwmSetWindowAttribute(_hwnd, 34 /* DWMWA_BORDER_COLOR */, ref noBorder, sizeof(int));
-        var doNotRound = 1; // DWMWCP_DONOTROUND
-        DwmSetWindowAttribute(_hwnd, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, ref doNotRound, sizeof(int));
+        ApplyNoBorder();
 
         Activated += OnActivated;
         AppWindow.Hide();
@@ -88,19 +77,25 @@ public sealed partial class QuickPanelWindow : Window
 
     public void ShowAnimated()
     {
-        Reposition();
+        _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
+        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
+        var work = area.WorkArea;
+        var scale = GetDpiForWindow(_hwnd) / 96.0;
+        var width = (int)(_panelWidthDip * scale);
+        _slideY = work.Y;
+        var finalX = work.X + work.Width - width;
+        var offX = work.X + work.Width; // fully off the right edge
 
-        // Reset to the offscreen start state before showing.
-        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
-        visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
-
+        // Park the window off-screen, reveal it, then slide the WHOLE window in — so
+        // background, content and the embedded WebView all move together as one unit.
+        AppWindow.MoveAndResize(new RectInt32(offX, work.Y, width, work.Height));
         AppWindow.Show();
         Activate();
+        ApplyNoBorder();
         _isOpen = true;
-        AnimateIn();
-        _ = ViewModel.EnsureDashboardsAsync();
+        StartSlide(offX, finalX, showing: true);
 
-        // Put focus inside the panel so Esc + Deactivated dismissal work immediately.
+        _ = ViewModel.EnsureDashboardsAsync();
         if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
             focusable.Focus(FocusState.Programmatic);
     }
@@ -115,41 +110,47 @@ public sealed partial class QuickPanelWindow : Window
         ViewModel.Catalog.IsEditing = false;
         UpdateEditIcon();
 
-        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
-        var comp = visual.Compositor;
-        var batch = comp.CreateScopedBatch(CompositionBatchTypes.Animation);
-
-        var slide = comp.CreateScalarKeyFrameAnimation();
-        slide.InsertKeyFrame(1f, SlideDistance);
-        slide.Duration = TimeSpan.FromMilliseconds(220);
-        visual.StartAnimation("Translation.X", slide);
-
-        batch.End();
-        batch.Completed += (_, _) => AppWindow.Hide();
+        var currentX = AppWindow.Position.X;
+        StartSlide(currentX, currentX + AppWindow.Size.Width, showing: false);
     }
 
-    private void AnimateIn()
+    private void StartSlide(double fromX, double toX, bool showing)
     {
-        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
-        var comp = visual.Compositor;
-        var ease = comp.CreateCubicBezierEasingFunction(new Vector2(0.1f, 0.9f), new Vector2(0.2f, 1.0f));
-
-        var slide = comp.CreateScalarKeyFrameAnimation();
-        slide.InsertKeyFrame(0f, SlideDistance);
-        slide.InsertKeyFrame(1f, 0f, ease);
-        slide.Duration = TimeSpan.FromMilliseconds(300);
-        visual.StartAnimation("Translation.X", slide);
+        _fromX = fromX;
+        _toX = toX;
+        _slideShowing = showing;
+        _slideClock.Restart();
+        CompositionTarget.Rendering -= OnSlideFrame;
+        CompositionTarget.Rendering += OnSlideFrame;
     }
 
-    private void Reposition()
+    private void OnSlideFrame(object? sender, object e)
     {
-        _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
-        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
-        var work = area.WorkArea;
-        var scale = GetDpiForWindow(_hwnd) / 96.0;
-        var width = (int)(_panelWidthDip * scale);
-        var x = work.X + work.Width - width;
-        AppWindow.MoveAndResize(new RectInt32(x, work.Y, width, work.Height));
+        const double durationMs = 240;
+        var t = _slideClock.Elapsed.TotalMilliseconds / durationMs;
+        if (t > 1)
+            t = 1;
+        var eased = 1 - Math.Pow(1 - t, 3); // ease-out cubic
+        var x = (int)Math.Round(_fromX + (_toX - _fromX) * eased);
+        AppWindow.Move(new PointInt32(x, _slideY));
+
+        if (t >= 1)
+        {
+            _slideClock.Stop();
+            CompositionTarget.Rendering -= OnSlideFrame;
+            if (!_slideShowing)
+                AppWindow.Hide();
+        }
+    }
+
+    private void ApplyNoBorder()
+    {
+        // DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE removes the thin Win11 window outline;
+        // DWMWA_WINDOW_CORNER_PREFERENCE = DONOTROUND makes it a crisp flush rectangle.
+        var none = unchecked((int)0xFFFFFFFE);
+        DwmSetWindowAttribute(_hwnd, 34, ref none, sizeof(int));
+        var doNotRound = 1;
+        DwmSetWindowAttribute(_hwnd, 33, ref doNotRound, sizeof(int));
     }
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
