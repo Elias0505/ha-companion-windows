@@ -76,8 +76,8 @@ public sealed partial class HaDashboardsPage : Page
 
             // Pre-seed hassTokens so the HA frontend logs in without any prompt.
             await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildAuthScript(_baseUrl, settings.Token));
-            // Best-effort: hide HA's sidebar (the app has its own navigation).
-            await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(HideSidebarScript);
+            // Note: HA's own sidebar stays intact (the ☰ button must keep working);
+            // switch dashboards via the native picker above or HA's sidebar.
         }
         catch (Exception ex)
         {
@@ -134,27 +134,4 @@ public sealed partial class HaDashboardsPage : Page
         });
         return $"window.localStorage.setItem('hassTokens', {JsonSerializer.Serialize(authJson)});";
     }
-
-    /// <summary>Retries for ~10s after each navigation to collapse HA's left sidebar.</summary>
-    private const string HideSidebarScript =
-        """
-        (function () {
-          function hide() {
-            try {
-              const ha = document.querySelector('home-assistant');
-              const main = ha && ha.shadowRoot && ha.shadowRoot.querySelector('home-assistant-main');
-              if (!main || !main.shadowRoot) return false;
-              const drawer = main.shadowRoot.querySelector('ha-drawer');
-              if (!drawer || !drawer.shadowRoot) return false;
-              const aside = drawer.shadowRoot.querySelector('aside, .mdc-drawer');
-              if (aside) aside.style.display = 'none';
-              const content = drawer.shadowRoot.querySelector('.mdc-drawer-app-content');
-              if (content) content.style.marginLeft = '0';
-              return !!aside;
-            } catch (e) { return false; }
-          }
-          let tries = 0;
-          const timer = setInterval(() => { if (hide() || ++tries > 40) clearInterval(timer); }, 250);
-        })();
-        """;
 }
