@@ -45,7 +45,8 @@ public sealed partial class QuickPanelWindow : Window
         ViewModel.DashboardRequested += OnDashboardRequested;
 
         Title = "HA Companion — Quick Panel";
-        SystemBackdrop = new DesktopAcrylicBackdrop();
+        // No window-level backdrop: the panel's background lives inside RootGrid so it
+        // slides in together with the content (no lag) and shows no window border.
 
         _hwnd = WindowNative.GetWindowHandle(this);
 

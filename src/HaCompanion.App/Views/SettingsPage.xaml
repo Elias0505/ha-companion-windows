@@ -28,8 +28,27 @@
                           OnContent="On" OffContent="Off"
                           IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
 
+            <ComboBox Header="Quick panel hotkey"
+                      HorizontalAlignment="Stretch"
+                      ItemsSource="{x:Bind ViewModel.HotkeyPresets}"
+                      SelectedItem="{x:Bind ViewModel.Hotkey, Mode=TwoWay}" />
             <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                       Text="{x:Bind ViewModel.HotkeyStatus}" />
+                       Text="{x:Bind ViewModel.HotkeyStatus, Mode=OneWay}" />
+
+            <Expander Header="Tips &amp; best practices" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="8" Padding="4,4,4,8">
+                    <TextBlock TextWrapping="Wrap" Opacity="0.85"
+                               Text="• Hotkey: use Ctrl or Alt plus a letter (e.g. Ctrl+Alt+H). Windows reserves some Win-key combos (Win+H is voice typing), so those may not register." />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.85"
+                               Text="• If a hotkey shows as not registered, another app already uses it — just pick a different combo above." />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.85"
+                               Text="• The app keeps running in the system tray (bottom-right, under the ^). Right-click the tray icon → Exit to quit fully; the window close button only hides it." />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.85"
+                               Text="• Favourites: use the pencil (edit) button in the quick panel or on Start to add/remove tiles, and drag to reorder." />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.85"
+                               Text="• Security: your token is stored encrypted (DPAPI) on this PC only. Enable 'Ignore certificate errors' only for a self-signed local HA; leave it off when using a real certificate/domain." />
+                </StackPanel>
+            </Expander>
 
             <Button Content="Connect"
                     Style="{StaticResource AccentButtonStyle}"

@@ -40,6 +40,8 @@ public partial class App : Application
         var hotkeys = Services.GetRequiredService<IHotkeyService>();
         var quickPanel = Services.GetRequiredService<IQuickPanelController>();
         hotkeys.Initialize(MainWindow);
+        var storedHotkey = Services.GetRequiredService<ISettingsStore>().Load().Hotkey;
+        hotkeys.Register(string.IsNullOrWhiteSpace(storedHotkey) ? "Win+Ctrl+H" : storedHotkey);
         hotkeys.HotkeyPressed += (_, _) => quickPanel.Toggle();
 
         MainWindow.Activate();

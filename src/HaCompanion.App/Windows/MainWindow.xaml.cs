@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.IO;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Services;
 using HaCompanion.App.Views;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -28,6 +30,19 @@ public sealed partial class MainWindow : Window
         Title = "HA Companion";
         SystemBackdrop = new MicaBackdrop();
         AppWindow.Resize(new SizeInt32(1100, 720));
+
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+        if (File.Exists(iconPath))
+            AppWindow.SetIcon(iconPath);
+
+        if (AppWindowTitleBar.IsCustomizationSupported())
+        {
+            var titleBar = AppWindow.TitleBar;
+            titleBar.ButtonBackgroundColor = Colors.Transparent;
+            titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+            titleBar.ButtonForegroundColor = Colors.White;
+        }
+
         AppWindow.Closing += OnClosing;
     }
 

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Models;
@@ -6,12 +7,13 @@ using HaCompanion.App.Services;
 
 namespace HaCompanion.App.ViewModels;
 
-/// <summary>Backing view model for the settings page: connection details + connect action.</summary>
+/// <summary>Backing view model for the settings page: connection, hotkey and panel behaviour.</summary>
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsStore _settingsStore;
     private readonly ShellViewModel _shell;
     private readonly IHotkeyService _hotkeys;
+    private bool _loading;
 
     [ObservableProperty]
     private string _baseUrl = string.Empty;
@@ -29,12 +31,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _autoHideQuickPanel = true;
 
     [ObservableProperty]
-    private string _statusMessage = string.Empty;
+    private string _hotkeyStatus = string.Empty;
 
-    private bool _loading;
+    [ObservableProperty]
+    private string _statusMessage = string.Empty;
 
     [ObservableProperty]
     private bool _isBusy;
+
+    public ObservableCollection<string> HotkeyPresets { get; } = new()
+    {
+        "Win+Ctrl+H", "Ctrl+Alt+H", "Ctrl+Shift+H", "Ctrl+Alt+Space", "Win+Ctrl+Space", "Ctrl+Alt+A",
+    };
 
     public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys)
     {
@@ -44,11 +52,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         Load();
     }
 
-    /// <summary>Human-readable state of the global hotkey registration.</summary>
-    public string HotkeyStatus => _hotkeys.IsRegistered
-        ? $"Quick panel hotkey active: {Hotkey}"
-        : $"Hotkey {Hotkey} could not be registered (possibly reserved) — open the quick panel via the tray icon.";
-
     private void Load()
     {
         _loading = true;
@@ -56,9 +59,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         BaseUrl = settings.BaseUrl;
         Token = settings.Token;
         IgnoreCertificateErrors = settings.IgnoreCertificateErrors;
-        Hotkey = settings.Hotkey;
+        Hotkey = string.IsNullOrWhiteSpace(settings.Hotkey) ? "Win+Ctrl+H" : settings.Hotkey;
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
+        if (!HotkeyPresets.Contains(Hotkey))
+            HotkeyPresets.Insert(0, Hotkey);
         _loading = false;
+        RefreshHotkeyStatus();
     }
 
     private AppSettings BuildSettings() => new()
@@ -70,18 +76,30 @@ public sealed partial class SettingsViewModel : ObservableObject
         AutoHideQuickPanel = AutoHideQuickPanel,
     };
 
-    // Persist the auto-hide toggle immediately (no reconnect needed).
     partial void OnAutoHideQuickPanelChanged(bool value)
     {
         if (!_loading)
             _settingsStore.Save(BuildSettings());
     }
 
+    partial void OnHotkeyChanged(string value)
+    {
+        if (_loading || string.IsNullOrWhiteSpace(value))
+            return;
+        _settingsStore.Save(BuildSettings());
+        _hotkeys.Register(value);
+        RefreshHotkeyStatus();
+    }
+
+    private void RefreshHotkeyStatus() =>
+        HotkeyStatus = _hotkeys.IsRegistered
+            ? $"Active — press {Hotkey} anywhere to open the quick panel."
+            : $"'{Hotkey}' could not be registered (reserved or already in use). Pick another combo above, or open the panel from the tray icon.";
+
     [RelayCommand]
     private async Task SaveAndConnectAsync()
     {
         var settings = BuildSettings();
-
         if (!settings.HasConnection)
         {
             StatusMessage = "Please enter both a base URL and a long-lived access token.";

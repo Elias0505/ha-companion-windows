@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml;
 
 namespace HaCompanion.App.Services;
 
-/// <summary>Registers a global system hotkey (default Win+Ctrl+H) and raises an event when pressed.</summary>
+/// <summary>Registers a configurable global system hotkey and raises an event when pressed.</summary>
 public interface IHotkeyService
 {
     event EventHandler? HotkeyPressed;
@@ -11,8 +11,11 @@ public interface IHotkeyService
     /// <summary>True if the global hotkey was successfully registered with Windows.</summary>
     bool IsRegistered { get; }
 
-    /// <summary>Hook the given window's message loop and register the default hotkey.</summary>
+    /// <summary>Hook the given window's message loop (call once at startup).</summary>
     void Initialize(Window window);
+
+    /// <summary>(Re)register a hotkey from a combo string like "Win+Ctrl+H". Returns success.</summary>
+    bool Register(string combo);
 
     void Unregister();
 }
