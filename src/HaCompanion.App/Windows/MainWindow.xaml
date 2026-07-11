@@ -33,13 +33,26 @@
 
         <tb:TaskbarIcon x:Name="Tray"
                         ToolTipText="HA Companion"
+                        ContextMenuMode="SecondWindow"
                         IconSource="ms-appx:///Assets/tray.ico">
             <tb:TaskbarIcon.ContextFlyout>
                 <MenuFlyout>
-                    <MenuFlyoutItem Text="Open" Click="Tray_Open" />
-                    <MenuFlyoutItem Text="Quick panel (Win+Ctrl+H)" Click="Tray_QuickPanel" />
+                    <MenuFlyoutItem Text="Open" Click="Tray_Open">
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE7C4;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+                    <MenuFlyoutItem Text="Quick panel  (Win+Ctrl+H)" Click="Tray_QuickPanel">
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE8A0;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
                     <MenuFlyoutSeparator />
-                    <MenuFlyoutItem Text="Exit" Click="Tray_Exit" />
+                    <MenuFlyoutItem Text="Exit HA Companion" Click="Tray_Exit">
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE7E8;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
                 </MenuFlyout>
             </tb:TaskbarIcon.ContextFlyout>
         </tb:TaskbarIcon>

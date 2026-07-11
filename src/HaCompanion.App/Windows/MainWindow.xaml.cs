@@ -23,6 +23,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         Tray.LeftClickCommand = OpenCommand;
+        Tray.ForceCreate(); // ensure the tray icon actually appears (esp. unpackaged)
 
         Title = "HA Companion";
         SystemBackdrop = new MicaBackdrop();
@@ -65,7 +66,9 @@ public sealed partial class MainWindow : Window
 
     private void Tray_Exit(object sender, RoutedEventArgs e)
     {
+        // Fully quit: stop hiding-to-tray, remove the icon, release the hotkey, exit.
         AppWindow.Closing -= OnClosing;
+        try { App.Services.GetRequiredService<IHotkeyService>().Unregister(); } catch { }
         Tray.Dispose();
         Application.Current.Exit();
     }
