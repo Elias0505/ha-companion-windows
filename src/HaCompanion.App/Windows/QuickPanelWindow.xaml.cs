@@ -11,7 +11,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Web.WebView2.Core;
-using Windows.Graphics;
 using WinRT.Interop;
 
 namespace HaCompanion.App.Windows;
@@ -25,17 +24,30 @@ namespace HaCompanion.App.Windows;
 /// <remarks>
 /// Animation model: a single desired-state field (<see cref="_isOpen"/>) is the sole
 /// source of truth. Every show/hide request just sets that target and (re)starts a slide
-/// from the window's CURRENT position toward the target edge. Because the timer runs on
-/// pure elapsed time and only ever stops once it reaches the target, the panel always
-/// converges to its last requested state — it can never come to rest half-way, no matter
-/// how fast the hotkey is spammed. Reentrancy (Show()/Activate() pump the message loop, so
-/// a queued WM_HOTKEY can call back in mid-setup) is contained by <see cref="_inSetup"/>:
-/// nested calls only flip the target, and the outer frame starts one authoritative slide.
+/// from the window's CURRENT position toward the target edge; the timer runs on pure
+/// elapsed time and only stops at the target, so the panel always converges to its last
+/// requested state no matter how fast the hotkey is spammed. Reentrancy (Show()/Activate()
+/// pump the message loop, so a queued WM_HOTKEY can call back mid-setup) is contained by
+/// <see cref="_inSetup"/>: nested calls only flip the target; the outer frame runs one slide.
+///
+/// Geometry is always taken from the monitor under the mouse cursor, using that monitor's
+/// own effective DPI, and the window is positioned with absolute-pixel <c>SetWindowPos</c>
+/// calls. This is deliberate: <c>AppWindow.Move</c> reinterprets its coordinates when the
+/// window crosses a per-monitor-DPI boundary, which on a multi-monitor rig let each rapid
+/// open/close walk the window onto the neighbouring display until it parked half-off. Fixing
+/// the target monitor per open (never from the window's own drifted position) and moving in
+/// raw screen pixels removes that feedback loop.
 /// </remarks>
 public sealed partial class QuickPanelWindow : Window
 {
     private const int DefaultPanelWidthDip = 400;
     private const int AnimDurationMs = 200;
+
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+    private const int MDT_EFFECTIVE_DPI = 0;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_NOOWNERZORDER = 0x0200;
 
     public QuickPanelViewModel ViewModel { get; }
 
@@ -51,7 +63,7 @@ public sealed partial class QuickPanelWindow : Window
     private bool _inSetup;       // reentrancy guard around the message-pumping Show()/Activate()
     private bool _previewing;
 
-    // Slide geometry in physical pixels, recomputed from the work area on each show.
+    // Slide geometry in absolute screen pixels, recomputed from the cursor's monitor per show.
     private int _winY, _winW, _winH, _restX, _offX;
     private int _animFromX, _animToX;
     private long _animStartMs;
@@ -98,16 +110,33 @@ public sealed partial class QuickPanelWindow : Window
         AppWindow.Hide();
     }
 
+    /// <summary>
+    /// Recomputes the slide geometry from the monitor currently under the mouse cursor, using
+    /// that monitor's effective DPI. Absolute screen pixels; never derived from the window's
+    /// own (possibly drifted) position, so repeated opens can't walk across displays.
+    /// </summary>
     private void ComputeGeometry()
     {
-        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
-        var work = area.WorkArea;
-        var scale = GetDpiForWindow(_hwnd) / 96.0;
+        GetCursorPos(out var pt);
+        var mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        var mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfoW(mon, ref mi))
+        {
+            // Extremely unlikely; fall back to a primary-ish 1080p rectangle so we never divide
+            // by a zero-sized work area.
+            mi.rcWork = new RECT { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
+        }
+
+        var dpi = 96u;
+        if (GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0)
+            dpi = dpiX;
+
+        var scale = dpi / 96.0;
         _winW = (int)Math.Round(_panelWidthDip * scale);
-        _winY = work.Y;
-        _winH = work.Height;
-        _restX = work.X + work.Width - _winW;
-        _offX = work.X + work.Width; // fully off the right edge of the work area
+        _winY = mi.rcWork.Top;
+        _winH = mi.rcWork.Bottom - mi.rcWork.Top;
+        _restX = mi.rcWork.Right - _winW; // flush to the right edge of the cursor's monitor
+        _offX = mi.rcWork.Right;          // just off that right edge
     }
 
     /// <summary>
@@ -125,7 +154,7 @@ public sealed partial class QuickPanelWindow : Window
         else
         {
             ComputeGeometry();
-            AppWindow.MoveAndResize(new RectInt32(_restX, _winY, _winW, _winH));
+            MoveWindowPx(_restX, _winY, _winW, _winH);
             _isOpen = true;
         }
         _previewTimer.Stop();
@@ -166,7 +195,7 @@ public sealed partial class QuickPanelWindow : Window
             {
                 _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
                 ComputeGeometry();
-                AppWindow.MoveAndResize(new RectInt32(_offX, _winY, _winW, _winH)); // park off-screen
+                MoveWindowPx(_offX, _winY, _winW, _winH); // park just off the right edge
                 _windowShown = true;
                 AppWindow.Show();
                 Activate();
@@ -214,7 +243,7 @@ public sealed partial class QuickPanelWindow : Window
         var t = Math.Clamp(elapsed / (double)AnimDurationMs, 0.0, 1.0);
         var eased = 1.0 - Math.Pow(1.0 - t, 3.0); // ease-out cubic
         var x = (int)Math.Round(_animFromX + (_animToX - _animFromX) * eased);
-        TryMove(x);
+        MovePx(x);
 
         if (t < 1.0)
             return;
@@ -227,7 +256,7 @@ public sealed partial class QuickPanelWindow : Window
             TimeEndPeriod(1);
             _timerBoosted = false;
         }
-        TryMove(_animToX);
+        MovePx(_animToX);
 
         if (!_isOpen)
         {
@@ -247,16 +276,16 @@ public sealed partial class QuickPanelWindow : Window
         DwmSetWindowAttribute(_hwnd, 33, ref doNotRound, sizeof(int));
     }
 
+    private void MoveWindowPx(int x, int y, int w, int h) =>
+        SetWindowPos(_hwnd, IntPtr.Zero, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+
+    private void MovePx(int x) => MoveWindowPx(x, _winY, _winW, _winH);
+
     private int SafePositionX()
     {
-        try { return AppWindow.Position.X; }
-        catch { return _isOpen ? _offX : _restX; }
-    }
-
-    private void TryMove(int x)
-    {
-        try { AppWindow.Move(new PointInt32(x, _winY)); }
-        catch { /* window may be transitioning; the next tick or settle corrects it */ }
+        if (GetWindowRect(_hwnd, out var r))
+            return r.Left;
+        return _isOpen ? _offX : _restX;
     }
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
@@ -390,8 +419,32 @@ public sealed partial class QuickPanelWindow : Window
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X, Y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public int dwFlags; }
+
     [DllImport("user32.dll")]
-    private static extern uint GetDpiForWindow(IntPtr hwnd);
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
