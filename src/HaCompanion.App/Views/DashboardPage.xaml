@@ -3,7 +3,6 @@
     x:Class="HaCompanion.App.Views.DashboardPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:HaCompanion.App.ViewModels"
     xmlns:conv="using:HaCompanion.App.Converters"
     mc:Ignorable="d"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -14,60 +13,160 @@
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
     </Page.Resources>
 
-    <Grid RowDefinitions="Auto,*" Padding="24">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-            <TextBlock Text="Dashboard" Style="{StaticResource TitleTextBlockStyle}" />
-            <Border VerticalAlignment="Center" CornerRadius="10" Padding="8,2"
+    <Grid RowDefinitions="Auto,*" Padding="24" x:Name="PageRoot">
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnSpacing="10" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Start" Style="{StaticResource TitleTextBlockStyle}" />
+            <Border Grid.Column="1" VerticalAlignment="Center" CornerRadius="10" Padding="8,2"
                     Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
-                <TextBlock Text="{x:Bind ViewModel.Shell.StatusText, Mode=OneWay}" FontSize="12" Opacity="0.8" />
+                <TextBlock Text="{Binding Shell.StatusText}" FontSize="12" Opacity="0.8" />
             </Border>
-        </StackPanel>
 
-        <Grid Grid.Row="1">
-            <TextBlock Text="No entities yet. Open Settings and connect to your Home Assistant."
-                       Opacity="0.6" TextWrapping="Wrap"
-                       Visibility="{x:Bind ViewModel.Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}, Mode=OneWay}" />
+            <Button Grid.Column="3" x:Name="AddTileButton" Padding="8"
+                    ToolTipService.ToolTip="Add favourites"
+                    Visibility="{Binding Catalog.IsEditing, Converter={StaticResource BoolToVisibility}}"
+                    Click="AddTileButton_Click">
+                <FontIcon Glyph="&#xE710;" FontSize="14" />
+                <Button.Flyout>
+                    <Flyout Placement="Bottom">
+                        <StackPanel Width="320" Spacing="8">
+                            <TextBox x:Name="SearchBox" PlaceholderText="Search entities…"
+                                     TextChanged="SearchBox_TextChanged" />
+                            <ListView x:Name="SearchResults" MaxHeight="360"
+                                      SelectionMode="None" IsItemClickEnabled="True"
+                                      ItemClick="SearchResult_ItemClick"
+                                      ItemsSource="{Binding Catalog.AddCandidates}">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
+                                            <FontIcon Glyph="{Binding Glyph}" FontSize="14"
+                                                      FontFamily="{ThemeResource SymbolThemeFontFamily}" Opacity="0.8" />
+                                            <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </StackPanel>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
 
-            <ScrollViewer>
-                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Catalog.Groups, Mode=OneWay}">
+            <Button Grid.Column="4" x:Name="EditButton" Padding="8"
+                    ToolTipService.ToolTip="Edit layout" Click="EditButton_Click">
+                <FontIcon x:Name="EditIcon" Glyph="&#xE70F;" FontSize="14" />
+            </Button>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="24">
+                <TextBlock Text="No entities yet. Open Settings and connect to your Home Assistant."
+                           Opacity="0.6" TextWrapping="Wrap"
+                           Visibility="{Binding Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+                <!-- Favourites (pinned, drag-reorderable in edit mode) -->
+                <StackPanel Spacing="10"
+                            Visibility="{Binding Catalog.ShowPinnedArea, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE735;" FontSize="15" Opacity="0.85" VerticalAlignment="Center" />
+                        <TextBlock Text="Favourites" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    </StackPanel>
+                    <TextBlock Text="No favourites yet — use + to add tiles, or pin any tile below while editing."
+                               Opacity="0.55" TextWrapping="Wrap"
+                               Visibility="{Binding Catalog.ShowEditHint, Converter={StaticResource BoolToVisibility}}" />
+                    <GridView x:Name="PinnedGrid"
+                              ItemsSource="{Binding Catalog.Pinned}"
+                              SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
+                              CanDragItems="{Binding Catalog.IsEditing}"
+                              CanReorderItems="{Binding Catalog.IsEditing}"
+                              AllowDrop="{Binding Catalog.IsEditing}">
+                        <GridView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Width="156" Height="112" Margin="2">
+                                    <Border CornerRadius="10" Padding="12"
+                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                        <StackPanel Spacing="7">
+                                            <Border Width="38" Height="38" CornerRadius="19" HorizontalAlignment="Left"
+                                                    Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
+                                                <FontIcon Glyph="{Binding Glyph}" FontSize="17"
+                                                          FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                          Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding FriendlyName}" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                            <TextBlock Text="{Binding StateText}" FontSize="11" Opacity="0.6"
+                                                       TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Button Width="22" Height="22" Padding="0" CornerRadius="11"
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0"
+                                            Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                            Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}}"
+                                            Click="Unpin_Click" ToolTipService.ToolTip="Remove from favourites">
+                                        <FontIcon Glyph="&#xE711;" FontSize="10" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
+                </StackPanel>
+
+                <!-- All devices, auto-grouped -->
+                <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
                     <ItemsRepeater.Layout>
                         <StackLayout Spacing="22" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="vm:EntityGroupViewModel">
+                        <DataTemplate>
                             <StackPanel Spacing="10">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="{x:Bind Glyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                    <FontIcon Glyph="{Binding Glyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                               FontSize="16" Opacity="0.8" VerticalAlignment="Center" />
-                                    <TextBlock Text="{x:Bind Header}" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <TextBlock Text="{Binding Header}" Style="{StaticResource SubtitleTextBlockStyle}" />
                                     <Border CornerRadius="9" Padding="7,1" VerticalAlignment="Center"
                                             Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
-                                        <TextBlock Text="{x:Bind Count, Mode=OneWay}" FontSize="12" Opacity="0.7" />
+                                        <TextBlock Text="{Binding Count}" FontSize="12" Opacity="0.7" />
                                     </Border>
                                 </StackPanel>
 
-                                <ItemsRepeater ItemsSource="{x:Bind Tiles}">
+                                <ItemsRepeater ItemsSource="{Binding Tiles}">
                                     <ItemsRepeater.Layout>
                                         <UniformGridLayout MinItemWidth="164" MinItemHeight="96"
                                                            MinColumnSpacing="10" MinRowSpacing="10" />
                                     </ItemsRepeater.Layout>
                                     <ItemsRepeater.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:EntityTileViewModel">
-                                            <Button Command="{x:Bind ToggleCommand}"
-                                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                                    Padding="14" CornerRadius="10">
-                                                <StackPanel Spacing="6">
-                                                    <FontIcon Glyph="{x:Bind Glyph}"
-                                                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                              FontSize="22" HorizontalAlignment="Left"
-                                                              Foreground="{x:Bind IsOn, Converter={StaticResource StateBrush}, Mode=OneWay}" />
-                                                    <TextBlock Text="{x:Bind FriendlyName, Mode=OneWay}"
-                                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                    <TextBlock Text="{x:Bind StateText, Mode=OneWay}"
-                                                               FontSize="12" Opacity="0.7"
-                                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                </StackPanel>
-                                            </Button>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Button Command="{Binding ToggleCommand}"
+                                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                        Padding="14" CornerRadius="10">
+                                                    <StackPanel Spacing="6">
+                                                        <FontIcon Glyph="{Binding Glyph}"
+                                                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                                  FontSize="22" HorizontalAlignment="Left"
+                                                                  Foreground="{Binding IsOn, Converter={StaticResource StateBrush}}" />
+                                                        <TextBlock Text="{Binding FriendlyName}"
+                                                                   TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                        <TextBlock Text="{Binding StateText}"
+                                                                   FontSize="12" Opacity="0.7"
+                                                                   TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Width="24" Height="24" Padding="0" CornerRadius="12"
+                                                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0"
+                                                        Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                                        Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}}"
+                                                        Click="Pin_Click" ToolTipService.ToolTip="Pin to favourites">
+                                                    <FontIcon Glyph="&#xE718;" FontSize="11" />
+                                                </Button>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsRepeater.ItemTemplate>
                                 </ItemsRepeater>
@@ -75,7 +174,7 @@
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
-            </ScrollViewer>
-        </Grid>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

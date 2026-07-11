@@ -11,6 +11,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsStore _settingsStore;
     private readonly ShellViewModel _shell;
+    private readonly IHotkeyService _hotkeys;
 
     [ObservableProperty]
     private string _baseUrl = string.Empty;
@@ -30,12 +31,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBusy;
 
-    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell)
+    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys)
     {
         _settingsStore = settingsStore;
         _shell = shell;
+        _hotkeys = hotkeys;
         Load();
     }
+
+    /// <summary>Human-readable state of the global hotkey registration.</summary>
+    public string HotkeyStatus => _hotkeys.IsRegistered
+        ? $"Quick panel hotkey active: {Hotkey}"
+        : $"Hotkey {Hotkey} could not be registered (possibly reserved) — open the quick panel via the tray icon.";
 
     private void Load()
     {

@@ -46,6 +46,9 @@ public sealed partial class MainWindow : Window
                 case "dashboard":
                     ContentFrame.Navigate(typeof(DashboardPage));
                     break;
+                case "hadashboards":
+                    ContentFrame.Navigate(typeof(HaDashboardsPage));
+                    break;
                 case "settings":
                     ContentFrame.Navigate(typeof(SettingsPage));
                     break;

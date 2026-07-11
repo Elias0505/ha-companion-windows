@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using HaCompanion.Core.Models;
 using Microsoft.Extensions.Logging;
 
@@ -8,7 +10,8 @@ namespace HaCompanion.Core.WebSocket;
 
 /// <summary>
 /// Maintains a Home Assistant WebSocket API connection: authenticates,
-/// subscribes to <c>state_changed</c> events and pushes them to subscribers.
+/// subscribes to <c>state_changed</c> events, supports id-correlated
+/// request/response commands and pushes events to subscribers.
 /// Automatically reconnects with exponential backoff.
 /// </summary>
 public sealed class HaWebSocketClient : IAsyncDisposable
@@ -16,9 +19,12 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly ILogger<HaWebSocketClient> _logger;
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private readonly ConcurrentDictionary<int, TaskCompletionSource<JsonElement>> _pending = new();
 
     private CancellationTokenSource? _cts;
     private Task? _supervisor;
+    private ClientWebSocket? _activeSocket;
     private Uri _uri = null!;
     private string _token = string.Empty;
     private bool _ignoreCertErrors;
@@ -50,7 +56,46 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         catch { /* already disposed */ }
         _cts.Dispose();
         _cts = null;
+        FailPending(new OperationCanceledException("Connection stopped."));
         SetStatus(HaConnectionStatus.Disconnected);
+    }
+
+    /// <summary>
+    /// Send an id-correlated command (e.g. <c>lovelace/dashboards/list</c>) and await its result.
+    /// Throws when not connected or when Home Assistant reports an error.
+    /// </summary>
+    public async Task<JsonElement> SendCommandAsync(
+        string type,
+        IReadOnlyDictionary<string, object?>? fields = null,
+        CancellationToken ct = default)
+    {
+        var socket = _activeSocket
+            ?? throw new InvalidOperationException("Not connected to Home Assistant.");
+
+        var id = NextId();
+        var tcs = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pending[id] = tcs;
+
+        try
+        {
+            var payload = new JsonObject { ["id"] = id, ["type"] = type };
+            if (fields is not null)
+                foreach (var (key, value) in fields)
+                    payload[key] = value is null ? null : JsonSerializer.SerializeToNode(value, JsonOptions);
+
+            await SendRawAsync(socket, payload.ToJsonString(), ct).ConfigureAwait(false);
+
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(15));
+            await using var reg = timeout.Token.Register(
+                () => tcs.TrySetException(new TimeoutException($"Command '{type}' timed out.")));
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+        finally
+        {
+            _pending.TryRemove(id, out _);
+        }
     }
 
     private async Task SuperviseAsync(CancellationToken ct)
@@ -71,8 +116,17 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             {
                 _logger.LogWarning(ex, "Home Assistant WebSocket session ended; will reconnect");
             }
+            finally
+            {
+                _activeSocket = null;
+                FailPending(new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Session ended."));
+            }
 
             if (ct.IsCancellationRequested)
+                break;
+
+            // Auth failures don't heal themselves — stop retrying and surface the state.
+            if (Status == HaConnectionStatus.AuthFailed)
                 break;
 
             SetStatus(HaConnectionStatus.Reconnecting);
@@ -87,7 +141,8 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             backoffSeconds = Math.Min(30, backoffSeconds * 2);
         }
 
-        SetStatus(HaConnectionStatus.Disconnected);
+        if (Status != HaConnectionStatus.AuthFailed)
+            SetStatus(HaConnectionStatus.Disconnected);
     }
 
     private async Task ConnectAndListenAsync(CancellationToken ct)
@@ -106,7 +161,9 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         using (await ReceiveJsonAsync(socket, ct).ConfigureAwait(false)) { }
 
         // 2) client -> auth
-        await SendAsync(socket, new { type = "auth", access_token = _token }, ct).ConfigureAwait(false);
+        await SendRawAsync(socket,
+            JsonSerializer.Serialize(new { type = "auth", access_token = _token }, JsonOptions),
+            ct).ConfigureAwait(false);
 
         // 3) server -> auth_ok / auth_invalid
         using (var authDoc = await ReceiveJsonAsync(socket, ct).ConfigureAwait(false))
@@ -119,29 +176,58 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             }
         }
 
+        _activeSocket = socket;
         SetStatus(HaConnectionStatus.Connected);
 
         // subscribe to state changes
-        await SendAsync(socket, new
+        await SendRawAsync(socket, JsonSerializer.Serialize(new
         {
             id = NextId(),
             type = "subscribe_events",
             event_type = "state_changed",
-        }, ct).ConfigureAwait(false);
+        }, JsonOptions), ct).ConfigureAwait(false);
 
         // receive loop
         while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open)
         {
             using var doc = await ReceiveJsonAsync(socket, ct).ConfigureAwait(false);
-            DispatchStateChanged(doc);
+            Dispatch(doc);
         }
     }
 
-    private void DispatchStateChanged(JsonDocument doc)
+    private void Dispatch(JsonDocument doc)
     {
         var root = doc.RootElement;
-        if (!root.TryGetProperty("type", out var typeEl) || typeEl.GetString() != "event")
+        var type = root.TryGetProperty("type", out var typeEl) ? typeEl.GetString() : null;
+
+        if (type == "result"
+            && root.TryGetProperty("id", out var idEl)
+            && idEl.TryGetInt32(out var id)
+            && _pending.TryRemove(id, out var tcs))
+        {
+            var success = root.TryGetProperty("success", out var s) && s.GetBoolean();
+            if (success)
+            {
+                var result = root.TryGetProperty("result", out var r) ? r.Clone() : default;
+                tcs.TrySetResult(result);
+            }
+            else
+            {
+                var message = root.TryGetProperty("error", out var err)
+                              && err.TryGetProperty("message", out var msg)
+                    ? msg.GetString() ?? "unknown error"
+                    : "unknown error";
+                tcs.TrySetException(new InvalidOperationException($"Home Assistant error: {message}"));
+            }
             return;
+        }
+
+        if (type == "event")
+            DispatchStateChanged(root);
+    }
+
+    private void DispatchStateChanged(JsonElement root)
+    {
         if (!root.TryGetProperty("event", out var ev))
             return;
         if (!ev.TryGetProperty("event_type", out var et) || et.GetString() != "state_changed")
@@ -163,6 +249,13 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }
     }
 
+    private void FailPending(Exception exception)
+    {
+        foreach (var key in _pending.Keys)
+            if (_pending.TryRemove(key, out var tcs))
+                tcs.TrySetException(exception);
+    }
+
     private int NextId() => Interlocked.Increment(ref _msgId);
 
     private void SetStatus(HaConnectionStatus status)
@@ -173,10 +266,18 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         StatusChanged?.Invoke(this, status);
     }
 
-    private static async Task SendAsync(ClientWebSocket socket, object payload, CancellationToken ct)
+    private async Task SendRawAsync(ClientWebSocket socket, string json, CancellationToken ct)
     {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(payload, JsonOptions);
-        await socket.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct).ConfigureAwait(false);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        await _sendLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await socket.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _sendLock.Release();
+        }
     }
 
     private static async Task<JsonDocument> ReceiveJsonAsync(ClientWebSocket socket, CancellationToken ct)
@@ -205,5 +306,6 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             try { await _supervisor.ConfigureAwait(false); }
             catch { /* ignore shutdown errors */ }
         }
+        _sendLock.Dispose();
     }
 }

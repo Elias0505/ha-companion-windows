@@ -30,6 +30,10 @@ public partial class EntityTileViewModel : ObservableObject
     [ObservableProperty]
     private bool _isUnavailable;
 
+    /// <summary>Whether this tile is pinned to the quick panel / favourites (managed by the catalog).</summary>
+    [ObservableProperty]
+    private bool _isPinned;
+
     public EntityTileViewModel(IHaConnection connection, HaEntityState state)
     {
         _connection = connection;

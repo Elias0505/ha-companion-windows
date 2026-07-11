@@ -69,6 +69,38 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
     public Task CallServiceAsync(string domain, string service, string entityId, CancellationToken ct = default) =>
         _rest.CallServiceAsync(domain, service, new { entity_id = entityId }, ct);
 
+    public async Task<IReadOnlyList<HaDashboardInfo>> ListDashboardsAsync(CancellationToken ct = default)
+    {
+        var dashboards = new List<HaDashboardInfo>
+        {
+            new(null, "Overview", "mdi:view-dashboard"),
+        };
+
+        try
+        {
+            var result = await _ws.SendCommandAsync("lovelace/dashboards/list", ct: ct).ConfigureAwait(false);
+            if (result.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in result.EnumerateArray())
+                {
+                    var urlPath = item.TryGetProperty("url_path", out var u) ? u.GetString() : null;
+                    if (string.IsNullOrEmpty(urlPath))
+                        continue;
+                    var title = item.TryGetProperty("title", out var t) ? t.GetString() ?? urlPath : urlPath;
+                    var icon = item.TryGetProperty("icon", out var i) ? i.GetString() : null;
+                    dashboards.Add(new HaDashboardInfo(urlPath, title, icon));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Older HA or transient failure: the default dashboard alone is still useful.
+            _logger.LogWarning(ex, "Could not list Lovelace dashboards; falling back to default only");
+        }
+
+        return dashboards;
+    }
+
     private void OnWebSocketStatusChanged(object? sender, HaConnectionStatus status) =>
         StatusChanged?.Invoke(this, status);
 

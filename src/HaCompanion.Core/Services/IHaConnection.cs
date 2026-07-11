@@ -31,4 +31,10 @@ public interface IHaConnection
     Task ToggleAsync(string entityId, CancellationToken ct = default);
 
     Task CallServiceAsync(string domain, string service, string entityId, CancellationToken ct = default);
+
+    /// <summary>
+    /// List the Lovelace dashboards (always includes the default dashboard first).
+    /// Requires an active WebSocket connection.
+    /// </summary>
+    Task<IReadOnlyList<HaDashboardInfo>> ListDashboardsAsync(CancellationToken ct = default);
 }

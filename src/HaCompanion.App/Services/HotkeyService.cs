@@ -37,6 +37,9 @@ public sealed class HotkeyService : IHotkeyService
 
     public void Initialize(Window window)
     {
+        if (_hwnd != IntPtr.Zero)
+            return; // already initialized — never subclass twice
+
         _hwnd = WindowNative.GetWindowHandle(window);
         _newProc = HandleMessage;
         _oldProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_newProc));

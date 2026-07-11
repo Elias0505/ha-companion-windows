@@ -16,9 +16,14 @@
                         Loaded="Nav_Loaded"
                         SelectionChanged="Nav_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Dashboard" Tag="dashboard">
+                <NavigationViewItem Content="Start" Tag="dashboard">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE80F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="HA Dashboards" Tag="hadashboards">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE774;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Settings" Tag="settings">

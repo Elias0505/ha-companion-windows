@@ -11,20 +11,21 @@
         <StackPanel Spacing="16" MaxWidth="580" Padding="24" HorizontalAlignment="Left">
             <TextBlock Text="Home Assistant" Style="{StaticResource TitleTextBlockStyle}" />
             <TextBlock TextWrapping="Wrap" Opacity="0.7"
-                       Text="Enter your Home Assistant URL and a long-lived access token (Home Assistant → your profile → Long-lived access tokens → Create token)." />
+                       Text="Enter your Home Assistant URL and a long-lived access token (Home Assistant → your profile → Security → Long-lived access tokens → Create token)." />
 
             <TextBox Header="Base URL"
                      PlaceholderText="https://homeassistant.local:8123"
                      Text="{x:Bind ViewModel.BaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-            <PasswordBox Header="Long-lived access token"
-                         Password="{x:Bind ViewModel.Token, Mode=TwoWay}" />
+            <PasswordBox x:Name="TokenBox"
+                         Header="Long-lived access token"
+                         PasswordChanged="TokenBox_PasswordChanged" />
 
             <ToggleSwitch Header="Ignore certificate errors (self-signed HTTPS)"
                           IsOn="{x:Bind ViewModel.IgnoreCertificateErrors, Mode=TwoWay}" />
 
-            <TextBlock Opacity="0.7" FontSize="13"
-                       Text="{x:Bind FormatHotkey(ViewModel.Hotkey), Mode=OneWay}" />
+            <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                       Text="{x:Bind ViewModel.HotkeyStatus}" />
 
             <Button Content="Connect"
                     Style="{StaticResource AccentButtonStyle}"

@@ -11,66 +11,160 @@
     <Grid x:Name="RootGrid">
         <Grid.Resources>
             <conv:StateBrushConverter x:Key="StateBrush" />
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
         </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Escape" Invoked="OnEscape" />
         </Grid.KeyboardAccelerators>
 
-        <Grid Padding="16" RowSpacing="6">
+        <Grid Padding="16,14,16,12" RowSpacing="8">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="Home Assistant" Style="{StaticResource SubtitleTextBlockStyle}" />
-            <TextBlock Grid.Row="1" Text="{Binding Shell.StatusText}"
-                       Opacity="0.7" FontSize="12" Margin="0,0,0,4" />
+            <!-- Header: status dot · title · edit / add -->
+            <Grid Grid.Row="0" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <ScrollViewer Grid.Row="2">
-                <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Spacing="16" />
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Spacing="6">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon Glyph="{Binding Glyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                              FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" />
-                                    <TextBlock Text="{Binding Count}" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
-                                </StackPanel>
+                <Ellipse Grid.Column="0" Width="9" Height="9" VerticalAlignment="Center"
+                         Fill="{Binding Shell.IsConnected, Converter={StaticResource StateBrush}}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="0">
+                    <TextBlock Text="Home Assistant" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock Text="{Binding Shell.StatusText}" FontSize="11" Opacity="0.6" />
+                </StackPanel>
 
-                                <ItemsRepeater ItemsSource="{Binding Tiles}">
-                                    <ItemsRepeater.Layout>
-                                        <UniformGridLayout MinItemWidth="110" MinItemHeight="92"
-                                                           MinColumnSpacing="8" MinRowSpacing="8" />
-                                    </ItemsRepeater.Layout>
-                                    <ItemsRepeater.ItemTemplate>
+                <Button Grid.Column="2" x:Name="AddTileButton" Padding="8"
+                        ToolTipService.ToolTip="Add tiles"
+                        Visibility="{Binding Catalog.IsEditing, Converter={StaticResource BoolToVisibility}}"
+                        Click="AddTileButton_Click">
+                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                    <Button.Flyout>
+                        <Flyout Placement="Bottom">
+                            <StackPanel Width="300" Spacing="8">
+                                <TextBox x:Name="SearchBox" PlaceholderText="Search entities…"
+                                         TextChanged="SearchBox_TextChanged" />
+                                <ListView x:Name="SearchResults" MaxHeight="320"
+                                          SelectionMode="None" IsItemClickEnabled="True"
+                                          ItemClick="SearchResult_ItemClick"
+                                          ItemsSource="{Binding Catalog.AddCandidates}">
+                                    <ListView.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Command="{Binding ToggleCommand}"
-                                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                                    Padding="12" CornerRadius="10">
-                                                <StackPanel Spacing="4">
-                                                    <FontIcon Glyph="{Binding Glyph}"
-                                                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                              FontSize="20" HorizontalAlignment="Left"
-                                                              Foreground="{Binding IsOn, Converter={StaticResource StateBrush}}" />
-                                                    <TextBlock Text="{Binding FriendlyName}"
-                                                               FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                                    <TextBlock Text="{Binding StateText}"
-                                                               FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                </StackPanel>
-                                            </Button>
+                                            <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
+                                                <FontIcon Glyph="{Binding Glyph}" FontSize="14"
+                                                          FontFamily="{ThemeResource SymbolThemeFontFamily}" Opacity="0.8" />
+                                                <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
                                         </DataTemplate>
-                                    </ItemsRepeater.ItemTemplate>
-                                </ItemsRepeater>
+                                    </ListView.ItemTemplate>
+                                </ListView>
                             </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Button Grid.Column="3" x:Name="EditButton" Padding="8"
+                        ToolTipService.ToolTip="Edit layout" Click="EditButton_Click">
+                    <FontIcon x:Name="EditIcon" Glyph="&#xE70F;" FontSize="14" />
+                </Button>
+            </Grid>
+
+            <!-- Content -->
+            <Grid Grid.Row="1">
+                <!-- Curated pinned tiles (shown when pinned or editing) -->
+                <GridView x:Name="PinnedGrid"
+                          Visibility="{Binding Catalog.ShowPinnedArea, Converter={StaticResource BoolToVisibility}}"
+                          ItemsSource="{Binding Catalog.Pinned}"
+                          SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
+                          CanDragItems="{Binding Catalog.IsEditing}"
+                          CanReorderItems="{Binding Catalog.IsEditing}"
+                          AllowDrop="{Binding Catalog.IsEditing}">
+                    <GridView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Width="108" Height="104" Margin="2">
+                                <Border CornerRadius="10" Padding="10"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="6">
+                                        <Border Width="34" Height="34" CornerRadius="17" HorizontalAlignment="Left"
+                                                Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
+                                            <FontIcon Glyph="{Binding Glyph}" FontSize="15"
+                                                      FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                      Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                        </Border>
+                                        <TextBlock Text="{Binding FriendlyName}" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding StateText}" FontSize="11" Opacity="0.6"
+                                                   TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                    </StackPanel>
+                                </Border>
+                                <Button Width="22" Height="22" Padding="0" CornerRadius="11"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0"
+                                        Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                        Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
+                                        Click="Unpin_Click" ToolTipService.ToolTip="Remove">
+                                    <FontIcon Glyph="&#xE711;" FontSize="10" />
+                                </Button>
+                            </Grid>
                         </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
-            </ScrollViewer>
+                    </GridView.ItemTemplate>
+                </GridView>
+
+                <!-- Hint while editing with nothing pinned yet -->
+                <TextBlock Text="No tiles yet — use + to add your favourites."
+                           Opacity="0.55" TextWrapping="Wrap" Margin="4,8,4,0"
+                           Visibility="{Binding Catalog.ShowEditHint, Converter={StaticResource BoolToVisibility}}" />
+
+                <!-- Fallback: grouped auto-detected browse view (nothing pinned, not editing) -->
+                <ScrollViewer Visibility="{Binding Catalog.ShowBrowse, Converter={StaticResource BoolToVisibility}}">
+                    <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Spacing="16" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="{Binding Glyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                  FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" />
+                                        <TextBlock Text="{Binding Count}" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <ItemsRepeater ItemsSource="{Binding Tiles}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="110" MinItemHeight="92"
+                                                               MinColumnSpacing="8" MinRowSpacing="8" />
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Command="{Binding ToggleCommand}"
+                                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                        Padding="12" CornerRadius="10">
+                                                    <StackPanel Spacing="4">
+                                                        <FontIcon Glyph="{Binding Glyph}"
+                                                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                                  FontSize="20" HorizontalAlignment="Left"
+                                                                  Foreground="{Binding IsOn, Converter={StaticResource StateBrush}}" />
+                                                        <TextBlock Text="{Binding FriendlyName}"
+                                                                   FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                                        <TextBlock Text="{Binding StateText}"
+                                                                   FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </ScrollViewer>
+            </Grid>
         </Grid>
     </Grid>
 </Window>

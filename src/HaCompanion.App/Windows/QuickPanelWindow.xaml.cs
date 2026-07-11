@@ -5,6 +5,7 @@ using HaCompanion.App.ViewModels;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -15,8 +16,8 @@ namespace HaCompanion.App.Windows;
 
 /// <summary>
 /// The Win+Ctrl+H quick panel: a borderless, always-on-top overlay pinned to the
-/// right edge of the work area that slides in/out with a Composition animation and
-/// dismisses itself on focus loss or Esc.
+/// right edge of the work area that slides in/out with a Composition animation,
+/// dismisses on focus loss or Esc, and hosts the editable pinned-tile layout.
 /// </summary>
 public sealed partial class QuickPanelWindow : Window
 {
@@ -35,9 +36,15 @@ public sealed partial class QuickPanelWindow : Window
         RootGrid.DataContext = viewModel;
 
         Title = "HA Companion — Quick Panel";
-        SystemBackdrop = new MicaBackdrop();
+        SystemBackdrop = new DesktopAcrylicBackdrop();
 
         _hwnd = WindowNative.GetWindowHandle(this);
+
+        // Animate via Translation (layout-safe), starting offscreen to avoid a first-open flash.
+        ElementCompositionPreview.SetIsTranslationEnabled(RootGrid, true);
+        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
+        visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
+        visual.Opacity = 0f;
 
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;
@@ -63,10 +70,20 @@ public sealed partial class QuickPanelWindow : Window
     public void ShowAnimated()
     {
         Reposition();
+
+        // Reset to the offscreen start state before showing.
+        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
+        visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
+        visual.Opacity = 0f;
+
         AppWindow.Show();
         Activate();
         _isOpen = true;
         AnimateIn();
+
+        // Put focus inside the panel so Esc + Deactivated dismissal work immediately.
+        if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
+            focusable.Focus(FocusState.Programmatic);
     }
 
     public void HideAnimated()
@@ -75,6 +92,10 @@ public sealed partial class QuickPanelWindow : Window
             return;
         _isOpen = false;
 
+        // Leaving the panel also leaves edit mode (layout is already persisted live).
+        ViewModel.Catalog.IsEditing = false;
+        UpdateEditIcon();
+
         var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
         var comp = visual.Compositor;
         var batch = comp.CreateScopedBatch(CompositionBatchTypes.Animation);
@@ -82,7 +103,7 @@ public sealed partial class QuickPanelWindow : Window
         var slide = comp.CreateScalarKeyFrameAnimation();
         slide.InsertKeyFrame(1f, SlideDistance);
         slide.Duration = TimeSpan.FromMilliseconds(200);
-        visual.StartAnimation("Offset.X", slide);
+        visual.StartAnimation("Translation.X", slide);
 
         var fade = comp.CreateScalarKeyFrameAnimation();
         fade.InsertKeyFrame(1f, 0f);
@@ -103,7 +124,7 @@ public sealed partial class QuickPanelWindow : Window
         slide.InsertKeyFrame(0f, SlideDistance);
         slide.InsertKeyFrame(1f, 0f, ease);
         slide.Duration = TimeSpan.FromMilliseconds(280);
-        visual.StartAnimation("Offset.X", slide);
+        visual.StartAnimation("Translation.X", slide);
 
         var fade = comp.CreateScalarKeyFrameAnimation();
         fade.InsertKeyFrame(0f, 0f);
@@ -132,6 +153,49 @@ public sealed partial class QuickPanelWindow : Window
     {
         args.Handled = true;
         HideAnimated();
+    }
+
+    // ----- edit mode -----
+
+    private void EditButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Catalog.IsEditing = !ViewModel.Catalog.IsEditing;
+        UpdateEditIcon();
+    }
+
+    private void UpdateEditIcon() =>
+        EditIcon.Glyph = ViewModel.Catalog.IsEditing ? "" : ""; // check / pencil
+
+    private void AddTileButton_Click(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Text = string.Empty;
+        ViewModel.Catalog.FilterCandidates(string.Empty);
+    }
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) =>
+        ViewModel.Catalog.FilterCandidates(SearchBox.Text);
+
+    private void SearchResult_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is EntityTileViewModel tile)
+        {
+            ViewModel.Catalog.TogglePin(tile);
+            ViewModel.Catalog.FilterCandidates(SearchBox.Text);
+        }
+    }
+
+    private void Unpin_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            ViewModel.Catalog.TogglePin(tile);
+    }
+
+    private async void Pinned_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (ViewModel.Catalog.IsEditing)
+            return; // in edit mode taps are for arranging, not switching
+        if (e.ClickedItem is EntityTileViewModel tile)
+            await tile.ToggleCommand.ExecuteAsync(null);
     }
 
     [DllImport("user32.dll")]
