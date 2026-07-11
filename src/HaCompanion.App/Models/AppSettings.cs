@@ -24,6 +24,9 @@ public sealed class AppSettings
     /// <summary>UI language code (en, de, es, fr, zh, hi).</summary>
     public string Language { get; set; } = "en";
 
+    /// <summary>Open the quick panel on your HA dashboard instead of Favourites.</summary>
+    public bool QuickPanelStartOnDashboard { get; set; }
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 

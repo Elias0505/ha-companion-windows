@@ -35,6 +35,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private double _quickPanelWidth = 400;
 
     [ObservableProperty]
+    private bool _quickPanelStartOnDashboard;
+
+    [ObservableProperty]
     private LanguageOption? _selectedLanguage;
 
     [ObservableProperty]
@@ -72,6 +75,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Hotkey = string.IsNullOrWhiteSpace(settings.Hotkey) ? "Win+Ctrl+H" : settings.Hotkey;
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
         QuickPanelWidth = settings.QuickPanelWidth;
+        QuickPanelStartOnDashboard = settings.QuickPanelStartOnDashboard;
         SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
                            ?? _localization.Languages[0];
         if (!HotkeyPresets.Contains(Hotkey))
@@ -89,6 +93,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         AutoHideQuickPanel = AutoHideQuickPanel,
         QuickPanelWidth = (int)QuickPanelWidth,
         Language = SelectedLanguage?.Code ?? "en",
+        QuickPanelStartOnDashboard = QuickPanelStartOnDashboard,
     };
 
     partial void OnAutoHideQuickPanelChanged(bool value)
@@ -98,6 +103,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     partial void OnQuickPanelWidthChanged(double value)
+    {
+        if (!_loading)
+            _settingsStore.Save(BuildSettings());
+    }
+
+    partial void OnQuickPanelStartOnDashboardChanged(bool value)
     {
         if (!_loading)
             _settingsStore.Save(BuildSettings());

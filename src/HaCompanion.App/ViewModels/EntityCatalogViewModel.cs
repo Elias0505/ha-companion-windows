@@ -67,6 +67,9 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
 
     public bool ShowEditHint => IsEditing && !HasPinned;
 
+    /// <summary>Quick panel: show the "no favourites yet" hint whenever nothing is pinned.</summary>
+    public bool ShowNoFavHint => !HasPinned;
+
     public EntityCatalogViewModel(IHaConnection connection, IUiDispatcher ui, ITileLayoutStore layoutStore, MdiIconProvider icons, LocalizationService localization)
     {
         _connection = connection;

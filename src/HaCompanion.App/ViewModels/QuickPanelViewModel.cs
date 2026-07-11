@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HaCompanion.App.Infrastructure;
+using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
 using HaCompanion.Core.Services;
 
@@ -16,6 +17,7 @@ public sealed partial class QuickPanelViewModel : ObservableObject
 {
     private readonly IHaConnection _connection;
     private readonly IUiDispatcher _ui;
+    private readonly ISettingsStore _settingsStore;
 
     public EntityCatalogViewModel Catalog { get; }
 
@@ -35,12 +37,13 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     /// <summary>Raised when a real HA dashboard is chosen; the window navigates the WebView.</summary>
     public event EventHandler<QuickDashboard>? DashboardRequested;
 
-    public QuickPanelViewModel(EntityCatalogViewModel catalog, ShellViewModel shell, IHaConnection connection, IUiDispatcher ui)
+    public QuickPanelViewModel(EntityCatalogViewModel catalog, ShellViewModel shell, IHaConnection connection, IUiDispatcher ui, ISettingsStore settingsStore)
     {
         Catalog = catalog;
         Shell = shell;
         _connection = connection;
         _ui = ui;
+        _settingsStore = settingsStore;
     }
 
     /// <summary>Load the HA dashboards into the picker (once connected). Safe to call repeatedly.</summary>
@@ -55,6 +58,10 @@ public sealed partial class QuickPanelViewModel : ObservableObject
             {
                 foreach (var d in list)
                     Dashboards.Add(new QuickDashboard(d.Title, d.UrlPath, false));
+
+                // If configured, open the panel on the first HA dashboard instead of Favourites.
+                if (_settingsStore.Load().QuickPanelStartOnDashboard && Dashboards.Count > 1)
+                    SelectedDashboard = Dashboards[1];
             });
         }
         catch

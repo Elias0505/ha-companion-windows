@@ -54,8 +54,8 @@ public sealed partial class QuickPanelWindow : Window
         _hwnd = WindowNative.GetWindowHandle(this);
 
         // GPU-driven content slide (the window never moves — so it can never stick half-out).
-        ElementCompositionPreview.SetIsTranslationEnabled(RootGrid, true);
-        ElementCompositionPreview.GetElementVisual(RootGrid)
+        ElementCompositionPreview.SetIsTranslationEnabled(PanelSurface, true);
+        ElementCompositionPreview.GetElementVisual(PanelSurface)
             .Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
 
         var presenter = OverlappedPresenter.Create();
@@ -67,6 +67,12 @@ public sealed partial class QuickPanelWindow : Window
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
         ApplyNoBorder();
+
+        // Glass: extend the DWM frame across the whole client area so wherever the XAML is
+        // transparent (everything except the sliding PanelSurface) the desktop shows through
+        // — the opaque panel truly slides over the desktop, no window rectangle behind it.
+        var margins = new MARGINS { Left = -1, Right = -1, Top = -1, Bottom = -1 };
+        DwmExtendFrameIntoClientArea(_hwnd, ref margins);
 
         Activated += OnActivated;
         AppWindow.Hide();
@@ -92,7 +98,7 @@ public sealed partial class QuickPanelWindow : Window
         // Place the window at its resting spot (it never moves after this) and start with
         // the content pushed off the right edge, then slide it in on the GPU.
         AppWindow.MoveAndResize(new RectInt32(x, work.Y, width, work.Height));
-        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
+        var visual = ElementCompositionPreview.GetElementVisual(PanelSurface);
         visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
 
         AppWindow.Show();
@@ -121,7 +127,7 @@ public sealed partial class QuickPanelWindow : Window
 
     private void Animate(float fromX, float toX, bool hideOnComplete)
     {
-        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
+        var visual = ElementCompositionPreview.GetElementVisual(PanelSurface);
         var compositor = visual.Compositor;
         var ease = compositor.CreateCubicBezierEasingFunction(new Vector2(0.16f, 1f), new Vector2(0.3f, 1f));
 
@@ -262,4 +268,16 @@ public sealed partial class QuickPanelWindow : Window
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MARGINS
+    {
+        public int Left;
+        public int Right;
+        public int Top;
+        public int Bottom;
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS margins);
 }

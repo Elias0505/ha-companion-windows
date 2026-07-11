@@ -41,7 +41,13 @@
     "Set_Connect": "Connect",
     "Set_Tips": "Tips & best practices",
     "Tip_Done": "Done editing",
-    "State_Unavailable": "Unavailable"
+    "State_Unavailable": "Unavailable",
+    "Set_StartOnDashboard": "Open the quick panel on your HA dashboard (instead of Favourites)",
+    "Set_Tip1": "Hotkey: use Ctrl or Alt plus a letter (e.g. Ctrl+Alt+H). Windows reserves some Win-key combos (Win+H is voice typing).",
+    "Set_Tip2": "If a hotkey shows as not registered, another app already uses it — just pick a different combo above.",
+    "Set_Tip3": "The app keeps running in the system tray (bottom-right, under the ^). Right-click the tray icon → Exit to quit fully.",
+    "Set_Tip4": "Favourites: use the pencil (edit) button and + to add tiles, and drag to reorder.",
+    "Set_Tip5": "Security: your token is stored encrypted (DPAPI) on this PC only. Enable 'Ignore certificate errors' only for a self-signed local HA."
   },
   "de": {
     "Nav_Start": "Start",
@@ -85,7 +91,13 @@
     "Set_Connect": "Verbinden",
     "Set_Tips": "Tipps & Best Practices",
     "Tip_Done": "Fertig",
-    "State_Unavailable": "Nicht verfügbar"
+    "State_Unavailable": "Nicht verfügbar",
+    "Set_StartOnDashboard": "Schnellzugriff mit deinem HA-Dashboard öffnen (statt Favoriten)",
+    "Set_Tip1": "Tastenkürzel: Strg oder Alt plus ein Buchstabe (z.B. Strg+Alt+H). Windows reserviert einige Win-Kombis (Win+H = Spracheingabe).",
+    "Set_Tip2": "Wird ein Kürzel als nicht registriert angezeigt, nutzt es schon eine andere App — wähl oben einfach ein anderes.",
+    "Set_Tip3": "Die App läuft im Infobereich weiter (unten rechts, beim ^). Rechtsklick aufs Tray-Icon → Beenden schließt sie ganz.",
+    "Set_Tip4": "Favoriten: mit dem Stift (Bearbeiten) und + Kacheln hinzufügen, per Ziehen umsortieren.",
+    "Set_Tip5": "Sicherheit: dein Token liegt nur auf diesem PC verschlüsselt (DPAPI). „Zertifikatsfehler ignorieren\" nur bei selbstsigniertem lokalem HA aktivieren."
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -129,7 +141,13 @@
     "Set_Connect": "Conectar",
     "Set_Tips": "Consejos y buenas prácticas",
     "Tip_Done": "Hecho",
-    "State_Unavailable": "No disponible"
+    "State_Unavailable": "No disponible",
+    "Set_StartOnDashboard": "Abrir el panel rápido con tu panel de HA (en lugar de Favoritos)",
+    "Set_Tip1": "Atajo: usa Ctrl o Alt más una letra (p. ej. Ctrl+Alt+H). Windows reserva algunas combinaciones con Win (Win+H es dictado por voz).",
+    "Set_Tip2": "Si un atajo aparece como no registrado, ya lo usa otra app — elige otra combinación arriba.",
+    "Set_Tip3": "La app sigue en la bandeja del sistema (abajo a la derecha, bajo el ^). Clic derecho en el icono → Salir para cerrarla del todo.",
+    "Set_Tip4": "Favoritos: usa el botón del lápiz (editar) y + para añadir mosaicos, y arrastra para reordenar.",
+    "Set_Tip5": "Seguridad: tu token se guarda cifrado (DPAPI) solo en este PC. Activa 'Ignorar errores de certificado' solo para un HA local autofirmado."
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -173,7 +191,13 @@
     "Set_Connect": "Se connecter",
     "Set_Tips": "Conseils et bonnes pratiques",
     "Tip_Done": "Terminé",
-    "State_Unavailable": "Indisponible"
+    "State_Unavailable": "Indisponible",
+    "Set_StartOnDashboard": "Ouvrir le panneau rapide sur votre tableau de bord HA (au lieu des Favoris)",
+    "Set_Tip1": "Raccourci : utilisez Ctrl ou Alt plus une lettre (ex. Ctrl+Alt+H). Windows réserve certaines combinaisons Win (Win+H = saisie vocale).",
+    "Set_Tip2": "Si un raccourci est indiqué non enregistré, une autre appli l'utilise déjà — choisissez-en un autre ci-dessus.",
+    "Set_Tip3": "L'appli reste dans la zone de notification (en bas à droite, sous le ^). Clic droit sur l'icône → Quitter pour fermer complètement.",
+    "Set_Tip4": "Favoris : utilisez le bouton crayon (édition) et + pour ajouter des tuiles, et glissez pour réorganiser.",
+    "Set_Tip5": "Sécurité : votre jeton est stocké chiffré (DPAPI) sur ce PC uniquement. N'activez « Ignorer les erreurs de certificat » que pour un HA local auto-signé."
   },
   "zh": {
     "Nav_Start": "主页",
@@ -217,7 +241,13 @@
     "Set_Connect": "连接",
     "Set_Tips": "提示与最佳实践",
     "Tip_Done": "完成",
-    "State_Unavailable": "不可用"
+    "State_Unavailable": "不可用",
+    "Set_StartOnDashboard": "打开快捷面板时显示你的 HA 仪表板（而非收藏）",
+    "Set_Tip1": "热键：使用 Ctrl 或 Alt 加一个字母（例如 Ctrl+Alt+H）。Windows 保留了部分 Win 组合键（Win+H 是语音输入）。",
+    "Set_Tip2": "如果热键显示未注册，说明已被其他应用占用 — 在上方换一个组合即可。",
+    "Set_Tip3": "应用会在系统托盘中继续运行（右下角 ^ 处）。右键点击托盘图标 → 退出可完全关闭。",
+    "Set_Tip4": "收藏：用铅笔（编辑）按钮和 + 添加磁贴，拖动可重新排序。",
+    "Set_Tip5": "安全：你的令牌仅以加密方式（DPAPI）存储在本机。仅在自签名的本地 HA 时才启用“忽略证书错误”。"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -261,6 +291,12 @@
     "Set_Connect": "कनेक्ट करें",
     "Set_Tips": "सुझाव और सर्वोत्तम अभ्यास",
     "Tip_Done": "पूर्ण",
-    "State_Unavailable": "अनुपलब्ध"
+    "State_Unavailable": "अनुपलब्ध",
+    "Set_StartOnDashboard": "क्विक पैनल खोलते समय अपना HA डैशबोर्ड दिखाएँ (पसंदीदा के बजाय)",
+    "Set_Tip1": "हॉटकी: Ctrl या Alt के साथ एक अक्षर उपयोग करें (जैसे Ctrl+Alt+H)। Windows कुछ Win-कॉम्बो आरक्षित रखता है (Win+H वॉइस टाइपिंग है)।",
+    "Set_Tip2": "यदि कोई हॉटकी पंजीकृत नहीं दिखती, तो उसे कोई अन्य ऐप उपयोग कर रहा है — ऊपर कोई और कॉम्बो चुनें।",
+    "Set_Tip3": "ऐप सिस्टम ट्रे में चलता रहता है (नीचे-दाएँ, ^ के नीचे)। ट्रे आइकन पर राइट-क्लिक → Exit से पूरी तरह बंद करें।",
+    "Set_Tip4": "पसंदीदा: पेंसिल (संपादन) बटन और + से टाइल जोड़ें, और क्रम बदलने के लिए खींचें।",
+    "Set_Tip5": "सुरक्षा: आपका टोकन केवल इस PC पर एन्क्रिप्टेड (DPAPI) संग्रहीत है। 'प्रमाणपत्र त्रुटियाँ अनदेखा करें' केवल सेल्फ-साइन्ड लोकल HA के लिए चालू करें।"
   }
 }

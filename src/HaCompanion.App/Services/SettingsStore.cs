@@ -42,6 +42,7 @@ public sealed class SettingsStore : ISettingsStore
                 AutoHideQuickPanel = persisted.AutoHideQuickPanel,
                 QuickPanelWidth = persisted.QuickPanelWidth is >= 320 and <= 900 ? persisted.QuickPanelWidth : 400,
                 Language = string.IsNullOrWhiteSpace(persisted.Language) ? "en" : persisted.Language,
+                QuickPanelStartOnDashboard = persisted.QuickPanelStartOnDashboard,
                 Token = Unprotect(persisted.TokenProtected),
             };
         }
@@ -63,6 +64,7 @@ public sealed class SettingsStore : ISettingsStore
             AutoHideQuickPanel = settings.AutoHideQuickPanel,
             QuickPanelWidth = settings.QuickPanelWidth,
             Language = settings.Language,
+            QuickPanelStartOnDashboard = settings.QuickPanelStartOnDashboard,
             TokenProtected = Protect(settings.Token),
         };
         File.WriteAllText(_file, JsonSerializer.Serialize(persisted, JsonOptions));
@@ -108,6 +110,7 @@ public sealed class SettingsStore : ISettingsStore
         public bool AutoHideQuickPanel { get; set; } = true;
         public int QuickPanelWidth { get; set; } = 400;
         public string Language { get; set; } = "en";
+        public bool QuickPanelStartOnDashboard { get; set; }
         public string TokenProtected { get; set; } = string.Empty;
     }
 }

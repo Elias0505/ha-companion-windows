@@ -9,7 +9,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
 
-    <Grid x:Name="RootGrid" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+    <Grid x:Name="RootGrid" Background="Transparent">
         <Grid.Resources>
             <conv:StateBrushConverter x:Key="StateBrush" />
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
@@ -18,7 +18,8 @@
             <KeyboardAccelerator Key="Escape" Invoked="OnEscape" />
         </Grid.KeyboardAccelerators>
 
-        <Grid Padding="16,14,16,12" RowSpacing="10">
+        <Grid x:Name="PanelSurface" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+              Padding="16,14,16,12" RowSpacing="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -44,7 +45,6 @@
                             Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
                     <Button x:Name="AddTileButton" Padding="8" ToolTipService.ToolTip="{Binding [Tip_Add], Source={StaticResource Loc}}"
                             AutomationProperties.Name="{Binding [Tip_Add], Source={StaticResource Loc}}"
-                            Visibility="{Binding Catalog.IsEditing, Converter={StaticResource BoolToVisibility}}"
                             Click="AddTileButton_Click">
                         <FontIcon Glyph="&#xE710;" FontSize="14" />
                         <Button.Flyout>
@@ -86,10 +86,10 @@
 
             <!-- Content -->
             <Grid Grid.Row="2">
-                <!-- Favourites (editable pinned + grouped browse fallback) -->
+                <!-- Favourites: manually pinned tiles only (no auto-populate) -->
                 <Grid Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
                     <GridView x:Name="PinnedGrid"
-                              Visibility="{Binding Catalog.ShowPinnedArea, Converter={StaticResource BoolToVisibility}}"
+                              Visibility="{Binding Catalog.HasPinned, Converter={StaticResource BoolToVisibility}}"
                               ItemsSource="{Binding Catalog.Pinned}"
                               SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
                               CanDragItems="{Binding Catalog.IsEditing}"
@@ -129,53 +129,8 @@
                     </GridView>
 
                     <TextBlock Text="{Binding [Panel_NoTiles], Source={StaticResource Loc}}"
-                               Opacity="0.55" TextWrapping="Wrap" Margin="4,8,4,0"
-                               Visibility="{Binding Catalog.ShowEditHint, Converter={StaticResource BoolToVisibility}}" />
-
-                    <ScrollViewer Visibility="{Binding Catalog.ShowBrowse, Converter={StaticResource BoolToVisibility}}">
-                        <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
-                            <ItemsRepeater.Layout>
-                                <StackLayout Spacing="16" />
-                            </ItemsRepeater.Layout>
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Spacing="6">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
-                                                      FontSize="14" Opacity="0.8" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" />
-                                            <TextBlock Text="{Binding Count}" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                        <ItemsRepeater ItemsSource="{Binding Tiles}">
-                                            <ItemsRepeater.Layout>
-                                                <UniformGridLayout MinItemWidth="110" MinItemHeight="92"
-                                                                   MinColumnSpacing="8" MinRowSpacing="8" />
-                                            </ItemsRepeater.Layout>
-                                            <ItemsRepeater.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Command="{Binding ToggleCommand}"
-                                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                                            Padding="12" CornerRadius="10"
-                                                            AutomationProperties.Name="{Binding FriendlyName}"
-                                                            AutomationProperties.HelpText="{Binding StateText}">
-                                                        <StackPanel Spacing="4">
-                                                            <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
-                                                                      FontSize="20" HorizontalAlignment="Left"
-                                                                      Foreground="{Binding IsOn, Converter={StaticResource StateBrush}}" />
-                                                            <TextBlock Text="{Binding FriendlyName}" FontSize="12"
-                                                                       TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                                            <TextBlock Text="{Binding StateText}" FontSize="11" Opacity="0.7"
-                                                                       TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                        </StackPanel>
-                                                    </Button>
-                                                </DataTemplate>
-                                            </ItemsRepeater.ItemTemplate>
-                                        </ItemsRepeater>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                    </ScrollViewer>
+                               Opacity="0.55" TextWrapping="Wrap" Margin="4,8,4,0" VerticalAlignment="Top"
+                               Visibility="{Binding Catalog.ShowNoFavHint, Converter={StaticResource BoolToVisibility}}" />
                 </Grid>
 
                 <!-- Selected HA dashboard: real HA frontend 1:1, chrome hidden -->
