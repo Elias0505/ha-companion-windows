@@ -22,6 +22,16 @@ namespace HaCompanion.App.Windows;
 /// moving the window itself (like the Win11 notification centre), dismisses on focus
 /// loss or Esc, and hosts the editable pinned-tile layout.
 /// </summary>
+/// <remarks>
+/// Animation model: a single desired-state field (<see cref="_isOpen"/>) is the sole
+/// source of truth. Every show/hide request just sets that target and (re)starts a slide
+/// from the window's CURRENT position toward the target edge. Because the timer runs on
+/// pure elapsed time and only ever stops once it reaches the target, the panel always
+/// converges to its last requested state — it can never come to rest half-way, no matter
+/// how fast the hotkey is spammed. Reentrancy (Show()/Activate() pump the message loop, so
+/// a queued WM_HOTKEY can call back in mid-setup) is contained by <see cref="_inSetup"/>:
+/// nested calls only flip the target, and the outer frame starts one authoritative slide.
+/// </remarks>
 public sealed partial class QuickPanelWindow : Window
 {
     private const int DefaultPanelWidthDip = 400;
@@ -36,14 +46,15 @@ public sealed partial class QuickPanelWindow : Window
     private Task? _webInitTask;
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
-    private bool _isOpen;
+    private bool _isOpen;        // desired end state (target), also the sole intent flag
+    private bool _windowShown;   // whether the OS window is currently shown (vs. Hide())
+    private bool _inSetup;       // reentrancy guard around the message-pumping Show()/Activate()
     private bool _previewing;
 
     // Slide geometry in physical pixels, recomputed from the work area on each show.
     private int _winY, _winW, _winH, _restX, _offX;
     private int _animFromX, _animToX;
     private long _animStartMs;
-    private bool _hideAfterAnim;
     private bool _timerBoosted;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
@@ -107,65 +118,86 @@ public sealed partial class QuickPanelWindow : Window
     {
         _previewing = true;
         _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
-        if (!_isOpen)
+        if (!_windowShown)
         {
-            ShowAnimated();
+            SetTarget(true);
         }
         else
         {
             ComputeGeometry();
             AppWindow.MoveAndResize(new RectInt32(_restX, _winY, _winW, _winH));
+            _isOpen = true;
         }
         _previewTimer.Stop();
         _previewTimer.Start();
     }
 
-    public void Toggle()
+    public void Toggle() => SetTarget(!_isOpen);
+
+    public void ShowAnimated() => SetTarget(true);
+
+    public void HideAnimated() => SetTarget(false);
+
+    /// <summary>
+    /// Sets the desired open/closed state and drives the panel toward it. Safe to call at any
+    /// time, from anywhere (including reentrantly), and any number of times in quick succession:
+    /// the last call wins and the panel always finishes settling within one animation duration.
+    /// </summary>
+    private void SetTarget(bool open)
     {
-        if (_isOpen)
-            HideAnimated();
-        else
-            ShowAnimated();
+        _isOpen = open;
+
+        if (!open)
+        {
+            // Leaving the panel also leaves edit mode (layout is already persisted live).
+            ViewModel.Catalog.IsEditing = false;
+            UpdateEditIcon();
+        }
+
+        Log($"target open={open} shown={_windowShown} setup={_inSetup} x={SafePositionX()} rest={_restX} off={_offX}");
+
+        // Bring the OS window up (once) before the first slide-in. Show()/Activate() pump the
+        // message loop, so a queued hotkey can reenter SetTarget here — the guard makes that
+        // reentrant call only update the target and return; this outer frame starts the slide.
+        if (open && !_windowShown && !_inSetup)
+        {
+            _inSetup = true;
+            try
+            {
+                _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
+                ComputeGeometry();
+                AppWindow.MoveAndResize(new RectInt32(_offX, _winY, _winW, _winH)); // park off-screen
+                _windowShown = true;
+                AppWindow.Show();
+                Activate();
+                ApplyNoBorder();
+            }
+            finally
+            {
+                _inSetup = false;
+            }
+
+            _ = ViewModel.EnsureDashboardsAsync();
+            // FocusState.Pointer focuses the first control WITHOUT drawing the keyboard focus
+            // rectangle, which previously looked like a thin "selected" outline on the panel.
+            if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
+                focusable.Focus(FocusState.Pointer);
+        }
+
+        if (_inSetup)
+            return; // reentrant call: the outer frame will start the slide toward the final target
+
+        StartOrRetargetSlide();
     }
 
-    public void ShowAnimated()
+    /// <summary>
+    /// (Re)aims the slide at the current target edge, always starting from the window's actual
+    /// present position so an interrupted slide reverses smoothly instead of jumping.
+    /// </summary>
+    private void StartOrRetargetSlide()
     {
-        _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
-        ComputeGeometry();
-
-        // Park the window fully off the right edge, then slide the whole thing in.
-        AppWindow.MoveAndResize(new RectInt32(_offX, _winY, _winW, _winH));
-        AppWindow.Show();
-        Activate();
-        ApplyNoBorder();
-        _isOpen = true;
-        StartSlide(_offX, _restX, hideAfter: false);
-
-        _ = ViewModel.EnsureDashboardsAsync();
-        // FocusState.Pointer focuses the first control WITHOUT drawing the keyboard focus
-        // rectangle, which previously looked like a thin "selected" outline on the panel.
-        if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
-            focusable.Focus(FocusState.Pointer);
-    }
-
-    public void HideAnimated()
-    {
-        if (!_isOpen)
-            return;
-        _isOpen = false;
-
-        // Leaving the panel also leaves edit mode (layout is already persisted live).
-        ViewModel.Catalog.IsEditing = false;
-        UpdateEditIcon();
-
-        StartSlide(AppWindow.Position.X, _offX, hideAfter: true);
-    }
-
-    private void StartSlide(int fromX, int toX, bool hideAfter)
-    {
-        _animFromX = fromX;
-        _animToX = toX;
-        _hideAfterAnim = hideAfter;
+        _animToX = _isOpen ? _restX : _offX;
+        _animFromX = SafePositionX();
         _animStartMs = Environment.TickCount64;
         if (!_timerBoosted)
         {
@@ -182,19 +214,27 @@ public sealed partial class QuickPanelWindow : Window
         var t = Math.Clamp(elapsed / (double)AnimDurationMs, 0.0, 1.0);
         var eased = 1.0 - Math.Pow(1.0 - t, 3.0); // ease-out cubic
         var x = (int)Math.Round(_animFromX + (_animToX - _animFromX) * eased);
-        AppWindow.Move(new PointInt32(x, _winY));
+        TryMove(x);
 
-        if (t >= 1.0)
+        if (t < 1.0)
+            return;
+
+        // Reached the target: stop the clock and snap exactly onto the target edge so rounding
+        // can never leave a one-pixel sliver behind.
+        _animTimer.Stop();
+        if (_timerBoosted)
         {
-            _animTimer.Stop();
-            if (_timerBoosted)
-            {
-                TimeEndPeriod(1);
-                _timerBoosted = false;
-            }
-            if (_hideAfterAnim)
-                AppWindow.Hide();
+            TimeEndPeriod(1);
+            _timerBoosted = false;
         }
+        TryMove(_animToX);
+
+        if (!_isOpen)
+        {
+            _windowShown = false;
+            AppWindow.Hide();
+        }
+        Log($"settled open={_isOpen} x={_animToX} hidden={!_isOpen}");
     }
 
     private void ApplyNoBorder()
@@ -205,6 +245,18 @@ public sealed partial class QuickPanelWindow : Window
         DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
         var doNotRound = 1;
         DwmSetWindowAttribute(_hwnd, 33, ref doNotRound, sizeof(int));
+    }
+
+    private int SafePositionX()
+    {
+        try { return AppWindow.Position.X; }
+        catch { return _isOpen ? _offX : _restX; }
+    }
+
+    private void TryMove(int x)
+    {
+        try { AppWindow.Move(new PointInt32(x, _winY)); }
+        catch { /* window may be transitioning; the next tick or settle corrects it */ }
     }
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
@@ -314,6 +366,28 @@ public sealed partial class QuickPanelWindow : Window
             return; // in edit mode taps are for arranging, not switching
         if (e.ClickedItem is EntityTileViewModel tile)
             await tile.ToggleCommand.ExecuteAsync(null);
+    }
+
+    // ----- diagnostics -----
+
+    /// <summary>
+    /// Appends a timestamped line to %LOCALAPPDATA%\HaCompanion\panel.log. Best-effort and
+    /// never throws — used to capture the show/hide/settle sequence when reproducing the
+    /// rapid-toggle behaviour. Kept tiny (two events per open/close cycle).
+    /// </summary>
+    private static void Log(string message)
+    {
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HaCompanion");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "panel.log"), $"{Environment.TickCount64,12} {message}\n");
+        }
+        catch
+        {
+            // diagnostics only — losing a log line must never affect the panel
+        }
     }
 
     [DllImport("user32.dll")]
