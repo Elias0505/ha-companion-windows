@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-using System.Diagnostics;
 using System.IO;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Dispatching;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Web.WebView2.Core;
@@ -28,23 +29,15 @@ public sealed partial class QuickPanelWindow : Window
 
     public QuickPanelViewModel ViewModel { get; }
 
-    private const double SlideDurationMs = 220;
-    private const uint SWP_NOSIZE = 0x0001;
-    private const uint SWP_NOZORDER = 0x0004;
-    private const uint SWP_NOACTIVATE = 0x0010;
-
     private readonly IntPtr _hwnd;
     private readonly ISettingsStore _settingsStore;
-    private readonly Stopwatch _slideClock = new();
-    private DispatcherQueueTimer? _slideTimer;
     private Task? _webInitTask;
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
-    private int _restX;
-    private int _offX;
-    private int _slideY;
-    private bool _slideShowing;
     private bool _isOpen;
+
+    // How far the content is pushed off the right edge before it slides in.
+    private float SlideDistance => _panelWidthDip + 48f;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
@@ -60,9 +53,10 @@ public sealed partial class QuickPanelWindow : Window
 
         _hwnd = WindowNative.GetWindowHandle(this);
 
-        _slideTimer = DispatcherQueue.CreateTimer();
-        _slideTimer.Interval = TimeSpan.FromMilliseconds(8);
-        _slideTimer.Tick += OnSlideTick;
+        // GPU-driven content slide (the window never moves — so it can never stick half-out).
+        ElementCompositionPreview.SetIsTranslationEnabled(RootGrid, true);
+        ElementCompositionPreview.GetElementVisual(RootGrid)
+            .Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
 
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;
@@ -93,19 +87,19 @@ public sealed partial class QuickPanelWindow : Window
         var work = area.WorkArea;
         var scale = GetDpiForWindow(_hwnd) / 96.0;
         var width = (int)Math.Round(_panelWidthDip * scale);
+        var x = work.X + work.Width - width;
 
-        _slideY = work.Y;
-        _restX = work.X + work.Width - width; // resting left edge, flush right inside the work area
-        _offX = work.X + work.Width;          // fully off the right edge
+        // Place the window at its resting spot (it never moves after this) and start with
+        // the content pushed off the right edge, then slide it in on the GPU.
+        AppWindow.MoveAndResize(new RectInt32(x, work.Y, width, work.Height));
+        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
+        visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
 
-        // Size the window once and park it off-screen, then slide the whole opaque window in —
-        // background, content and the embedded WebView move together as one unit.
-        AppWindow.MoveAndResize(new RectInt32(_offX, work.Y, width, work.Height));
         AppWindow.Show();
         Activate();
         ApplyNoBorder();
         _isOpen = true;
-        BeginSlide(showing: true);
+        Animate(SlideDistance, 0f, hideOnComplete: false);
 
         _ = ViewModel.EnsureDashboardsAsync();
         if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
@@ -122,38 +116,26 @@ public sealed partial class QuickPanelWindow : Window
         ViewModel.Catalog.IsEditing = false;
         UpdateEditIcon();
 
-        BeginSlide(showing: false);
+        Animate(0f, SlideDistance, hideOnComplete: true);
     }
 
-    private void BeginSlide(bool showing)
+    private void Animate(float fromX, float toX, bool hideOnComplete)
     {
-        _slideShowing = showing;
-        _slideClock.Restart();
-        _slideTimer!.Stop(); // never let two slides overlap
-        _slideTimer.Start();
-    }
+        var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
+        var compositor = visual.Compositor;
+        var ease = compositor.CreateCubicBezierEasingFunction(new Vector2(0.16f, 1f), new Vector2(0.3f, 1f));
 
-    private void OnSlideTick(DispatcherQueueTimer sender, object args)
-    {
-        var t = _slideClock.Elapsed.TotalMilliseconds / SlideDurationMs;
-        if (t >= 1.0)
-            t = 1.0;
-        var eased = 1 - Math.Pow(1 - t, 3); // ease-out cubic
+        var slide = compositor.CreateScalarKeyFrameAnimation();
+        slide.InsertKeyFrame(0f, fromX);
+        slide.InsertKeyFrame(1f, toX, ease);
+        slide.Duration = TimeSpan.FromMilliseconds(260);
+        slide.Target = "Translation.X";
 
-        var from = _slideShowing ? _offX : _restX;
-        var to = _slideShowing ? _restX : _offX;
-        var x = (int)Math.Round(from + (to - from) * eased);
-
-        // Move position only (no resize / z-order / activation) for a smooth, jank-free slide.
-        SetWindowPos(_hwnd, IntPtr.Zero, x, _slideY, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-
-        if (t >= 1.0)
-        {
-            _slideTimer!.Stop();
-            _slideClock.Stop();
-            if (!_slideShowing)
-                AppWindow.Hide();
-        }
+        var batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
+        visual.StartAnimation("Translation.X", slide);
+        batch.End();
+        if (hideOnComplete)
+            batch.Completed += (_, _) => AppWindow.Hide();
     }
 
     private void ApplyNoBorder()
@@ -274,7 +256,4 @@ public sealed partial class QuickPanelWindow : Window
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 }
