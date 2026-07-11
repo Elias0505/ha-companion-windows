@@ -9,17 +9,36 @@ using HaCompanion.Core.Services;
 namespace HaCompanion.App.ViewModels;
 
 /// <summary>
-/// Auto-detected catalog of actionable Home Assistant entities, kept live via the
-/// connection's <see cref="IHaConnection.EntityUpdated"/> events. Shared by the
-/// dashboard and the quick panel.
+/// Auto-detected catalog of actionable Home Assistant entities, automatically
+/// grouped by domain (in a sensible order) and sorted by name within each group.
+/// Kept live via <see cref="IHaConnection.EntityUpdated"/>. Shared by the dashboard
+/// and the quick panel.
 /// </summary>
 public sealed partial class EntityCatalogViewModel : ObservableObject
 {
+    // Display order + friendly section titles. Domains not listed sort to the end.
+    private static readonly (string Domain, string Header)[] DomainOrder =
+    {
+        ("light", "Lights"),
+        ("switch", "Switches"),
+        ("cover", "Covers"),
+        ("climate", "Climate"),
+        ("fan", "Fans"),
+        ("media_player", "Media"),
+        ("lock", "Locks"),
+        ("scene", "Scenes"),
+        ("script", "Scripts"),
+        ("automation", "Automations"),
+        ("input_boolean", "Helpers"),
+        ("button", "Buttons"),
+    };
+
     private readonly IHaConnection _connection;
     private readonly IUiDispatcher _ui;
-    private readonly Dictionary<string, EntityTileViewModel> _byId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, EntityTileViewModel> _tilesById = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, EntityGroupViewModel> _groupsByDomain = new(StringComparer.Ordinal);
 
-    public ObservableCollection<EntityTileViewModel> Tiles { get; } = new();
+    public ObservableCollection<EntityGroupViewModel> Groups { get; } = new();
 
     [ObservableProperty]
     private bool _isEmpty = true;
@@ -48,33 +67,64 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         if (!DomainCatalog.IsActionable(state.Domain))
             return;
 
-        if (_byId.TryGetValue(state.EntityId, out var tile))
+        if (_tilesById.TryGetValue(state.EntityId, out var existing))
         {
-            tile.Update(state);
+            existing.Update(state);
+            return;
         }
-        else
-        {
-            tile = new EntityTileViewModel(_connection, state);
-            _byId[state.EntityId] = tile;
-            InsertSorted(tile);
-        }
+
+        var tile = new EntityTileViewModel(_connection, state);
+        _tilesById[state.EntityId] = tile;
+
+        var group = GetOrCreateGroup(state.Domain);
+        InsertTileSorted(group, tile);
+        group.Count = group.Tiles.Count;
     }
 
-    private void InsertSorted(EntityTileViewModel tile)
+    private EntityGroupViewModel GetOrCreateGroup(string domain)
+    {
+        if (_groupsByDomain.TryGetValue(domain, out var group))
+            return group;
+
+        group = new EntityGroupViewModel(domain, HeaderFor(domain), DomainCatalog.Glyph(domain));
+        _groupsByDomain[domain] = group;
+        InsertGroupSorted(group);
+        return group;
+    }
+
+    private void InsertGroupSorted(EntityGroupViewModel group)
+    {
+        var rank = DomainRank(group.Domain);
+        var index = 0;
+        while (index < Groups.Count && DomainRank(Groups[index].Domain) < rank)
+            index++;
+        Groups.Insert(index, group);
+    }
+
+    private static void InsertTileSorted(EntityGroupViewModel group, EntityTileViewModel tile)
     {
         var index = 0;
-        while (index < Tiles.Count && Compare(Tiles[index], tile) < 0)
+        while (index < group.Tiles.Count &&
+               string.Compare(group.Tiles[index].FriendlyName, tile.FriendlyName, StringComparison.OrdinalIgnoreCase) < 0)
             index++;
-        Tiles.Insert(index, tile);
+        group.Tiles.Insert(index, tile);
     }
 
-    private static int Compare(EntityTileViewModel a, EntityTileViewModel b)
+    private static int DomainRank(string domain)
     {
-        var byDomain = string.CompareOrdinal(a.Domain, b.Domain);
-        return byDomain != 0
-            ? byDomain
-            : string.Compare(a.FriendlyName, b.FriendlyName, StringComparison.OrdinalIgnoreCase);
+        for (var i = 0; i < DomainOrder.Length; i++)
+            if (DomainOrder[i].Domain == domain)
+                return i;
+        return DomainOrder.Length;
     }
 
-    private void UpdateEmpty() => IsEmpty = Tiles.Count == 0;
+    private static string HeaderFor(string domain)
+    {
+        foreach (var (d, header) in DomainOrder)
+            if (d == domain)
+                return header;
+        return char.ToUpperInvariant(domain[0]) + domain[1..].Replace('_', ' ');
+    }
+
+    private void UpdateEmpty() => IsEmpty = _tilesById.Count == 0;
 }

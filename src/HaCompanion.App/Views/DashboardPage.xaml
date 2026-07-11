@@ -23,37 +23,59 @@
             </Border>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1">
-            <Grid>
-                <TextBlock Text="No entities yet. Open Settings and connect to your Home Assistant."
-                           Opacity="0.6" TextWrapping="Wrap"
-                           Visibility="{x:Bind ViewModel.Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}, Mode=OneWay}" />
+        <Grid Grid.Row="1">
+            <TextBlock Text="No entities yet. Open Settings and connect to your Home Assistant."
+                       Opacity="0.6" TextWrapping="Wrap"
+                       Visibility="{x:Bind ViewModel.Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}, Mode=OneWay}" />
 
-                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Catalog.Tiles, Mode=OneWay}">
+            <ScrollViewer>
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Catalog.Groups, Mode=OneWay}">
                     <ItemsRepeater.Layout>
-                        <UniformGridLayout MinItemWidth="164" MinItemHeight="96"
-                                           MinColumnSpacing="10" MinRowSpacing="10" />
+                        <StackLayout Spacing="22" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="vm:EntityTileViewModel">
-                            <Button Command="{x:Bind ToggleCommand}"
-                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                    Padding="14" CornerRadius="10">
-                                <StackPanel Spacing="6">
-                                    <FontIcon Glyph="{x:Bind Glyph}"
-                                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                              FontSize="22" HorizontalAlignment="Left"
-                                              Foreground="{x:Bind IsOn, Converter={StaticResource StateBrush}, Mode=OneWay}" />
-                                    <TextBlock Text="{x:Bind FriendlyName, Mode=OneWay}"
-                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                    <TextBlock Text="{x:Bind StateText, Mode=OneWay}"
-                                               FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                        <DataTemplate x:DataType="vm:EntityGroupViewModel">
+                            <StackPanel Spacing="10">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="{x:Bind Glyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                              FontSize="16" Opacity="0.8" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Bind Header}" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <Border CornerRadius="9" Padding="7,1" VerticalAlignment="Center"
+                                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                        <TextBlock Text="{x:Bind Count, Mode=OneWay}" FontSize="12" Opacity="0.7" />
+                                    </Border>
                                 </StackPanel>
-                            </Button>
+
+                                <ItemsRepeater ItemsSource="{x:Bind Tiles}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout MinItemWidth="164" MinItemHeight="96"
+                                                           MinColumnSpacing="10" MinRowSpacing="10" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:EntityTileViewModel">
+                                            <Button Command="{x:Bind ToggleCommand}"
+                                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                    Padding="14" CornerRadius="10">
+                                                <StackPanel Spacing="6">
+                                                    <FontIcon Glyph="{x:Bind Glyph}"
+                                                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                              FontSize="22" HorizontalAlignment="Left"
+                                                              Foreground="{x:Bind IsOn, Converter={StaticResource StateBrush}, Mode=OneWay}" />
+                                                    <TextBlock Text="{x:Bind FriendlyName, Mode=OneWay}"
+                                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                    <TextBlock Text="{x:Bind StateText, Mode=OneWay}"
+                                                               FontSize="12" Opacity="0.7"
+                                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
-            </Grid>
-        </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Page>

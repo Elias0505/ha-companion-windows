@@ -28,27 +28,45 @@
                        Opacity="0.7" FontSize="12" Margin="0,0,0,4" />
 
             <ScrollViewer Grid.Row="2">
-                <ItemsRepeater ItemsSource="{Binding Catalog.Tiles}">
+                <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
                     <ItemsRepeater.Layout>
-                        <UniformGridLayout MinItemWidth="110" MinItemHeight="92"
-                                           MinColumnSpacing="8" MinRowSpacing="8" />
+                        <StackLayout Spacing="16" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate>
-                            <Button Command="{Binding ToggleCommand}"
-                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                    Padding="12" CornerRadius="10">
-                                <StackPanel Spacing="4">
-                                    <FontIcon Glyph="{Binding Glyph}"
-                                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                              FontSize="20" HorizontalAlignment="Left"
-                                              Foreground="{Binding IsOn, Converter={StaticResource StateBrush}}" />
-                                    <TextBlock Text="{Binding FriendlyName}"
-                                               FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                    <TextBlock Text="{Binding StateText}"
-                                               FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="{Binding Glyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                              FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock Text="{Binding Count}" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
                                 </StackPanel>
-                            </Button>
+
+                                <ItemsRepeater ItemsSource="{Binding Tiles}">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout MinItemWidth="110" MinItemHeight="92"
+                                                           MinColumnSpacing="8" MinRowSpacing="8" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Command="{Binding ToggleCommand}"
+                                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                    Padding="12" CornerRadius="10">
+                                                <StackPanel Spacing="4">
+                                                    <FontIcon Glyph="{Binding Glyph}"
+                                                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                              FontSize="20" HorizontalAlignment="Left"
+                                                              Foreground="{Binding IsOn, Converter={StaticResource StateBrush}}" />
+                                                    <TextBlock Text="{Binding FriendlyName}"
+                                                               FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                                    <TextBlock Text="{Binding StateText}"
+                                                               FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
