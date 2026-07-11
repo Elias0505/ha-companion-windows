@@ -23,6 +23,10 @@
 
     <IsPackable>false</IsPackable>
     <DefaultLanguage>en-US</DefaultLanguage>
+
+    <!-- MVVMTK0045 only matters for Native AOT + WinRT marshalling, which we don't use
+         (normal JIT self-contained build). Silence the noise; revisit if we ever go AOT. -->
+    <NoWarn>$(NoWarn);MVVMTK0045</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
