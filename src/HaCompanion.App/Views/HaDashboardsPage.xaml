@@ -21,9 +21,12 @@
             <TextBlock Grid.Column="0" Text="{Binding [Nav_Dashboards], Source={StaticResource Loc}}"
                        Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
             <ComboBox Grid.Column="1" x:Name="DashboardCombo" MinWidth="220"
+                      AutomationProperties.Name="{Binding [Nav_Dashboards], Source={StaticResource Loc}}"
                       DisplayMemberPath="Title" SelectionChanged="DashboardCombo_SelectionChanged"
                       VerticalAlignment="Center" />
-            <Button Grid.Column="3" Padding="8" Click="Reload_Click" ToolTipService.ToolTip="{Binding [Dash_Reload], Source={StaticResource Loc}}">
+            <Button Grid.Column="3" Padding="8" Click="Reload_Click"
+                    ToolTipService.ToolTip="{Binding [Dash_Reload], Source={StaticResource Loc}}"
+                    AutomationProperties.Name="{Binding [Dash_Reload], Source={StaticResource Loc}}">
                 <FontIcon Glyph="&#xE72C;" FontSize="14" />
             </Button>
         </Grid>

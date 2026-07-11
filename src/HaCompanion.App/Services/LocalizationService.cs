@@ -54,7 +54,9 @@ public sealed partial class LocalizationService : ObservableObject
         if (string.IsNullOrWhiteSpace(code) || !_all.ContainsKey(code))
             code = "en";
         CurrentLanguage = code;
-        _current = _all[code];
+        // Never index directly: if translations failed to load, _all is empty and even
+        // "en" is missing — fall back to an empty map (indexer then returns the keys).
+        _current = _all.TryGetValue(code, out var dict) ? dict : new Dictionary<string, string>();
         OnPropertyChanged("Item[]"); // refresh every {Binding [Key]}
         LanguageChanged?.Invoke(this, EventArgs.Empty);
     }

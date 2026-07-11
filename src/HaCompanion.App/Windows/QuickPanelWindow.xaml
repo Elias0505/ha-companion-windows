@@ -13,25 +13,6 @@
         <Grid.Resources>
             <conv:StateBrushConverter x:Key="StateBrush" />
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
-
-            <!-- Shared read-only tile card (icon circle + name + state) -->
-            <DataTemplate x:Key="TileCard">
-                <Border Width="108" Height="104" Margin="2" CornerRadius="10" Padding="10"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                    <StackPanel Spacing="6">
-                        <Border Width="34" Height="34" CornerRadius="17" HorizontalAlignment="Left"
-                                Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
-                            <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
-                                      FontSize="18" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
-                        </Border>
-                        <TextBlock Text="{Binding FriendlyName}" FontSize="12"
-                                   TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding StateText}" FontSize="11" Opacity="0.6"
-                                   TextTrimming="CharacterEllipsis" MaxLines="1" />
-                    </StackPanel>
-                </Border>
-            </DataTemplate>
         </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Escape" Invoked="OnEscape" />
@@ -62,6 +43,7 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
                             Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
                     <Button x:Name="AddTileButton" Padding="8" ToolTipService.ToolTip="{Binding [Tip_Add], Source={StaticResource Loc}}"
+                            AutomationProperties.Name="{Binding [Tip_Add], Source={StaticResource Loc}}"
                             Visibility="{Binding Catalog.IsEditing, Converter={StaticResource BoolToVisibility}}"
                             Click="AddTileButton_Click">
                         <FontIcon Glyph="&#xE710;" FontSize="14" />
@@ -88,7 +70,8 @@
                             </Flyout>
                         </Button.Flyout>
                     </Button>
-                    <Button x:Name="EditButton" Padding="8" ToolTipService.ToolTip="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click">
+                    <Button x:Name="EditButton" Padding="8" ToolTipService.ToolTip="{Binding [Tip_Edit], Source={StaticResource Loc}}"
+                            AutomationProperties.Name="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click">
                         <FontIcon x:Name="EditIcon" Glyph="&#xE70F;" FontSize="14" />
                     </Button>
                 </StackPanel>
@@ -96,6 +79,7 @@
 
             <!-- Dashboard picker -->
             <ComboBox Grid.Row="1" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="{Binding [Nav_Dashboards], Source={StaticResource Loc}}"
                       ItemsSource="{Binding Dashboards}"
                       DisplayMemberPath="Title"
                       SelectedItem="{Binding SelectedDashboard, Mode=TwoWay}" />
@@ -113,7 +97,9 @@
                               AllowDrop="{Binding Catalog.IsEditing}">
                         <GridView.ItemTemplate>
                             <DataTemplate>
-                                <Grid Width="108" Height="104" Margin="2">
+                                <Grid Width="108" Height="104" Margin="2"
+                                      AutomationProperties.Name="{Binding FriendlyName}"
+                                      AutomationProperties.HelpText="{Binding StateText}">
                                     <Border CornerRadius="10" Padding="10"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
@@ -129,11 +115,12 @@
                                                        TextTrimming="CharacterEllipsis" MaxLines="1" />
                                         </StackPanel>
                                     </Border>
-                                    <Button Width="22" Height="22" Padding="0" CornerRadius="11"
-                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0"
+                                    <Button Width="30" Height="30" Padding="0" CornerRadius="15"
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0"
                                             Background="{ThemeResource ControlFillColorDefaultBrush}"
                                             Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
-                                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}">
+                                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}"
+                                            AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
                                         <FontIcon Glyph="&#xE711;" FontSize="10" />
                                     </Button>
                                 </Grid>
@@ -168,7 +155,9 @@
                                                 <DataTemplate>
                                                     <Button Command="{Binding ToggleCommand}"
                                                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                                            Padding="12" CornerRadius="10">
+                                                            Padding="12" CornerRadius="10"
+                                                            AutomationProperties.Name="{Binding FriendlyName}"
+                                                            AutomationProperties.HelpText="{Binding StateText}">
                                                         <StackPanel Spacing="4">
                                                             <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
                                                                       FontSize="20" HorizontalAlignment="Left"

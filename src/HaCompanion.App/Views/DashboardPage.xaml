@@ -31,6 +31,7 @@
 
             <Button Grid.Column="3" x:Name="AddTileButton" Padding="8"
                     ToolTipService.ToolTip="{Binding [Tip_Add], Source={StaticResource Loc}}"
+                    AutomationProperties.Name="{Binding [Tip_Add], Source={StaticResource Loc}}"
                     Visibility="{Binding Catalog.IsEditing, Converter={StaticResource BoolToVisibility}}"
                     Click="AddTileButton_Click">
                 <FontIcon Glyph="&#xE710;" FontSize="14" />
@@ -59,7 +60,8 @@
             </Button>
 
             <Button Grid.Column="4" x:Name="EditButton" Padding="8"
-                    ToolTipService.ToolTip="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click">
+                    ToolTipService.ToolTip="{Binding [Tip_Edit], Source={StaticResource Loc}}"
+                    AutomationProperties.Name="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click">
                 <FontIcon x:Name="EditIcon" Glyph="&#xE70F;" FontSize="14" />
             </Button>
         </Grid>
@@ -88,7 +90,9 @@
                               AllowDrop="{Binding Catalog.IsEditing}">
                         <GridView.ItemTemplate>
                             <DataTemplate>
-                                <Grid Width="156" Height="112" Margin="2">
+                                <Grid Width="156" Height="112" Margin="2"
+                                      AutomationProperties.Name="{Binding FriendlyName}"
+                                      AutomationProperties.HelpText="{Binding StateText}">
                                     <Border CornerRadius="10" Padding="12"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
@@ -105,11 +109,12 @@
                                                        TextTrimming="CharacterEllipsis" MaxLines="1" />
                                         </StackPanel>
                                     </Border>
-                                    <Button Width="22" Height="22" Padding="0" CornerRadius="11"
-                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0"
+                                    <Button Width="30" Height="30" Padding="0" CornerRadius="15"
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0"
                                             Background="{ThemeResource ControlFillColorDefaultBrush}"
                                             Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}}"
-                                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}">
+                                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}"
+                                            AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
                                         <FontIcon Glyph="&#xE711;" FontSize="10" />
                                     </Button>
                                 </Grid>
@@ -146,7 +151,9 @@
                                             <Grid>
                                                 <Button Command="{Binding ToggleCommand}"
                                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                                        Padding="14" CornerRadius="10">
+                                                        Padding="14" CornerRadius="10"
+                                                        AutomationProperties.Name="{Binding FriendlyName}"
+                                                        AutomationProperties.HelpText="{Binding StateText}">
                                                     <StackPanel Spacing="6">
                                                         <FontIcon Glyph="{Binding IconGlyph}"
                                                                   FontFamily="{StaticResource MdiFont}"
@@ -159,11 +166,12 @@
                                                                    TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                     </StackPanel>
                                                 </Button>
-                                                <Button Width="24" Height="24" Padding="0" CornerRadius="12"
+                                                <Button Width="32" Height="32" Padding="0" CornerRadius="16"
                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0"
                                                         Background="{ThemeResource ControlFillColorDefaultBrush}"
                                                         Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}}"
-                                                        Click="Pin_Click" ToolTipService.ToolTip="{Binding [Tip_Pin], Source={StaticResource Loc}}">
+                                                        Click="Pin_Click" ToolTipService.ToolTip="{Binding [Tip_Pin], Source={StaticResource Loc}}"
+                                                        AutomationProperties.Name="{Binding [Tip_Pin], Source={StaticResource Loc}}">
                                                     <FontIcon Glyph="&#xE718;" FontSize="11" />
                                                 </Button>
                                             </Grid>
