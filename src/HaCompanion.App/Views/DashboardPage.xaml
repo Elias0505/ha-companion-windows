@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="HaCompanion.App.Views.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:HaCompanion.App.ViewModels"
+    xmlns:conv="using:HaCompanion.App.Converters"
+    mc:Ignorable="d"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+
+    <Page.Resources>
+        <conv:StateBrushConverter x:Key="StateBrush" />
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    </Page.Resources>
+
+    <Grid RowDefinitions="Auto,*" Padding="24">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+            <TextBlock Text="Dashboard" Style="{StaticResource TitleTextBlockStyle}" />
+            <Border VerticalAlignment="Center" CornerRadius="10" Padding="8,2"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                <TextBlock Text="{x:Bind ViewModel.Shell.StatusText, Mode=OneWay}" FontSize="12" Opacity="0.8" />
+            </Border>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1">
+            <Grid>
+                <TextBlock Text="No entities yet. Open Settings and connect to your Home Assistant."
+                           Opacity="0.6" TextWrapping="Wrap"
+                           Visibility="{x:Bind ViewModel.Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}, Mode=OneWay}" />
+
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Catalog.Tiles, Mode=OneWay}">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout MinItemWidth="164" MinItemHeight="96"
+                                           MinColumnSpacing="10" MinRowSpacing="10" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="vm:EntityTileViewModel">
+                            <Button Command="{x:Bind ToggleCommand}"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Padding="14" CornerRadius="10">
+                                <StackPanel Spacing="6">
+                                    <FontIcon Glyph="{x:Bind Glyph}"
+                                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                              FontSize="22" HorizontalAlignment="Left"
+                                              Foreground="{x:Bind IsOn, Converter={StaticResource StateBrush}, Mode=OneWay}" />
+                                    <TextBlock Text="{x:Bind FriendlyName, Mode=OneWay}"
+                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                    <TextBlock Text="{x:Bind StateText, Mode=OneWay}"
+                                               FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Page>

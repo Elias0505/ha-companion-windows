@@ -42,21 +42,30 @@ Clean **MVVM**, split into two projects:
 
 ---
 
-## Build
+## Run it on your PC
 
-You need **Windows 10 19041+ / Windows 11** with the **.NET 9 SDK** and the **Windows App SDK** workload.
+**Only prerequisite: the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).** No Visual Studio, no separate "Windows App SDK" install — WinUI 3 is restored automatically from NuGet. Windows 10 (19041+) or Windows 11.
 
 ```powershell
-# from the repo root
-dotnet restore
-dotnet build -c Release -p:Platform=x64
-# run the app
-dotnet run --project src/HaCompanion.App -c Release -p:Platform=x64
+# from the repo root — build & launch (Debug)
+./run.ps1
 ```
 
-> `HaCompanion.Core` builds on Linux/macOS too (handy for CI/tests). The WinUI 3 app requires Windows.
+Or manually:
 
-Every push is built on a real Windows runner via **GitHub Actions** (`.github/workflows/build.yml`) — see the Actions tab for the produced app artifact.
+```powershell
+dotnet run --project src/HaCompanion.App -c Debug -r win-x64 -p:Platform=x64
+```
+
+### Make a double-click .exe (nothing to install on the target PC)
+
+```powershell
+./publish.ps1
+```
+
+This produces a **self-contained** build — the resulting `HaCompanion.exe` bundles the .NET runtime *and* the Windows App SDK, so it runs on any Windows 11 PC with nothing pre-installed.
+
+> `HaCompanion.Core` builds on Linux/macOS too (handy for CI/tests). The WinUI 3 app requires Windows.
 
 ## First run
 
