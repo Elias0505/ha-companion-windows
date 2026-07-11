@@ -43,7 +43,7 @@ public sealed partial class QuickPanelWindow : Window
     private const int DefaultPanelWidthDip = 400;
     private const int AnimDurationMs = 200;
 
-    private const uint MONITOR_DEFAULTTONEAREST = 2;
+    private const uint MONITOR_DEFAULTTOPRIMARY = 1;
     private const int MDT_EFFECTIVE_DPI = 0;
     private const uint SWP_NOZORDER = 0x0004;
     private const uint SWP_NOACTIVATE = 0x0010;
@@ -111,14 +111,14 @@ public sealed partial class QuickPanelWindow : Window
     }
 
     /// <summary>
-    /// Recomputes the slide geometry from the monitor currently under the mouse cursor, using
-    /// that monitor's effective DPI. Absolute screen pixels; never derived from the window's
-    /// own (possibly drifted) position, so repeated opens can't walk across displays.
+    /// Recomputes the slide geometry from the primary display (the user's "main" monitor), using
+    /// that monitor's effective DPI. Absolute screen pixels; the target monitor is fixed (never
+    /// derived from the window's own, possibly drifted, position), so the panel always opens on
+    /// the main display and repeated opens can't walk across displays.
     /// </summary>
     private void ComputeGeometry()
     {
-        GetCursorPos(out var pt);
-        var mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        var mon = MonitorFromPoint(default, MONITOR_DEFAULTTOPRIMARY);
         var mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
         if (!GetMonitorInfoW(mon, ref mi))
         {
@@ -427,9 +427,6 @@ public sealed partial class QuickPanelWindow : Window
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public int dwFlags; }
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out POINT lpPoint);
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
