@@ -31,6 +31,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _autoHideQuickPanel = true;
 
     [ObservableProperty]
+    private double _quickPanelWidth = 400;
+
+    [ObservableProperty]
     private string _hotkeyStatus = string.Empty;
 
     [ObservableProperty]
@@ -61,6 +64,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         IgnoreCertificateErrors = settings.IgnoreCertificateErrors;
         Hotkey = string.IsNullOrWhiteSpace(settings.Hotkey) ? "Win+Ctrl+H" : settings.Hotkey;
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
+        QuickPanelWidth = settings.QuickPanelWidth;
         if (!HotkeyPresets.Contains(Hotkey))
             HotkeyPresets.Insert(0, Hotkey);
         _loading = false;
@@ -74,9 +78,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         IgnoreCertificateErrors = IgnoreCertificateErrors,
         Hotkey = Hotkey,
         AutoHideQuickPanel = AutoHideQuickPanel,
+        QuickPanelWidth = (int)QuickPanelWidth,
     };
 
     partial void OnAutoHideQuickPanelChanged(bool value)
+    {
+        if (!_loading)
+            _settingsStore.Save(BuildSettings());
+    }
+
+    partial void OnQuickPanelWidthChanged(double value)
     {
         if (!_loading)
             _settingsStore.Save(BuildSettings());

@@ -71,10 +71,7 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
 
     public async Task<IReadOnlyList<HaDashboardInfo>> ListDashboardsAsync(CancellationToken ct = default)
     {
-        var dashboards = new List<HaDashboardInfo>
-        {
-            new(null, "Overview", "mdi:view-dashboard"),
-        };
+        var dashboards = new List<HaDashboardInfo>();
 
         try
         {
@@ -94,9 +91,14 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            // Older HA or transient failure: the default dashboard alone is still useful.
-            _logger.LogWarning(ex, "Could not list Lovelace dashboards; falling back to default only");
+            _logger.LogWarning(ex, "Could not list Lovelace dashboards");
         }
+
+        // Only add the implicit default dashboard (site root) if HA has no storage
+        // dashboards — otherwise the user's own default is already in the list, and a
+        // second "Overview" entry would just be a duplicate of it.
+        if (dashboards.Count == 0)
+            dashboards.Add(new HaDashboardInfo(null, "Overview", "mdi:view-dashboard"));
 
         return dashboards;
     }

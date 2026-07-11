@@ -25,8 +25,7 @@ namespace HaCompanion.App.Windows;
 /// </summary>
 public sealed partial class QuickPanelWindow : Window
 {
-    private const int PanelWidthDip = 400;
-    private const float SlideDistance = PanelWidthDip + 40f;
+    private const int DefaultPanelWidthDip = 400;
 
     public QuickPanelViewModel ViewModel { get; }
 
@@ -34,7 +33,10 @@ public sealed partial class QuickPanelWindow : Window
     private readonly ISettingsStore _settingsStore;
     private Task? _webInitTask;
     private string _baseUrl = string.Empty;
+    private int _panelWidthDip = DefaultPanelWidthDip;
     private bool _isOpen;
+
+    private float SlideDistance => _panelWidthDip + 40f;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
@@ -51,10 +53,10 @@ public sealed partial class QuickPanelWindow : Window
         _hwnd = WindowNative.GetWindowHandle(this);
 
         // Animate via Translation (layout-safe), starting offscreen to avoid a first-open flash.
+        // The whole opaque panel slides as one — no opacity fade (that read as a "flash").
         ElementCompositionPreview.SetIsTranslationEnabled(RootGrid, true);
         var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
         visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
-        visual.Opacity = 0f;
 
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;
@@ -64,6 +66,13 @@ public sealed partial class QuickPanelWindow : Window
         presenter.SetBorderAndTitleBar(false, false);
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
+
+        // Remove the thin Win11 window border/outline and rounded corners (the faint
+        // "selected"-looking white frame) for a truly borderless overlay.
+        var noBorder = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+        DwmSetWindowAttribute(_hwnd, 34 /* DWMWA_BORDER_COLOR */, ref noBorder, sizeof(int));
+        var doNotRound = 1; // DWMWCP_DONOTROUND
+        DwmSetWindowAttribute(_hwnd, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, ref doNotRound, sizeof(int));
 
         Activated += OnActivated;
         AppWindow.Hide();
@@ -84,7 +93,6 @@ public sealed partial class QuickPanelWindow : Window
         // Reset to the offscreen start state before showing.
         var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
         visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
-        visual.Opacity = 0f;
 
         AppWindow.Show();
         Activate();
@@ -113,13 +121,8 @@ public sealed partial class QuickPanelWindow : Window
 
         var slide = comp.CreateScalarKeyFrameAnimation();
         slide.InsertKeyFrame(1f, SlideDistance);
-        slide.Duration = TimeSpan.FromMilliseconds(200);
+        slide.Duration = TimeSpan.FromMilliseconds(220);
         visual.StartAnimation("Translation.X", slide);
-
-        var fade = comp.CreateScalarKeyFrameAnimation();
-        fade.InsertKeyFrame(1f, 0f);
-        fade.Duration = TimeSpan.FromMilliseconds(200);
-        visual.StartAnimation("Opacity", fade);
 
         batch.End();
         batch.Completed += (_, _) => AppWindow.Hide();
@@ -134,22 +137,17 @@ public sealed partial class QuickPanelWindow : Window
         var slide = comp.CreateScalarKeyFrameAnimation();
         slide.InsertKeyFrame(0f, SlideDistance);
         slide.InsertKeyFrame(1f, 0f, ease);
-        slide.Duration = TimeSpan.FromMilliseconds(280);
+        slide.Duration = TimeSpan.FromMilliseconds(300);
         visual.StartAnimation("Translation.X", slide);
-
-        var fade = comp.CreateScalarKeyFrameAnimation();
-        fade.InsertKeyFrame(0f, 0f);
-        fade.InsertKeyFrame(1f, 1f, ease);
-        fade.Duration = TimeSpan.FromMilliseconds(280);
-        visual.StartAnimation("Opacity", fade);
     }
 
     private void Reposition()
     {
+        _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
         var work = area.WorkArea;
         var scale = GetDpiForWindow(_hwnd) / 96.0;
-        var width = (int)(PanelWidthDip * scale);
+        var width = (int)(_panelWidthDip * scale);
         var x = work.X + work.Width - width;
         AppWindow.MoveAndResize(new RectInt32(x, work.Y, width, work.Height));
     }
@@ -259,4 +257,7 @@ public sealed partial class QuickPanelWindow : Window
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 }

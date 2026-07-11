@@ -28,6 +28,11 @@
                           OnContent="On" OffContent="Off"
                           IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
 
+            <Slider Header="Quick panel width"
+                    Minimum="320" Maximum="900" StepFrequency="20" TickFrequency="0"
+                    HorizontalAlignment="Stretch"
+                    Value="{x:Bind ViewModel.QuickPanelWidth, Mode=TwoWay}" />
+
             <ComboBox Header="Quick panel hotkey"
                       HorizontalAlignment="Stretch"
                       ItemsSource="{x:Bind ViewModel.HotkeyPresets}"

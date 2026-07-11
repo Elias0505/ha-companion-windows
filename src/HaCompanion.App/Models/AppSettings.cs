@@ -18,6 +18,9 @@ public sealed class AppSettings
     /// <summary>Hide the quick panel automatically when it loses focus (you click elsewhere).</summary>
     public bool AutoHideQuickPanel { get; set; } = true;
 
+    /// <summary>Quick panel width in device-independent pixels (320–900).</summary>
+    public int QuickPanelWidth { get; set; } = 400;
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 
