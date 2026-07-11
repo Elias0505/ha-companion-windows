@@ -42,6 +42,8 @@ public sealed partial class QuickPanelWindow : Window
 {
     private const int DefaultPanelWidthDip = 400;
     private const int AnimDurationMs = 200;
+    private const int MinPanelWidthDip = 320; // must match the Settings width slider bounds
+    private const int MaxPanelWidthDip = 900;
 
     private const uint MONITOR_DEFAULTTOPRIMARY = 1;
     private const int MDT_EFFECTIVE_DPI = 0;
@@ -63,11 +65,18 @@ public sealed partial class QuickPanelWindow : Window
     private bool _inSetup;       // reentrancy guard around the message-pumping Show()/Activate()
     private bool _previewing;
 
-    // Slide geometry in absolute screen pixels, recomputed from the cursor's monitor per show.
+    // Slide geometry in absolute screen pixels, recomputed from the primary monitor per show.
     private int _winY, _winW, _winH, _restX, _offX;
+    private double _scale = 1.0; // primary-monitor DPI scale (physical px per DIP)
     private int _animFromX, _animToX;
     private long _animStartMs;
     private bool _timerBoosted;
+
+    // Live drag-to-resize state (grip on the left edge).
+    private bool _dragResizing;
+    private int _dragStartCursorX;
+    private int _dragStartWidthPx;
+    private int _dragMoveCount;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
@@ -131,8 +140,8 @@ public sealed partial class QuickPanelWindow : Window
         if (GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0)
             dpi = dpiX;
 
-        var scale = dpi / 96.0;
-        _winW = (int)Math.Round(_panelWidthDip * scale);
+        _scale = dpi / 96.0;
+        _winW = (int)Math.Round(_panelWidthDip * _scale);
         _winY = mi.rcWork.Top;
         _winH = mi.rcWork.Bottom - mi.rcWork.Top;
         _restX = mi.rcWork.Right - _winW; // flush to the right edge of the cursor's monitor
@@ -193,7 +202,9 @@ public sealed partial class QuickPanelWindow : Window
             _inSetup = true;
             try
             {
-                _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
+                var settings = _settingsStore.Load();
+                _panelWidthDip = settings.QuickPanelWidth;
+                ResizeGrip.Visibility = settings.QuickPanelDragResize ? Visibility.Visible : Visibility.Collapsed;
                 ComputeGeometry();
                 MoveWindowPx(_offX, _winY, _winW, _winH); // park just off the right edge
                 _windowShown = true;
@@ -397,6 +408,58 @@ public sealed partial class QuickPanelWindow : Window
             await tile.ToggleCommand.ExecuteAsync(null);
     }
 
+    // ----- live drag-to-resize (left-edge grip) -----
+
+    private void ResizeGrip_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not UIElement grip)
+            return;
+        GetCursorPos(out var pt);
+        _dragStartCursorX = pt.X;
+        _dragStartWidthPx = _winW;
+        _dragMoveCount = 0;
+        _dragResizing = grip.CapturePointer(e.Pointer);
+        Log($"grip pressed captured={_dragResizing} startWpx={_dragStartWidthPx} cursorX={pt.X}");
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_dragResizing)
+            return;
+        _dragMoveCount++;
+        GetCursorPos(out var pt);
+        // Screen-space delta keeps the drag stable even though the grabbed edge moves under it.
+        // Dragging the left grip leftwards (negative delta) widens the panel.
+        var widthPx = _dragStartWidthPx - (pt.X - _dragStartCursorX);
+        var dip = Math.Clamp((int)Math.Round(widthPx / _scale), MinPanelWidthDip, MaxPanelWidthDip);
+        _panelWidthDip = dip;
+        _winW = (int)Math.Round(dip * _scale);
+        _restX = _offX - _winW; // the right edge stays docked to the monitor edge
+        MoveWindowPx(_restX, _winY, _winW, _winH);
+        e.Handled = true;
+    }
+
+    private void ResizeGrip_PointerReleased(object sender, PointerRoutedEventArgs e) => EndDragResize(sender, e);
+
+    private void ResizeGrip_PointerCaptureLost(object sender, PointerRoutedEventArgs e) => EndDragResize(sender, e);
+
+    private void EndDragResize(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_dragResizing)
+            return;
+        _dragResizing = false;
+        if (sender is UIElement grip)
+            grip.ReleasePointerCapture(e.Pointer);
+        Log($"grip released moves={_dragMoveCount} finalWpx={_winW} dip={_panelWidthDip}");
+
+        // Persist the new width so it survives reopening and the Settings slider reflects it.
+        var settings = _settingsStore.Load();
+        settings.QuickPanelWidth = _panelWidthDip;
+        _settingsStore.Save(settings);
+        e.Handled = true;
+    }
+
     // ----- diagnostics -----
 
     /// <summary>
@@ -427,6 +490,9 @@ public sealed partial class QuickPanelWindow : Window
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public int dwFlags; }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);

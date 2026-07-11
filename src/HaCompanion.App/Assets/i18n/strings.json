@@ -49,7 +49,9 @@
     "Set_Tip4": "Favourites: use the pencil (edit) button and + to add tiles, and drag to reorder.",
     "Set_Tip5": "Security: your token is stored encrypted (DPAPI) on this PC only. Enable 'Ignore certificate errors' only for a self-signed local HA.",
     "Set_RecordHotkey": "Record custom hotkey",
-    "Set_RecordPrompt": "Press a key combination…"
+    "Set_RecordPrompt": "Press a key combination…",
+    "Set_DragResize": "Resize the panel by dragging its edge",
+    "Set_Tip6": "Tip: when the quick panel is open, drag the handle on its left edge to change the width. You can turn this off above."
   },
   "de": {
     "Nav_Start": "Start",
@@ -101,7 +103,9 @@
     "Set_Tip4": "Favoriten: mit dem Stift (Bearbeiten) und + Kacheln hinzufügen, per Ziehen umsortieren.",
     "Set_Tip5": "Sicherheit: dein Token liegt nur auf diesem PC verschlüsselt (DPAPI). „Zertifikatsfehler ignorieren\" nur bei selbstsigniertem lokalem HA aktivieren.",
     "Set_RecordHotkey": "Eigenes Tastenkürzel aufnehmen",
-    "Set_RecordPrompt": "Tastenkombination drücken…"
+    "Set_RecordPrompt": "Tastenkombination drücken…",
+    "Set_DragResize": "Panel durch Ziehen am Rand in der Breite ändern",
+    "Set_Tip6": "Tipp: Wenn das Schnellpanel offen ist, zieh am Griff an seinem linken Rand, um die Breite zu ändern. Oben lässt sich das abschalten."
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -153,7 +157,9 @@
     "Set_Tip4": "Favoritos: usa el botón del lápiz (editar) y + para añadir mosaicos, y arrastra para reordenar.",
     "Set_Tip5": "Seguridad: tu token se guarda cifrado (DPAPI) solo en este PC. Activa 'Ignorar errores de certificado' solo para un HA local autofirmado.",
     "Set_RecordHotkey": "Grabar atajo personalizado",
-    "Set_RecordPrompt": "Pulsa una combinación…"
+    "Set_RecordPrompt": "Pulsa una combinación…",
+    "Set_DragResize": "Cambiar el tamaño del panel arrastrando su borde",
+    "Set_Tip6": "Consejo: con el panel rápido abierto, arrastra el tirador de su borde izquierdo para cambiar el ancho. Puedes desactivarlo arriba."
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -205,7 +211,9 @@
     "Set_Tip4": "Favoris : utilisez le bouton crayon (édition) et + pour ajouter des tuiles, et glissez pour réorganiser.",
     "Set_Tip5": "Sécurité : votre jeton est stocké chiffré (DPAPI) sur ce PC uniquement. N'activez « Ignorer les erreurs de certificat » que pour un HA local auto-signé.",
     "Set_RecordHotkey": "Enregistrer un raccourci personnalisé",
-    "Set_RecordPrompt": "Appuyez sur une combinaison…"
+    "Set_RecordPrompt": "Appuyez sur une combinaison…",
+    "Set_DragResize": "Redimensionner le panneau en glissant son bord",
+    "Set_Tip6": "Astuce : lorsque le panneau rapide est ouvert, glissez la poignée sur son bord gauche pour changer la largeur. Vous pouvez le désactiver ci-dessus."
   },
   "zh": {
     "Nav_Start": "主页",
@@ -257,7 +265,9 @@
     "Set_Tip4": "收藏：用铅笔（编辑）按钮和 + 添加磁贴，拖动可重新排序。",
     "Set_Tip5": "安全：你的令牌仅以加密方式（DPAPI）存储在本机。仅在自签名的本地 HA 时才启用“忽略证书错误”。",
     "Set_RecordHotkey": "录制自定义热键",
-    "Set_RecordPrompt": "请按下组合键…"
+    "Set_RecordPrompt": "请按下组合键…",
+    "Set_DragResize": "拖动面板边缘调整宽度",
+    "Set_Tip6": "提示：快速面板打开时，拖动其左边缘的手柄即可调整宽度。可在上方关闭此功能。"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -309,6 +319,8 @@
     "Set_Tip4": "पसंदीदा: पेंसिल (संपादन) बटन और + से टाइल जोड़ें, और क्रम बदलने के लिए खींचें।",
     "Set_Tip5": "सुरक्षा: आपका टोकन केवल इस PC पर एन्क्रिप्टेड (DPAPI) संग्रहीत है। 'प्रमाणपत्र त्रुटियाँ अनदेखा करें' केवल सेल्फ-साइन्ड लोकल HA के लिए चालू करें।",
     "Set_RecordHotkey": "कस्टम हॉटकी रिकॉर्ड करें",
-    "Set_RecordPrompt": "कोई कुंजी संयोजन दबाएँ…"
+    "Set_RecordPrompt": "कोई कुंजी संयोजन दबाएँ…",
+    "Set_DragResize": "पैनल के किनारे को खींचकर चौड़ाई बदलें",
+    "Set_Tip6": "सुझाव: जब क्विक पैनल खुला हो, तो चौड़ाई बदलने के लिए उसके बाएँ किनारे पर बने हैंडल को खींचें। इसे ऊपर से बंद किया जा सकता है।"
   }
 }

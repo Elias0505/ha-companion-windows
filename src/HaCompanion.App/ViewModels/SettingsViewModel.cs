@@ -39,6 +39,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _quickPanelStartOnDashboard;
 
     [ObservableProperty]
+    private bool _quickPanelDragResize = true;
+
+    [ObservableProperty]
     private LanguageOption? _selectedLanguage;
 
     [ObservableProperty]
@@ -78,6 +81,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
         QuickPanelWidth = settings.QuickPanelWidth;
         QuickPanelStartOnDashboard = settings.QuickPanelStartOnDashboard;
+        QuickPanelDragResize = settings.QuickPanelDragResize;
         SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
                            ?? _localization.Languages[0];
         if (!HotkeyPresets.Contains(Hotkey))
@@ -96,6 +100,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         QuickPanelWidth = (int)QuickPanelWidth,
         Language = SelectedLanguage?.Code ?? "en",
         QuickPanelStartOnDashboard = QuickPanelStartOnDashboard,
+        QuickPanelDragResize = QuickPanelDragResize,
     };
 
     partial void OnAutoHideQuickPanelChanged(bool value)
@@ -113,6 +118,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     partial void OnQuickPanelStartOnDashboardChanged(bool value)
+    {
+        if (!_loading)
+            _settingsStore.Save(BuildSettings());
+    }
+
+    partial void OnQuickPanelDragResizeChanged(bool value)
     {
         if (!_loading)
             _settingsStore.Save(BuildSettings());

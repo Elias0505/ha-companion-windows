@@ -41,6 +41,9 @@
                     HorizontalAlignment="Stretch"
                     Value="{x:Bind ViewModel.QuickPanelWidth, Mode=TwoWay}" />
 
+            <ToggleSwitch Header="{Binding [Set_DragResize], Source={StaticResource Loc}}"
+                          IsOn="{x:Bind ViewModel.QuickPanelDragResize, Mode=TwoWay}" />
+
             <ComboBox Header="{Binding [Set_Hotkey], Source={StaticResource Loc}}"
                       HorizontalAlignment="Stretch"
                       ItemsSource="{x:Bind ViewModel.HotkeyPresets}"
@@ -61,6 +64,7 @@
                     <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip3], Source={StaticResource Loc}}" />
                     <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip4], Source={StaticResource Loc}}" />
                     <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip5], Source={StaticResource Loc}}" />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip6], Source={StaticResource Loc}}" />
                 </StackPanel>
             </Expander>
 

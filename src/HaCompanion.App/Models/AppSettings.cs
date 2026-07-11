@@ -27,6 +27,9 @@ public sealed class AppSettings
     /// <summary>Open the quick panel on your HA dashboard instead of Favourites.</summary>
     public bool QuickPanelStartOnDashboard { get; set; }
 
+    /// <summary>Allow resizing the quick panel by dragging the grip on its left edge.</summary>
+    public bool QuickPanelDragResize { get; set; } = true;
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 
