@@ -20,7 +20,7 @@
     <Company>Elias0505</Company>
     <Copyright>Copyright (C) 2026 Elias0505</Copyright>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/OWNER/ha-companion-windows</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Elias0505/ha-companion-windows</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Version>0.1.0</Version>
   </PropertyGroup>

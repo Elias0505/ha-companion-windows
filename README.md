@@ -1,29 +1,26 @@
 # HA Companion for Windows
 
-A **fully native Windows 11 companion app for [Home Assistant](https://www.home-assistant.io/)** — built in C# with **.NET 9 + WinUI 3 (Windows App SDK)**. Fluent design (Mica/Acrylic), live REST + WebSocket integration, configurable quick-action tiles, a dashboard, system-tray presence and native notifications. **No WebView as the main UI** — this is real native XAML, not a wrapped web page.
-
-> Status: **early MVP, work in progress.** The first milestone is: settings → live connection → dashboard with quick-action tiles → tray → notifications. Jump Lists, global hotkeys and Widgets follow.
+A **fully native Windows 11 companion app for [Home Assistant](https://www.home-assistant.io/)** — built in C# with **.NET 9 + WinUI 3 (Windows App SDK)**. Fluent design, a dark clean UI, live REST + WebSocket integration, an editable quick-action panel opened by a global hotkey, real Home-Assistant (MDI) icons, and your actual Lovelace dashboards embedded 1:1.
 
 *Not affiliated with or endorsed by the Home Assistant project / Nabu Casa. "Home Assistant" is a trademark of its respective owners; this app is an independent client "for Home Assistant".*
 
 ---
 
-## Features (MVP)
+## Features
 
-- 🎛 **Quick-action tiles** — toggle lights/switches/scenes, see live state at a glance
-- 📊 **Dashboard** — your favourite entities, updated in real time
-- 🔌 **Live connection** — REST for actions + WebSocket for push state updates (auto-reconnect)
-- 🪟 **Native Fluent UI** — Mica backdrop, WinUI 3 controls, light/dark aware
-- 🔔 **Native notifications** — Windows toast notifications for state changes you care about
-- 🧰 **System tray** — stays out of the way, quick access from the notification area
-- 🔒 **Token stored securely** — long-lived token kept in the Windows Credential Locker, never in a plaintext config
+- 🔥 **Quick panel (global hotkey)** — a configurable hotkey (default Win+Ctrl+H) slides a right-edge panel in as one unit; pick **Favourites** (editable pinned tiles) or any of your **HA dashboards** shown 1:1.
+- 🎛 **Auto-detected tiles** — every actionable entity becomes a tile with its **real Home Assistant icon**, grouped by domain, live via WebSocket; tap to toggle.
+- ⭐ **Editable & reorderable** — pin favourites, drag to reorder, add via search; layout persists.
+- 🖥️ **HA Dashboards 1:1** — your real Lovelace dashboards embedded (WebView2), auto-logged-in with your token, no login prompt.
+- 🌐 **6 UI languages** — English, Deutsch, Español, Français, 中文, हिन्दी — switch live in Settings.
+- 🪟 **Dark, clean, native** — Mica main window, borderless acrylic-free panel, adjustable panel width.
+- 🔌 **Live connection** — REST for actions + WebSocket for push updates (auto-reconnect).
+- 🧰 **System tray** — right-click → Open / Quick panel / Exit; closing the window hides to tray.
+- 🔒 **Token stored securely** — the long-lived token is encrypted with Windows DPAPI, never in plaintext.
 
 ### Planned
 
-- 📌 Jump Lists (right-click taskbar quick actions)
-- ⌨️ Global hotkeys
-- 🧩 Windows Widgets board support
-- 📦 MSIX packaging + signed releases
+- 📌 Jump Lists · 🧩 Windows Widgets board · 📦 MSIX packaging + signed releases
 
 ---
 
@@ -89,3 +86,7 @@ Want to use this in a **closed-source or commercial product** without the AGPL's
 ## Contributing
 
 Contributions are welcome! By contributing you agree to the **Developer Certificate of Origin** and to license your contribution under the project's terms so the maintainer can keep offering commercial licenses. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Credits
+
+Entity icons use the [Material Design Icons](https://pictogrammers.com/library/mdi/) webfont (Apache-2.0). See [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) for all bundled/third-party components and their licenses.
