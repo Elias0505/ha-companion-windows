@@ -21,6 +21,9 @@ public sealed class AppSettings
     /// <summary>Quick panel width in device-independent pixels (320–900).</summary>
     public int QuickPanelWidth { get; set; } = 400;
 
+    /// <summary>UI language code (en, de, es, fr, zh, hi).</summary>
+    public string Language { get; set; } = "en";
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 

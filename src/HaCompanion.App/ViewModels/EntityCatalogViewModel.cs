@@ -38,6 +38,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
     private readonly IUiDispatcher _ui;
     private readonly ITileLayoutStore _layoutStore;
     private readonly MdiIconProvider _icons;
+    private readonly LocalizationService _localization;
     private readonly Dictionary<string, EntityTileViewModel> _tilesById = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EntityGroupViewModel> _groupsByDomain = new(StringComparer.Ordinal);
     private List<string> _pinnedIds;
@@ -66,12 +67,13 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
 
     public bool ShowEditHint => IsEditing && !HasPinned;
 
-    public EntityCatalogViewModel(IHaConnection connection, IUiDispatcher ui, ITileLayoutStore layoutStore, MdiIconProvider icons)
+    public EntityCatalogViewModel(IHaConnection connection, IUiDispatcher ui, ITileLayoutStore layoutStore, MdiIconProvider icons, LocalizationService localization)
     {
         _connection = connection;
         _ui = ui;
         _layoutStore = layoutStore;
         _icons = icons;
+        _localization = localization;
         _pinnedIds = [.. _layoutStore.LoadPinned()];
 
         foreach (var state in _connection.Entities.Values)
@@ -80,6 +82,13 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
 
         Pinned.CollectionChanged += OnPinnedCollectionChanged;
         _connection.EntityUpdated += OnEntityUpdated;
+        _localization.LanguageChanged += (_, _) => _ui.Post(RefreshGroupHeaders);
+    }
+
+    private void RefreshGroupHeaders()
+    {
+        foreach (var group in _groupsByDomain.Values)
+            group.Header = _localization.Group(group.Domain);
     }
 
     /// <summary>Pin or unpin a tile (pin appends at the end).</summary>
@@ -195,7 +204,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         if (_groupsByDomain.TryGetValue(domain, out var group))
             return group;
 
-        group = new EntityGroupViewModel(domain, HeaderFor(domain), _icons.DomainGlyph(domain));
+        group = new EntityGroupViewModel(domain, _localization.Group(domain), _icons.DomainGlyph(domain));
         _groupsByDomain[domain] = group;
         InsertGroupSorted(group);
         return group;
@@ -225,14 +234,6 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
             if (DomainOrder[i].Domain == domain)
                 return i;
         return DomainOrder.Length;
-    }
-
-    private static string HeaderFor(string domain)
-    {
-        foreach (var (d, header) in DomainOrder)
-            if (d == domain)
-                return header;
-        return char.ToUpperInvariant(domain[0]) + domain[1..].Replace('_', ' ');
     }
 
     /// <summary>Map a list of entity ids to the known actionable tiles (in the given order).</summary>

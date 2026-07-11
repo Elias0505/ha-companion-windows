@@ -55,20 +55,20 @@
                 <Ellipse Grid.Column="0" Width="9" Height="9" VerticalAlignment="Center"
                          Fill="{Binding Shell.IsConnected, Converter={StaticResource StateBrush}}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="0">
-                    <TextBlock Text="Home Assistant" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock Text="{Binding [Panel_Header], Source={StaticResource Loc}}" FontWeight="SemiBold" FontSize="15" />
                     <TextBlock Text="{Binding Shell.StatusText}" FontSize="11" Opacity="0.6" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
                             Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
-                    <Button x:Name="AddTileButton" Padding="8" ToolTipService.ToolTip="Add tiles"
+                    <Button x:Name="AddTileButton" Padding="8" ToolTipService.ToolTip="{Binding [Tip_Add], Source={StaticResource Loc}}"
                             Visibility="{Binding Catalog.IsEditing, Converter={StaticResource BoolToVisibility}}"
                             Click="AddTileButton_Click">
                         <FontIcon Glyph="&#xE710;" FontSize="14" />
                         <Button.Flyout>
                             <Flyout Placement="Bottom">
                                 <StackPanel Width="300" Spacing="8">
-                                    <TextBox x:Name="SearchBox" PlaceholderText="Search entities…"
+                                    <TextBox x:Name="SearchBox" PlaceholderText="{Binding [Ph_Search], Source={StaticResource Loc}}"
                                              TextChanged="SearchBox_TextChanged" />
                                     <ListView x:Name="SearchResults" MaxHeight="320"
                                               SelectionMode="None" IsItemClickEnabled="True"
@@ -88,7 +88,7 @@
                             </Flyout>
                         </Button.Flyout>
                     </Button>
-                    <Button x:Name="EditButton" Padding="8" ToolTipService.ToolTip="Edit layout" Click="EditButton_Click">
+                    <Button x:Name="EditButton" Padding="8" ToolTipService.ToolTip="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click">
                         <FontIcon x:Name="EditIcon" Glyph="&#xE70F;" FontSize="14" />
                     </Button>
                 </StackPanel>
@@ -133,7 +133,7 @@
                                             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0"
                                             Background="{ThemeResource ControlFillColorDefaultBrush}"
                                             Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
-                                            Click="Unpin_Click" ToolTipService.ToolTip="Remove">
+                                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}">
                                         <FontIcon Glyph="&#xE711;" FontSize="10" />
                                     </Button>
                                 </Grid>
@@ -141,7 +141,7 @@
                         </GridView.ItemTemplate>
                     </GridView>
 
-                    <TextBlock Text="No tiles yet — use + to add your favourites."
+                    <TextBlock Text="{Binding [Panel_NoTiles], Source={StaticResource Loc}}"
                                Opacity="0.55" TextWrapping="Wrap" Margin="4,8,4,0"
                                Visibility="{Binding Catalog.ShowEditHint, Converter={StaticResource BoolToVisibility}}" />
 

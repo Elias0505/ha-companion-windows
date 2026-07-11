@@ -9,11 +9,13 @@ public sealed partial class EntityGroupViewModel : ObservableObject
 {
     public string Domain { get; }
 
-    public string Header { get; }
-
     public string Glyph { get; }
 
     public ObservableCollection<EntityTileViewModel> Tiles { get; } = new();
+
+    /// <summary>Localized group title; updated live when the UI language changes.</summary>
+    [ObservableProperty]
+    private string _header;
 
     [ObservableProperty]
     private int _count;
@@ -21,7 +23,7 @@ public sealed partial class EntityGroupViewModel : ObservableObject
     public EntityGroupViewModel(string domain, string header, string glyph)
     {
         Domain = domain;
-        Header = header;
+        _header = header;
         Glyph = glyph;
     }
 }

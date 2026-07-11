@@ -16,17 +16,17 @@
                         Loaded="Nav_Loaded"
                         SelectionChanged="Nav_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Start" Tag="dashboard">
+                <NavigationViewItem Content="{Binding [Nav_Start], Source={StaticResource Loc}}" Tag="dashboard">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE80F;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="HA Dashboards" Tag="hadashboards">
+                <NavigationViewItem Content="{Binding [Nav_Dashboards], Source={StaticResource Loc}}" Tag="hadashboards">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE774;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Settings" Tag="settings">
+                <NavigationViewItem Content="{Binding [Nav_Settings], Source={StaticResource Loc}}" Tag="settings">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE713;" />
                     </NavigationViewItem.Icon>
@@ -42,18 +42,18 @@
                         IconSource="ms-appx:///Assets/tray.ico">
             <tb:TaskbarIcon.ContextFlyout>
                 <MenuFlyout>
-                    <MenuFlyoutItem Text="Open" Click="Tray_Open">
+                    <MenuFlyoutItem Text="{Binding [Tray_Open], Source={StaticResource Loc}}" Click="Tray_Open">
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xE7C4;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
-                    <MenuFlyoutItem Text="Quick panel  (Win+Ctrl+H)" Click="Tray_QuickPanel">
+                    <MenuFlyoutItem Text="{Binding [Tray_Panel], Source={StaticResource Loc}}" Click="Tray_QuickPanel">
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xE8A0;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
                     <MenuFlyoutSeparator />
-                    <MenuFlyoutItem Text="Exit HA Companion" Click="Tray_Exit">
+                    <MenuFlyoutItem Text="{Binding [Tray_Exit], Source={StaticResource Loc}}" Click="Tray_Exit">
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xE7E8;" />
                         </MenuFlyoutItem.Icon>

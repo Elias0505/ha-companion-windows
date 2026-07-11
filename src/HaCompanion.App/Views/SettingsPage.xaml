@@ -9,38 +9,43 @@
 
     <ScrollViewer>
         <StackPanel Spacing="16" MaxWidth="580" Padding="24" HorizontalAlignment="Left">
-            <TextBlock Text="Home Assistant" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock Text="{Binding [Set_Title], Source={StaticResource Loc}}" Style="{StaticResource TitleTextBlockStyle}" />
             <TextBlock TextWrapping="Wrap" Opacity="0.7"
-                       Text="Enter your Home Assistant URL and a long-lived access token (Home Assistant → your profile → Security → Long-lived access tokens → Create token)." />
+                       Text="{Binding [Set_Intro], Source={StaticResource Loc}}" />
 
-            <TextBox Header="Base URL"
+            <TextBox Header="{Binding [Set_BaseUrl], Source={StaticResource Loc}}"
                      PlaceholderText="https://homeassistant.local:8123"
                      Text="{x:Bind ViewModel.BaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <PasswordBox x:Name="TokenBox"
-                         Header="Long-lived access token"
+                         Header="{Binding [Set_Token], Source={StaticResource Loc}}"
                          PasswordChanged="TokenBox_PasswordChanged" />
 
-            <ToggleSwitch Header="Ignore certificate errors (self-signed HTTPS)"
+            <ToggleSwitch Header="{Binding [Set_IgnoreCert], Source={StaticResource Loc}}"
                           IsOn="{x:Bind ViewModel.IgnoreCertificateErrors, Mode=TwoWay}" />
 
-            <ToggleSwitch Header="Auto-hide the quick panel when it loses focus"
-                          OnContent="On" OffContent="Off"
+            <ComboBox Header="{Binding [Set_Language], Source={StaticResource Loc}}"
+                      HorizontalAlignment="Stretch"
+                      DisplayMemberPath="DisplayName"
+                      ItemsSource="{x:Bind ViewModel.Languages}"
+                      SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}" />
+
+            <ToggleSwitch Header="{Binding [Set_AutoHide], Source={StaticResource Loc}}"
                           IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
 
-            <Slider Header="Quick panel width"
+            <Slider Header="{Binding [Set_Width], Source={StaticResource Loc}}"
                     Minimum="320" Maximum="900" StepFrequency="20" TickFrequency="0"
                     HorizontalAlignment="Stretch"
                     Value="{x:Bind ViewModel.QuickPanelWidth, Mode=TwoWay}" />
 
-            <ComboBox Header="Quick panel hotkey"
+            <ComboBox Header="{Binding [Set_Hotkey], Source={StaticResource Loc}}"
                       HorizontalAlignment="Stretch"
                       ItemsSource="{x:Bind ViewModel.HotkeyPresets}"
                       SelectedItem="{x:Bind ViewModel.Hotkey, Mode=TwoWay}" />
             <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                        Text="{x:Bind ViewModel.HotkeyStatus, Mode=OneWay}" />
 
-            <Expander Header="Tips &amp; best practices" HorizontalAlignment="Stretch">
+            <Expander Header="{Binding [Set_Tips], Source={StaticResource Loc}}" HorizontalAlignment="Stretch">
                 <StackPanel Spacing="8" Padding="4,4,4,8">
                     <TextBlock TextWrapping="Wrap" Opacity="0.85"
                                Text="• Hotkey: use Ctrl or Alt plus a letter (e.g. Ctrl+Alt+H). Windows reserves some Win-key combos (Win+H is voice typing), so those may not register." />
@@ -55,7 +60,7 @@
                 </StackPanel>
             </Expander>
 
-            <Button Content="Connect"
+            <Button Content="{Binding [Set_Connect], Source={StaticResource Loc}}"
                     Style="{StaticResource AccentButtonStyle}"
                     IsEnabled="{x:Bind IsNotBusy(ViewModel.IsBusy), Mode=OneWay}"
                     Command="{x:Bind ViewModel.SaveAndConnectCommand}" />

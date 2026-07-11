@@ -23,21 +23,21 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Start" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock Grid.Column="0" Text="{Binding [Nav_Start], Source={StaticResource Loc}}" Style="{StaticResource TitleTextBlockStyle}" />
             <Border Grid.Column="1" VerticalAlignment="Center" CornerRadius="10" Padding="8,2"
                     Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
                 <TextBlock Text="{Binding Shell.StatusText}" FontSize="12" Opacity="0.8" />
             </Border>
 
             <Button Grid.Column="3" x:Name="AddTileButton" Padding="8"
-                    ToolTipService.ToolTip="Add favourites"
+                    ToolTipService.ToolTip="{Binding [Tip_Add], Source={StaticResource Loc}}"
                     Visibility="{Binding Catalog.IsEditing, Converter={StaticResource BoolToVisibility}}"
                     Click="AddTileButton_Click">
                 <FontIcon Glyph="&#xE710;" FontSize="14" />
                 <Button.Flyout>
                     <Flyout Placement="Bottom">
                         <StackPanel Width="320" Spacing="8">
-                            <TextBox x:Name="SearchBox" PlaceholderText="Search entities…"
+                            <TextBox x:Name="SearchBox" PlaceholderText="{Binding [Ph_Search], Source={StaticResource Loc}}"
                                      TextChanged="SearchBox_TextChanged" />
                             <ListView x:Name="SearchResults" MaxHeight="360"
                                       SelectionMode="None" IsItemClickEnabled="True"
@@ -59,14 +59,14 @@
             </Button>
 
             <Button Grid.Column="4" x:Name="EditButton" Padding="8"
-                    ToolTipService.ToolTip="Edit layout" Click="EditButton_Click">
+                    ToolTipService.ToolTip="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click">
                 <FontIcon x:Name="EditIcon" Glyph="&#xE70F;" FontSize="14" />
             </Button>
         </Grid>
 
         <ScrollViewer Grid.Row="1">
             <StackPanel Spacing="24">
-                <TextBlock Text="No entities yet. Open Settings and connect to your Home Assistant."
+                <TextBlock Text="{Binding [Start_Empty], Source={StaticResource Loc}}"
                            Opacity="0.6" TextWrapping="Wrap"
                            Visibility="{Binding Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
 
@@ -75,9 +75,9 @@
                             Visibility="{Binding Catalog.ShowPinnedArea, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE735;" FontSize="15" Opacity="0.85" VerticalAlignment="Center" />
-                        <TextBlock Text="Favourites" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock Text="{Binding [Fav_Title], Source={StaticResource Loc}}" Style="{StaticResource SubtitleTextBlockStyle}" />
                     </StackPanel>
-                    <TextBlock Text="No favourites yet — use + to add tiles, or pin any tile below while editing."
+                    <TextBlock Text="{Binding [Fav_Empty], Source={StaticResource Loc}}"
                                Opacity="0.55" TextWrapping="Wrap"
                                Visibility="{Binding Catalog.ShowEditHint, Converter={StaticResource BoolToVisibility}}" />
                     <GridView x:Name="PinnedGrid"
@@ -109,7 +109,7 @@
                                             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0"
                                             Background="{ThemeResource ControlFillColorDefaultBrush}"
                                             Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}}"
-                                            Click="Unpin_Click" ToolTipService.ToolTip="Remove from favourites">
+                                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}">
                                         <FontIcon Glyph="&#xE711;" FontSize="10" />
                                     </Button>
                                 </Grid>
@@ -163,7 +163,7 @@
                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0"
                                                         Background="{ThemeResource ControlFillColorDefaultBrush}"
                                                         Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}}"
-                                                        Click="Pin_Click" ToolTipService.ToolTip="Pin to favourites">
+                                                        Click="Pin_Click" ToolTipService.ToolTip="{Binding [Tip_Pin], Source={StaticResource Loc}}">
                                                     <FontIcon Glyph="&#xE718;" FontSize="11" />
                                                 </Button>
                                             </Grid>

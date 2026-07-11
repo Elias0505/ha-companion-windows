@@ -26,6 +26,12 @@ public partial class App : Application
     {
         Services = ConfigureServices();
 
+        // Apply the saved UI language and expose the localization service to XAML
+        // (so {Binding [Key], Source={StaticResource Loc}} resolves) before any window loads.
+        var localization = Services.GetRequiredService<LocalizationService>();
+        localization.SetLanguage(Services.GetRequiredService<ISettingsStore>().Load().Language);
+        Resources["Loc"] = localization;
+
         // Capture the UI DispatcherQueue on this (UI) thread before anything marshals to it.
         _ = Services.GetRequiredService<IUiDispatcher>();
 
@@ -62,6 +68,7 @@ public partial class App : Application
         services.AddSingleton<ISettingsStore, SettingsStore>();
         services.AddSingleton<ITileLayoutStore, TileLayoutStore>();
         services.AddSingleton<MdiIconProvider>();
+        services.AddSingleton<LocalizationService>();
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IQuickPanelController, QuickPanelController>();

@@ -13,6 +13,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ISettingsStore _settingsStore;
     private readonly ShellViewModel _shell;
     private readonly IHotkeyService _hotkeys;
+    private readonly LocalizationService _localization;
     private bool _loading;
 
     [ObservableProperty]
@@ -34,7 +35,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     private double _quickPanelWidth = 400;
 
     [ObservableProperty]
+    private LanguageOption? _selectedLanguage;
+
+    [ObservableProperty]
     private string _hotkeyStatus = string.Empty;
+
+    public IReadOnlyList<LanguageOption> Languages => _localization.Languages;
 
     [ObservableProperty]
     private string _statusMessage = string.Empty;
@@ -47,11 +53,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         "Win+Ctrl+H", "Ctrl+Alt+H", "Ctrl+Shift+H", "Ctrl+Alt+Space", "Win+Ctrl+Space", "Ctrl+Alt+A",
     };
 
-    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys)
+    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization)
     {
         _settingsStore = settingsStore;
         _shell = shell;
         _hotkeys = hotkeys;
+        _localization = localization;
         Load();
     }
 
@@ -65,6 +72,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         Hotkey = string.IsNullOrWhiteSpace(settings.Hotkey) ? "Win+Ctrl+H" : settings.Hotkey;
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
         QuickPanelWidth = settings.QuickPanelWidth;
+        SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
+                           ?? _localization.Languages[0];
         if (!HotkeyPresets.Contains(Hotkey))
             HotkeyPresets.Insert(0, Hotkey);
         _loading = false;
@@ -79,6 +88,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Hotkey = Hotkey,
         AutoHideQuickPanel = AutoHideQuickPanel,
         QuickPanelWidth = (int)QuickPanelWidth,
+        Language = SelectedLanguage?.Code ?? "en",
     };
 
     partial void OnAutoHideQuickPanelChanged(bool value)
@@ -91,6 +101,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (!_loading)
             _settingsStore.Save(BuildSettings());
+    }
+
+    partial void OnSelectedLanguageChanged(LanguageOption? value)
+    {
+        if (_loading || value is null)
+            return;
+        _localization.SetLanguage(value.Code);
+        _settingsStore.Save(BuildSettings());
     }
 
     partial void OnHotkeyChanged(string value)
