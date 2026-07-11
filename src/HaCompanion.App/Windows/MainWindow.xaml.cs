@@ -44,14 +44,19 @@ public sealed partial class MainWindow : Window
 
         if (AppWindowTitleBar.IsCustomizationSupported())
         {
+            // Solid dark title bar + caption buttons (min/max/close) so the button strip
+            // matches the rest of the bar instead of rendering as a light/white block.
+            var dark = Color.FromArgb(255, 32, 32, 32);
             var titleBar = AppWindow.TitleBar;
-            titleBar.ButtonBackgroundColor = Colors.Transparent;
-            titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+            titleBar.BackgroundColor = dark;
+            titleBar.InactiveBackgroundColor = dark;
+            titleBar.ButtonBackgroundColor = dark;
+            titleBar.ButtonInactiveBackgroundColor = dark;
             titleBar.ButtonForegroundColor = Colors.White;
             titleBar.ButtonInactiveForegroundColor = Color.FromArgb(255, 160, 160, 160);
-            titleBar.ButtonHoverBackgroundColor = Color.FromArgb(40, 255, 255, 255);
+            titleBar.ButtonHoverBackgroundColor = Color.FromArgb(255, 55, 55, 55);
             titleBar.ButtonHoverForegroundColor = Colors.White;
-            titleBar.ButtonPressedBackgroundColor = Color.FromArgb(24, 255, 255, 255);
+            titleBar.ButtonPressedBackgroundColor = Color.FromArgb(255, 70, 70, 70);
             titleBar.ButtonPressedForegroundColor = Colors.White;
         }
 
