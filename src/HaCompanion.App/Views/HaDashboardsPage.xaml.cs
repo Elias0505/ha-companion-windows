@@ -109,7 +109,10 @@ public sealed partial class HaDashboardsPage : Page
     private void DashboardCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DashboardCombo.SelectedItem is HaDashboardInfo dashboard && Web.CoreWebView2 is not null)
-            Web.CoreWebView2.Navigate($"{_baseUrl}/{dashboard.NavigationPath}");
+        {
+            var url = string.IsNullOrEmpty(dashboard.UrlPath) ? _baseUrl : $"{_baseUrl}/{dashboard.UrlPath}";
+            Web.CoreWebView2.Navigate(url);
+        }
     }
 
     private void Reload_Click(object sender, RoutedEventArgs e) => Web.CoreWebView2?.Reload();

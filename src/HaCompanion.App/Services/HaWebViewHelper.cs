@@ -33,11 +33,10 @@ public static class HaWebViewHelper
         """
         (function () {
           const css = `
-            .header, app-header, ha-top-app-bar-fixed, .mdc-top-app-bar { display: none !important; }
+            .header, .mdc-top-app-bar { display: none !important; }
             .mdc-top-app-bar--fixed-adjust { padding-top: 0 !important; }
-            ha-drawer .mdc-drawer, ha-drawer aside, ha-sidebar { display: none !important; }
+            ha-drawer .mdc-drawer, ha-sidebar { display: none !important; }
             ha-drawer .mdc-drawer-app-content { margin-inline-start: 0 !important; }
-            #view { padding-top: 0 !important; }
           `;
           function inject(root) {
             if (!root || root.__hacHidden) return;

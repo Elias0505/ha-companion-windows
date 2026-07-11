@@ -170,8 +170,10 @@ public sealed partial class QuickPanelWindow : Window
         try
         {
             await EnsureWebAsync();
-            var path = string.IsNullOrEmpty(dashboard.UrlPath) ? "lovelace" : dashboard.UrlPath;
-            PanelWeb.CoreWebView2?.Navigate($"{_baseUrl}/{path}");
+            // Empty url_path = the default/Overview dashboard → navigate to the site root,
+            // which is exactly what HA's "Overview" sidebar entry does.
+            var url = string.IsNullOrEmpty(dashboard.UrlPath) ? _baseUrl : $"{_baseUrl}/{dashboard.UrlPath}";
+            PanelWeb.CoreWebView2?.Navigate(url);
         }
         catch
         {
