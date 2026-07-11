@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.IO;
+using System.Runtime.InteropServices;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
@@ -17,13 +19,46 @@ public partial class App : Application
     /// <summary>The main window; kept alive for the lifetime of the app (hidden to tray, not closed).</summary>
     public static MainWindow? MainWindow { get; private set; }
 
+    // Held for the process lifetime; its existence marks the running instance.
+    private static Mutex? _instanceMutex;
+
     public App()
     {
         InitializeComponent();
+
+        // Last-resort diagnostics: a tray app that dies silently is undebuggable. Log every
+        // unhandled exception to %LOCALAPPDATA%\HaCompanion\crash.log; keep the app alive for
+        // UI-thread exceptions (one failed handler shouldn't kill the tray + hotkey).
+        UnhandledException += (_, e) =>
+        {
+            LogCrash("XAML UnhandledException", e.Exception);
+            e.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            LogCrash("AppDomain UnhandledException", e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            LogCrash("UnobservedTaskException", e.Exception);
+            e.SetObserved();
+        };
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        // Single instance: a second launch would fight over the tray icon and the global
+        // hotkey (RegisterHotKey fails). Surface the existing window instead and bow out.
+        _instanceMutex = new Mutex(initiallyOwned: true, @"Local\HaCompanion.SingleInstance", out var isFirstInstance);
+        if (!isFirstInstance)
+        {
+            var existing = FindWindowW(null, "HA Companion");
+            if (existing != IntPtr.Zero)
+            {
+                ShowWindow(existing, 9 /* SW_RESTORE */);
+                SetForegroundWindow(existing);
+            }
+            Environment.Exit(0); // nothing is initialized yet — safe to leave abruptly
+        }
+
         Services = ConfigureServices();
 
         // Apply the saved UI language and expose the localization service to XAML
@@ -85,4 +120,31 @@ public partial class App : Application
 
         return services.BuildServiceProvider();
     }
+
+    private static void LogCrash(string source, Exception? exception)
+    {
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HaCompanion");
+            Directory.CreateDirectory(dir);
+            var file = Path.Combine(dir, "crash.log");
+            if (File.Exists(file) && new FileInfo(file).Length > 512_000)
+                File.Delete(file); // keep the log from growing unbounded
+            File.AppendAllText(file, $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}] {source}: {exception}\n\n");
+        }
+        catch
+        {
+            // never let crash logging cause another crash
+        }
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowW(string? className, string windowName);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 }

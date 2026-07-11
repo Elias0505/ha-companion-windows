@@ -14,22 +14,27 @@ public sealed partial class ShellViewModel : ObservableObject
     private readonly IHaConnection _connection;
     private readonly ISettingsStore _settingsStore;
     private readonly IUiDispatcher _ui;
+    private readonly LocalizationService _localization;
 
     [ObservableProperty]
     private HaConnectionStatus _status = HaConnectionStatus.Disconnected;
 
     [ObservableProperty]
-    private string _statusText = "Disconnected";
+    private string _statusText;
 
     [ObservableProperty]
     private bool _isConnected;
 
-    public ShellViewModel(IHaConnection connection, ISettingsStore settingsStore, IUiDispatcher ui)
+    public ShellViewModel(IHaConnection connection, ISettingsStore settingsStore, IUiDispatcher ui, LocalizationService localization)
     {
         _connection = connection;
         _settingsStore = settingsStore;
         _ui = ui;
+        _localization = localization;
+        _statusText = localization["St_Disconnected"];
         _connection.StatusChanged += (_, status) => _ui.Post(() => ApplyStatus(status));
+        // Re-derive the status text when the UI language changes.
+        _localization.LanguageChanged += (_, _) => _ui.Post(() => ApplyStatus(Status));
     }
 
     /// <summary>Auto-connect at startup if we already have stored settings.</summary>
@@ -58,12 +63,12 @@ public sealed partial class ShellViewModel : ObservableObject
         IsConnected = status == HaConnectionStatus.Connected;
         StatusText = status switch
         {
-            HaConnectionStatus.Disconnected => "Disconnected",
-            HaConnectionStatus.Connecting => "Connecting…",
-            HaConnectionStatus.Authenticating => "Authenticating…",
-            HaConnectionStatus.AuthFailed => "Authentication failed",
-            HaConnectionStatus.Connected => "Connected",
-            HaConnectionStatus.Reconnecting => "Reconnecting…",
+            HaConnectionStatus.Disconnected => _localization["St_Disconnected"],
+            HaConnectionStatus.Connecting => _localization["St_Connecting"],
+            HaConnectionStatus.Authenticating => _localization["St_Authenticating"],
+            HaConnectionStatus.AuthFailed => _localization["St_AuthFailed"],
+            HaConnectionStatus.Connected => _localization["St_Connected"],
+            HaConnectionStatus.Reconnecting => _localization["St_Reconnecting"],
             _ => status.ToString(),
         };
     }

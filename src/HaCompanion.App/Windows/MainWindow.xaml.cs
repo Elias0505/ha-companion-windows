@@ -32,7 +32,11 @@ public sealed partial class MainWindow : Window
 
         Title = "HA Companion";
         SystemBackdrop = new MicaBackdrop();
-        AppWindow.Resize(new SizeInt32(1100, 720));
+
+        // AppWindow.Resize takes physical pixels — scale the intended 1100x720 DIP size by
+        // the monitor's DPI so the window isn't undersized on high-DPI (e.g. 150%) displays.
+        var scale = GetDpiForWindow(WindowNative.GetWindowHandle(this)) / 96.0;
+        AppWindow.Resize(new SizeInt32((int)Math.Round(1100 * scale), (int)Math.Round(720 * scale)));
 
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
         if (File.Exists(iconPath))
@@ -117,4 +121,7 @@ public sealed partial class MainWindow : Window
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hwnd);
 }

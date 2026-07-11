@@ -51,7 +51,10 @@ public sealed class TileLayoutStore : ITileLayoutStore
     {
         try
         {
-            File.WriteAllText(_file, JsonSerializer.Serialize(new Layout { Pinned = [.. entityIds] }, JsonOptions));
+            // Temp + move keeps the layout file intact if the app dies mid-write.
+            var tmp = _file + ".tmp";
+            File.WriteAllText(tmp, JsonSerializer.Serialize(new Layout { Pinned = [.. entityIds] }, JsonOptions));
+            File.Move(tmp, _file, overwrite: true);
         }
         catch (Exception ex)
         {

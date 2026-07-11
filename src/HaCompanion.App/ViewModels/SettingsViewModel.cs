@@ -68,6 +68,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _localization = localization;
         _quickPanel = quickPanel;
         Load();
+        // Keep the (localized) hotkey status in sync when the UI language changes.
+        _localization.LanguageChanged += (_, _) => RefreshHotkeyStatus();
     }
 
     private void Load()
@@ -155,9 +157,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public void RefreshHotkeyStatusPublic() => RefreshHotkeyStatus();
 
     private void RefreshHotkeyStatus() =>
-        HotkeyStatus = _hotkeys.IsRegistered
-            ? $"Active — press {Hotkey} anywhere to open the quick panel."
-            : $"'{Hotkey}' could not be registered (reserved or already in use). Pick another combo above, or open the panel from the tray icon.";
+        HotkeyStatus = string.Format(
+            _localization[_hotkeys.IsRegistered ? "Set_HotkeyActive" : "Set_HotkeyFailed"], Hotkey);
 
     [RelayCommand]
     private async Task SaveAndConnectAsync()
@@ -165,18 +166,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         var settings = BuildSettings();
         if (!settings.HasConnection)
         {
-            StatusMessage = "Please enter both a base URL and a long-lived access token.";
+            StatusMessage = _localization["Set_MsgNeedBoth"];
             return;
         }
 
         IsBusy = true;
-        StatusMessage = "Connecting…";
+        StatusMessage = _localization["St_Connecting"];
         _settingsStore.Save(settings);
 
         var ok = await _shell.ConnectAsync(settings);
-        StatusMessage = ok
-            ? "Connected. Your tiles will appear on the dashboard and in the quick panel."
-            : "Could not connect — check the URL, token and the certificate option.";
+        StatusMessage = _localization[ok ? "Set_MsgConnected" : "Set_MsgFailed"];
         IsBusy = false;
     }
 }

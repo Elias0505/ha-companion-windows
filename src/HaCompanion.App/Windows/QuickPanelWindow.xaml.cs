@@ -327,7 +327,22 @@ public sealed partial class QuickPanelWindow : Window
         }
     }
 
-    private Task EnsureWebAsync() => _webInitTask ??= InitWebAsync();
+    private async Task EnsureWebAsync()
+    {
+        var task = _webInitTask ??= InitWebAsync();
+        try
+        {
+            await task;
+        }
+        catch
+        {
+            // Don't cache a faulted init forever — a transient failure (e.g. WebView2
+            // hiccup) would otherwise disable the dashboard view until app restart.
+            if (_webInitTask == task)
+                _webInitTask = null;
+            throw;
+        }
+    }
 
     private async Task InitWebAsync()
     {
@@ -474,7 +489,10 @@ public sealed partial class QuickPanelWindow : Window
             var dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HaCompanion");
             Directory.CreateDirectory(dir);
-            File.AppendAllText(Path.Combine(dir, "panel.log"), $"{Environment.TickCount64,12} {message}\n");
+            var file = Path.Combine(dir, "panel.log");
+            if (File.Exists(file) && new FileInfo(file).Length > 512_000)
+                File.Delete(file); // cap the diagnostics log instead of growing forever
+            File.AppendAllText(file, $"{Environment.TickCount64,12} {message}\n");
         }
         catch
         {

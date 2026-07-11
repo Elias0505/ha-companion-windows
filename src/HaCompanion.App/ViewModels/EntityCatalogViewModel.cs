@@ -92,6 +92,8 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
     {
         foreach (var group in _groupsByDomain.Values)
             group.Header = _localization.Group(group.Domain);
+        foreach (var tile in _tilesById.Values)
+            tile.RefreshStateText(); // "On"/"Off" are localized too
     }
 
     /// <summary>Pin or unpin a tile (pin appends at the end).</summary>

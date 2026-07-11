@@ -118,7 +118,9 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             }
             finally
             {
-                _activeSocket = null;
+                // _activeSocket is cleared inside ConnectAndListenAsync with a CompareExchange
+                // against ITS OWN socket — clearing it here could clobber the socket of a NEWER
+                // supervisor when Start() is called while an old session is still unwinding.
                 FailPending(new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Session ended."));
             }
 
@@ -177,21 +179,29 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }
 
         _activeSocket = socket;
-        SetStatus(HaConnectionStatus.Connected);
-
-        // subscribe to state changes
-        await SendRawAsync(socket, JsonSerializer.Serialize(new
+        try
         {
-            id = NextId(),
-            type = "subscribe_events",
-            event_type = "state_changed",
-        }, JsonOptions), ct).ConfigureAwait(false);
+            SetStatus(HaConnectionStatus.Connected);
 
-        // receive loop
-        while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open)
+            // subscribe to state changes
+            await SendRawAsync(socket, JsonSerializer.Serialize(new
+            {
+                id = NextId(),
+                type = "subscribe_events",
+                event_type = "state_changed",
+            }, JsonOptions), ct).ConfigureAwait(false);
+
+            // receive loop
+            while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open)
+            {
+                using var doc = await ReceiveJsonAsync(socket, ct).ConfigureAwait(false);
+                Dispatch(doc);
+            }
+        }
+        finally
         {
-            using var doc = await ReceiveJsonAsync(socket, ct).ConfigureAwait(false);
-            Dispatch(doc);
+            // Only clear the field if it still refers to THIS session's socket.
+            Interlocked.CompareExchange(ref _activeSocket, null, socket);
         }
     }
 

@@ -46,21 +46,38 @@ public sealed partial class QuickPanelViewModel : ObservableObject
         _settingsStore = settingsStore;
     }
 
-    /// <summary>Load the HA dashboards into the picker (once connected). Safe to call repeatedly.</summary>
+    /// <summary>
+    /// Sync the picker with HA's dashboard list (called on every panel open). The list is only
+    /// rebuilt when it actually changed in HA, so the current selection normally survives; if
+    /// the selected dashboard was removed, the picker falls back to Favourites.
+    /// </summary>
     public async Task EnsureDashboardsAsync()
     {
-        if (Dashboards.Count > 1 || Shell.Status != HaConnectionStatus.Connected)
+        if (Shell.Status != HaConnectionStatus.Connected)
             return;
         try
         {
             var list = await _connection.ListDashboardsAsync();
             _ui.Post(() =>
             {
-                foreach (var d in list)
-                    Dashboards.Add(new QuickDashboard(d.Title, d.UrlPath, false));
+                var firstLoad = Dashboards.Count <= 1;
+                var fresh = list.Select(d => new QuickDashboard(d.Title, d.UrlPath, false)).ToList();
+                var changed = Dashboards.Count != fresh.Count + 1
+                              || !Dashboards.Skip(1).SequenceEqual(fresh); // records: value equality
+                if (changed)
+                {
+                    var previous = SelectedDashboard;
+                    while (Dashboards.Count > 1)
+                        Dashboards.RemoveAt(Dashboards.Count - 1);
+                    foreach (var d in fresh)
+                        Dashboards.Add(d);
+                    if (previous is { IsFavorites: false })
+                        SelectedDashboard = fresh.FirstOrDefault(d => d.UrlPath == previous.UrlPath)
+                                            ?? QuickDashboard.Favorites;
+                }
 
                 // If configured, open the panel on the first HA dashboard instead of Favourites.
-                if (_settingsStore.Load().QuickPanelStartOnDashboard && Dashboards.Count > 1)
+                if (firstLoad && _settingsStore.Load().QuickPanelStartOnDashboard && Dashboards.Count > 1)
                     SelectedDashboard = Dashboards[1];
             });
         }

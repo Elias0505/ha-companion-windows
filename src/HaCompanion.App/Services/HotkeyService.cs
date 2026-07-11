@@ -125,7 +125,18 @@ public sealed class HotkeyService : IHotkeyService
     private IntPtr HandleMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
         if (msg == WM_HOTKEY && (int)wParam == HOTKEY_ID)
-            HotkeyPressed?.Invoke(this, EventArgs.Empty);
+        {
+            // An exception must never escape into the window procedure — it would take the
+            // whole process down. Log and carry on; the next press gets a fresh attempt.
+            try
+            {
+                HotkeyPressed?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Hotkey handler failed");
+            }
+        }
         return CallWindowProc(_oldProc, hWnd, msg, wParam, lParam);
     }
 

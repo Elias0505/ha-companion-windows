@@ -14,6 +14,7 @@ public partial class EntityTileViewModel : ObservableObject
     private readonly IHaConnection _connection;
     private readonly MdiIconProvider _icons;
     private readonly LocalizationService _localization;
+    private HaEntityState _state;
 
     public string EntityId { get; }
 
@@ -44,6 +45,7 @@ public partial class EntityTileViewModel : ObservableObject
         _connection = connection;
         _icons = icons;
         _localization = localization;
+        _state = state;
         EntityId = state.EntityId;
         Domain = state.Domain;
         _iconGlyph = icons.Resolve(state);
@@ -56,12 +58,16 @@ public partial class EntityTileViewModel : ObservableObject
     /// <summary>Apply a new state snapshot from Home Assistant.</summary>
     public void Update(HaEntityState state)
     {
+        _state = state;
         IconGlyph = _icons.Resolve(state);
         FriendlyName = state.FriendlyName;
         StateText = FormatState(state);
         IsOn = state.IsOn;
         IsUnavailable = state.IsUnavailable;
     }
+
+    /// <summary>Re-derive the localized state text (called when the UI language changes).</summary>
+    public void RefreshStateText() => StateText = FormatState(_state);
 
     [RelayCommand]
     private async Task ToggleAsync()
@@ -82,7 +88,15 @@ public partial class EntityTileViewModel : ObservableObject
         if (state.IsUnavailable)
             return _localization["State_Unavailable"];
         var unit = state.GetAttributeString("unit_of_measurement");
-        return unit is null ? Capitalize(state.State) : $"{state.State} {unit}";
+        if (unit is not null)
+            return $"{state.State} {unit}";
+        // Localize the two ubiquitous states; anything else shows HA's raw value.
+        return state.State.ToLowerInvariant() switch
+        {
+            "on" => _localization["State_On"],
+            "off" => _localization["State_Off"],
+            _ => Capitalize(state.State),
+        };
     }
 
     private static string Capitalize(string value) =>

@@ -34,14 +34,18 @@ public sealed partial class HaDashboardsPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        // The page is cached (NavigationCacheMode=Required), so Loaded fires on every visit.
+        // Mark it initialized only after a successful start — that way "no settings yet" or
+        // a missing runtime is retried on the next visit instead of showing a stale warning
+        // forever after the user has fixed the cause.
         if (_initialized)
             return;
-        _initialized = true;
 
+        var loc = App.Services.GetRequiredService<LocalizationService>();
         var settings = _settingsStore.Load();
         if (!settings.HasConnection)
         {
-            ShowInfo("Configure your Home Assistant URL and token in Settings first.", InfoBarSeverity.Warning);
+            ShowInfo(loc["Dash_NeedSettings"], InfoBarSeverity.Warning);
             return;
         }
         _baseUrl = settings.BaseUrl.TrimEnd('/');
@@ -53,8 +57,7 @@ public sealed partial class HaDashboardsPage : Page
         }
         catch (Exception)
         {
-            ShowInfo("The WebView2 runtime is missing. Install it from https://developer.microsoft.com/microsoft-edge/webview2/ and reopen this page.",
-                InfoBarSeverity.Error);
+            ShowInfo(loc["Dash_NoWebView"], InfoBarSeverity.Error);
             return;
         }
 
@@ -82,10 +85,12 @@ public sealed partial class HaDashboardsPage : Page
         }
         catch (Exception ex)
         {
-            ShowInfo($"Could not start the embedded view: {ex.Message}", InfoBarSeverity.Error);
+            ShowInfo(string.Format(loc["Dash_EmbedFailed"], ex.Message), InfoBarSeverity.Error);
             return;
         }
 
+        _initialized = true;
+        Info.IsOpen = false;
         await LoadDashboardListAsync();
     }
 
@@ -99,7 +104,7 @@ public sealed partial class HaDashboardsPage : Page
         catch (Exception)
         {
             dashboards = [new HaDashboardInfo(null, "Overview", null)];
-            ShowInfo("Could not list dashboards (not connected?) — showing the default dashboard.", InfoBarSeverity.Informational);
+            ShowInfo(App.Services.GetRequiredService<LocalizationService>()["Dash_ListFailed"], InfoBarSeverity.Informational);
         }
 
         DashboardCombo.ItemsSource = dashboards;

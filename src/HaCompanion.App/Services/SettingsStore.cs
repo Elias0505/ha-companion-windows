@@ -16,6 +16,8 @@ public sealed class SettingsStore : ISettingsStore
     private readonly ILogger<SettingsStore> _logger;
     private readonly string _dir;
     private readonly string _file;
+    private readonly object _sync = new();
+    private AppSettings? _cache;
 
     public SettingsStore(ILogger<SettingsStore> logger)
     {
@@ -27,6 +29,23 @@ public sealed class SettingsStore : ISettingsStore
     }
 
     public AppSettings Load()
+    {
+        // Load() runs on hot paths (every panel open / focus change) — serve from the
+        // in-memory copy instead of re-reading + DPAPI-decrypting the file each time.
+        // Callers get a private clone so mutating it without Save() can't corrupt the cache.
+        lock (_sync)
+        {
+            if (_cache is not null)
+                return Clone(_cache);
+        }
+
+        var loaded = LoadFromDisk();
+        lock (_sync)
+            _cache ??= Clone(loaded);
+        return loaded;
+    }
+
+    private AppSettings LoadFromDisk()
     {
         try
         {
@@ -56,6 +75,9 @@ public sealed class SettingsStore : ISettingsStore
 
     public void Save(AppSettings settings)
     {
+        lock (_sync)
+            _cache = Clone(settings);
+
         Directory.CreateDirectory(_dir);
         var persisted = new Persisted
         {
@@ -69,8 +91,26 @@ public sealed class SettingsStore : ISettingsStore
             QuickPanelDragResize = settings.QuickPanelDragResize,
             TokenProtected = Protect(settings.Token),
         };
-        File.WriteAllText(_file, JsonSerializer.Serialize(persisted, JsonOptions));
+
+        // Write-to-temp + move so a crash mid-write can never leave a truncated
+        // settings.json behind (which would silently drop the stored URL + token).
+        var tmp = _file + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(persisted, JsonOptions));
+        File.Move(tmp, _file, overwrite: true);
     }
+
+    private static AppSettings Clone(AppSettings s) => new()
+    {
+        BaseUrl = s.BaseUrl,
+        Token = s.Token,
+        IgnoreCertificateErrors = s.IgnoreCertificateErrors,
+        Hotkey = s.Hotkey,
+        AutoHideQuickPanel = s.AutoHideQuickPanel,
+        QuickPanelWidth = s.QuickPanelWidth,
+        Language = s.Language,
+        QuickPanelStartOnDashboard = s.QuickPanelStartOnDashboard,
+        QuickPanelDragResize = s.QuickPanelDragResize,
+    };
 
     private string Protect(string plain)
     {
