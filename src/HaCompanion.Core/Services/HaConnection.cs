@@ -80,10 +80,19 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
             {
                 foreach (var item in result.EnumerateArray())
                 {
-                    var urlPath = item.TryGetProperty("url_path", out var u) ? u.GetString() : null;
-                    if (string.IsNullOrEmpty(urlPath))
+                    // Mirror Home Assistant's own sidebar: skip dashboards the user hid
+                    // (show_in_sidebar=false). This also drops HA's built-in "lovelace"
+                    // default, which it exposes under the SAME localized title as the
+                    // user's real home dashboard (e.g. two "Übersicht" entries) — the
+                    // source of the reported duplicate.
+                    if (item.TryGetProperty("show_in_sidebar", out var vis) &&
+                        vis.ValueKind == System.Text.Json.JsonValueKind.False)
                         continue;
-                    var title = item.TryGetProperty("title", out var t) ? t.GetString() ?? urlPath : urlPath;
+
+                    var urlPath = item.TryGetProperty("url_path", out var u) ? u.GetString() : null;
+                    var title = item.TryGetProperty("title", out var t) ? t.GetString() : null;
+                    if (string.IsNullOrWhiteSpace(title))
+                        title = string.IsNullOrEmpty(urlPath) ? "Overview" : urlPath;
                     var icon = item.TryGetProperty("icon", out var i) ? i.GetString() : null;
                     dashboards.Add(new HaDashboardInfo(urlPath, title, icon));
                 }
@@ -94,9 +103,8 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
             _logger.LogWarning(ex, "Could not list Lovelace dashboards");
         }
 
-        // Only add the implicit default dashboard (site root) if HA has no storage
-        // dashboards — otherwise the user's own default is already in the list, and a
-        // second "Overview" entry would just be a duplicate of it.
+        // Fallback only when the sidebar is empty or the call failed: show the implicit
+        // default dashboard at the site root so the picker is never empty.
         if (dashboards.Count == 0)
             dashboards.Add(new HaDashboardInfo(null, "Overview", "mdi:view-dashboard"));
 

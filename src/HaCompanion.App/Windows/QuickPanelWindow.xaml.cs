@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.IO;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Composition;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Web.WebView2.Core;
@@ -21,26 +18,33 @@ namespace HaCompanion.App.Windows;
 
 /// <summary>
 /// The Win+Ctrl+H quick panel: a borderless, always-on-top overlay pinned to the
-/// right edge of the work area that slides in/out with a Composition animation,
-/// dismisses on focus loss or Esc, and hosts the editable pinned-tile layout.
+/// right edge of the work area. The whole opaque panel slides in/out as one unit by
+/// moving the window itself (like the Win11 notification centre), dismisses on focus
+/// loss or Esc, and hosts the editable pinned-tile layout.
 /// </summary>
 public sealed partial class QuickPanelWindow : Window
 {
     private const int DefaultPanelWidthDip = 400;
+    private const int AnimDurationMs = 200;
 
     public QuickPanelViewModel ViewModel { get; }
 
     private readonly IntPtr _hwnd;
     private readonly ISettingsStore _settingsStore;
-    private DispatcherQueueTimer? _previewTimer;
+    private readonly DispatcherQueueTimer _animTimer;
+    private readonly DispatcherQueueTimer _previewTimer;
     private Task? _webInitTask;
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
     private bool _isOpen;
     private bool _previewing;
 
-    // How far the content is pushed off the right edge before it slides in.
-    private float SlideDistance => _panelWidthDip + 48f;
+    // Slide geometry in physical pixels, recomputed from the work area on each show.
+    private int _winY, _winW, _winH, _restX, _offX;
+    private int _animFromX, _animToX;
+    private long _animStartMs;
+    private bool _hideAfterAnim;
+    private bool _timerBoosted;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
@@ -51,15 +55,7 @@ public sealed partial class QuickPanelWindow : Window
         ViewModel.DashboardRequested += OnDashboardRequested;
 
         Title = "HA Companion — Quick Panel";
-        // No window-level backdrop: the panel's background lives inside RootGrid so it
-        // slides in together with the content (no lag) and shows no window border.
-
         _hwnd = WindowNative.GetWindowHandle(this);
-
-        // GPU-driven content slide (the window never moves — so it can never stick half-out).
-        ElementCompositionPreview.SetIsTranslationEnabled(PanelSurface, true);
-        ElementCompositionPreview.GetElementVisual(PanelSurface)
-            .Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
 
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;
@@ -71,23 +67,36 @@ public sealed partial class QuickPanelWindow : Window
         AppWindow.IsShownInSwitchers = false;
         ApplyNoBorder();
 
-        // Glass: extend the DWM frame across the whole client area so wherever the XAML is
-        // transparent (everything except the sliding PanelSurface) the desktop shows through
-        // — the opaque panel truly slides over the desktop, no window rectangle behind it.
-        var margins = new MARGINS { Left = -1, Right = -1, Top = -1, Bottom = -1 };
-        DwmExtendFrameIntoClientArea(_hwnd, ref margins);
+        // The opaque window is moved as a whole to slide the panel in/out — there is no
+        // separate background layer to flash, and nothing lags behind the content. A short
+        // high-resolution timer drives the eased motion.
+        _animTimer = DispatcherQueue.CreateTimer();
+        _animTimer.Interval = TimeSpan.FromMilliseconds(6);
+        _animTimer.Tick += OnAnimationTick;
 
         _previewTimer = DispatcherQueue.CreateTimer();
         _previewTimer.Interval = TimeSpan.FromMilliseconds(1400);
         _previewTimer.Tick += (_, _) =>
         {
-            _previewTimer!.Stop();
+            _previewTimer.Stop();
             _previewing = false;
             HideAnimated();
         };
 
         Activated += OnActivated;
         AppWindow.Hide();
+    }
+
+    private void ComputeGeometry()
+    {
+        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
+        var work = area.WorkArea;
+        var scale = GetDpiForWindow(_hwnd) / 96.0;
+        _winW = (int)Math.Round(_panelWidthDip * scale);
+        _winY = work.Y;
+        _winH = work.Height;
+        _restX = work.X + work.Width - _winW;
+        _offX = work.X + work.Width; // fully off the right edge of the work area
     }
 
     /// <summary>
@@ -97,21 +106,17 @@ public sealed partial class QuickPanelWindow : Window
     public void PreviewWidth()
     {
         _previewing = true;
+        _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
         if (!_isOpen)
         {
             ShowAnimated();
         }
         else
         {
-            // Already open — just resize in place to the new width.
-            _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
-            var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
-            var work = area.WorkArea;
-            var scale = GetDpiForWindow(_hwnd) / 96.0;
-            var width = (int)Math.Round(_panelWidthDip * scale);
-            AppWindow.MoveAndResize(new RectInt32(work.X + work.Width - width, work.Y, width, work.Height));
+            ComputeGeometry();
+            AppWindow.MoveAndResize(new RectInt32(_restX, _winY, _winW, _winH));
         }
-        _previewTimer!.Stop();
+        _previewTimer.Stop();
         _previewTimer.Start();
     }
 
@@ -126,27 +131,21 @@ public sealed partial class QuickPanelWindow : Window
     public void ShowAnimated()
     {
         _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
-        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
-        var work = area.WorkArea;
-        var scale = GetDpiForWindow(_hwnd) / 96.0;
-        var width = (int)Math.Round(_panelWidthDip * scale);
-        var x = work.X + work.Width - width;
+        ComputeGeometry();
 
-        // Place the window at its resting spot (it never moves after this) and start with
-        // the content pushed off the right edge, then slide it in on the GPU.
-        AppWindow.MoveAndResize(new RectInt32(x, work.Y, width, work.Height));
-        var visual = ElementCompositionPreview.GetElementVisual(PanelSurface);
-        visual.Properties.InsertVector3("Translation", new Vector3(SlideDistance, 0, 0));
-
+        // Park the window fully off the right edge, then slide the whole thing in.
+        AppWindow.MoveAndResize(new RectInt32(_offX, _winY, _winW, _winH));
         AppWindow.Show();
         Activate();
         ApplyNoBorder();
         _isOpen = true;
-        Animate(SlideDistance, 0f, hideOnComplete: false);
+        StartSlide(_offX, _restX, hideAfter: false);
 
         _ = ViewModel.EnsureDashboardsAsync();
+        // FocusState.Pointer focuses the first control WITHOUT drawing the keyboard focus
+        // rectangle, which previously looked like a thin "selected" outline on the panel.
         if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
-            focusable.Focus(FocusState.Programmatic);
+            focusable.Focus(FocusState.Pointer);
     }
 
     public void HideAnimated()
@@ -159,34 +158,51 @@ public sealed partial class QuickPanelWindow : Window
         ViewModel.Catalog.IsEditing = false;
         UpdateEditIcon();
 
-        Animate(0f, SlideDistance, hideOnComplete: true);
+        StartSlide(AppWindow.Position.X, _offX, hideAfter: true);
     }
 
-    private void Animate(float fromX, float toX, bool hideOnComplete)
+    private void StartSlide(int fromX, int toX, bool hideAfter)
     {
-        var visual = ElementCompositionPreview.GetElementVisual(PanelSurface);
-        var compositor = visual.Compositor;
-        var ease = compositor.CreateCubicBezierEasingFunction(new Vector2(0.16f, 1f), new Vector2(0.3f, 1f));
+        _animFromX = fromX;
+        _animToX = toX;
+        _hideAfterAnim = hideAfter;
+        _animStartMs = Environment.TickCount64;
+        if (!_timerBoosted)
+        {
+            TimeBeginPeriod(1); // request 1 ms timer cadence for a smooth slide
+            _timerBoosted = true; // paired with TimeEndPeriod when the slide completes
+        }
+        _animTimer.Stop();
+        _animTimer.Start();
+    }
 
-        var slide = compositor.CreateScalarKeyFrameAnimation();
-        slide.InsertKeyFrame(0f, fromX);
-        slide.InsertKeyFrame(1f, toX, ease);
-        slide.Duration = TimeSpan.FromMilliseconds(260);
-        slide.Target = "Translation.X";
+    private void OnAnimationTick(DispatcherQueueTimer sender, object args)
+    {
+        var elapsed = Environment.TickCount64 - _animStartMs;
+        var t = Math.Clamp(elapsed / (double)AnimDurationMs, 0.0, 1.0);
+        var eased = 1.0 - Math.Pow(1.0 - t, 3.0); // ease-out cubic
+        var x = (int)Math.Round(_animFromX + (_animToX - _animFromX) * eased);
+        AppWindow.Move(new PointInt32(x, _winY));
 
-        var batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
-        visual.StartAnimation("Translation.X", slide);
-        batch.End();
-        if (hideOnComplete)
-            batch.Completed += (_, _) => AppWindow.Hide();
+        if (t >= 1.0)
+        {
+            _animTimer.Stop();
+            if (_timerBoosted)
+            {
+                TimeEndPeriod(1);
+                _timerBoosted = false;
+            }
+            if (_hideAfterAnim)
+                AppWindow.Hide();
+        }
     }
 
     private void ApplyNoBorder()
     {
-        // DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE removes the thin Win11 window outline;
-        // DWMWA_WINDOW_CORNER_PREFERENCE = DONOTROUND makes it a crisp flush rectangle.
-        var none = unchecked((int)0xFFFFFFFE);
-        DwmSetWindowAttribute(_hwnd, 34, ref none, sizeof(int));
+        // Paint the 1 px Win11 window outline in the panel's own dark colour so it can never
+        // read as a thin white "selected" frame; keep crisp (non-rounded) corners.
+        var borderColor = 0x00202020; // COLORREF 0x00BBGGRR ≈ dark panel base
+        DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
         var doNotRound = 1;
         DwmSetWindowAttribute(_hwnd, 33, ref doNotRound, sizeof(int));
     }
@@ -209,8 +225,7 @@ public sealed partial class QuickPanelWindow : Window
         try
         {
             await EnsureWebAsync();
-            // Empty url_path = the default/Overview dashboard → navigate to the site root,
-            // which is exactly what HA's "Overview" sidebar entry does.
+            // Empty url_path = the default dashboard → navigate to the site root.
             var url = string.IsNullOrEmpty(dashboard.UrlPath) ? _baseUrl : $"{_baseUrl}/{dashboard.UrlPath}";
             PanelWeb.CoreWebView2?.Navigate(url);
         }
@@ -263,7 +278,7 @@ public sealed partial class QuickPanelWindow : Window
     private void UpdateEditIcon()
     {
         var editing = ViewModel.Catalog.IsEditing;
-        EditIcon.Glyph = editing ? "" : ""; // check / pencil
+        EditIcon.Glyph = editing ? "" : ""; // check / pencil
         var label = App.Services.GetRequiredService<LocalizationService>()[editing ? "Tip_Done" : "Tip_Edit"];
         ToolTipService.SetToolTip(EditButton, label);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(EditButton, label);
@@ -307,15 +322,9 @@ public sealed partial class QuickPanelWindow : Window
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MARGINS
-    {
-        public int Left;
-        public int Right;
-        public int Top;
-        public int Bottom;
-    }
+    [DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+    private static extern uint TimeBeginPeriod(uint uPeriod);
 
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS margins);
+    [DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
+    private static extern uint TimeEndPeriod(uint uPeriod);
 }

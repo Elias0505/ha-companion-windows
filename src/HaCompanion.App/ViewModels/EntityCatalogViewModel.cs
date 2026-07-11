@@ -200,6 +200,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowBrowse));
         OnPropertyChanged(nameof(ShowPinnedArea));
         OnPropertyChanged(nameof(ShowEditHint));
+        OnPropertyChanged(nameof(ShowNoFavHint));
     }
 
     private EntityGroupViewModel GetOrCreateGroup(string domain)
