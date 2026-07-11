@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -24,8 +25,14 @@ public sealed partial class DashboardPage : Page
         UpdateEditIcon();
     }
 
-    private void UpdateEditIcon() =>
-        EditIcon.Glyph = ViewModel.Catalog.IsEditing ? "" : ""; // CheckMark / Edit
+    private void UpdateEditIcon()
+    {
+        var editing = ViewModel.Catalog.IsEditing;
+        EditIcon.Glyph = editing ? "" : ""; // CheckMark / Edit
+        var label = App.Services.GetRequiredService<LocalizationService>()[editing ? "Tip_Done" : "Tip_Edit"];
+        ToolTipService.SetToolTip(EditButton, label);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(EditButton, label);
+    }
 
     private void AddTileButton_Click(object sender, RoutedEventArgs e)
     {

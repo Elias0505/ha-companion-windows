@@ -39,7 +39,9 @@
     "Set_Hotkey": "Quick panel hotkey",
     "Set_Language": "Language",
     "Set_Connect": "Connect",
-    "Set_Tips": "Tips & best practices"
+    "Set_Tips": "Tips & best practices",
+    "Tip_Done": "Done editing",
+    "State_Unavailable": "Unavailable"
   },
   "de": {
     "Nav_Start": "Start",
@@ -81,7 +83,9 @@
     "Set_Hotkey": "Tastenkürzel für den Schnellzugriff",
     "Set_Language": "Sprache",
     "Set_Connect": "Verbinden",
-    "Set_Tips": "Tipps & Best Practices"
+    "Set_Tips": "Tipps & Best Practices",
+    "Tip_Done": "Fertig",
+    "State_Unavailable": "Nicht verfügbar"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -123,7 +127,9 @@
     "Set_Hotkey": "Atajo del panel rápido",
     "Set_Language": "Idioma",
     "Set_Connect": "Conectar",
-    "Set_Tips": "Consejos y buenas prácticas"
+    "Set_Tips": "Consejos y buenas prácticas",
+    "Tip_Done": "Hecho",
+    "State_Unavailable": "No disponible"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -165,7 +171,9 @@
     "Set_Hotkey": "Raccourci du panneau rapide",
     "Set_Language": "Langue",
     "Set_Connect": "Se connecter",
-    "Set_Tips": "Conseils et bonnes pratiques"
+    "Set_Tips": "Conseils et bonnes pratiques",
+    "Tip_Done": "Terminé",
+    "State_Unavailable": "Indisponible"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -207,7 +215,9 @@
     "Set_Hotkey": "快捷面板热键",
     "Set_Language": "语言",
     "Set_Connect": "连接",
-    "Set_Tips": "提示与最佳实践"
+    "Set_Tips": "提示与最佳实践",
+    "Tip_Done": "完成",
+    "State_Unavailable": "不可用"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -249,6 +259,8 @@
     "Set_Hotkey": "क्विक पैनल हॉटकी",
     "Set_Language": "भाषा",
     "Set_Connect": "कनेक्ट करें",
-    "Set_Tips": "सुझाव और सर्वोत्तम अभ्यास"
+    "Set_Tips": "सुझाव और सर्वोत्तम अभ्यास",
+    "Tip_Done": "पूर्ण",
+    "State_Unavailable": "अनुपलब्ध"
   }
 }

@@ -216,8 +216,14 @@ public sealed partial class QuickPanelWindow : Window
         UpdateEditIcon();
     }
 
-    private void UpdateEditIcon() =>
-        EditIcon.Glyph = ViewModel.Catalog.IsEditing ? "" : ""; // check / pencil
+    private void UpdateEditIcon()
+    {
+        var editing = ViewModel.Catalog.IsEditing;
+        EditIcon.Glyph = editing ? "" : ""; // check / pencil
+        var label = App.Services.GetRequiredService<LocalizationService>()[editing ? "Tip_Done" : "Tip_Edit"];
+        ToolTipService.SetToolTip(EditButton, label);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(EditButton, label);
+    }
 
     private void AddTileButton_Click(object sender, RoutedEventArgs e)
     {

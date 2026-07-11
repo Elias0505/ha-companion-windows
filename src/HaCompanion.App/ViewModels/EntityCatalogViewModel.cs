@@ -140,7 +140,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
             return;
         }
 
-        var tile = new EntityTileViewModel(_connection, _icons, state);
+        var tile = new EntityTileViewModel(_connection, _icons, _localization, state);
         _tilesById[state.EntityId] = tile;
 
         var group = GetOrCreateGroup(state.Domain);

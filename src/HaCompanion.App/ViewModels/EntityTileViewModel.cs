@@ -13,6 +13,7 @@ public partial class EntityTileViewModel : ObservableObject
 {
     private readonly IHaConnection _connection;
     private readonly MdiIconProvider _icons;
+    private readonly LocalizationService _localization;
 
     public string EntityId { get; }
 
@@ -38,10 +39,11 @@ public partial class EntityTileViewModel : ObservableObject
     [ObservableProperty]
     private bool _isPinned;
 
-    public EntityTileViewModel(IHaConnection connection, MdiIconProvider icons, HaEntityState state)
+    public EntityTileViewModel(IHaConnection connection, MdiIconProvider icons, LocalizationService localization, HaEntityState state)
     {
         _connection = connection;
         _icons = icons;
+        _localization = localization;
         EntityId = state.EntityId;
         Domain = state.Domain;
         _iconGlyph = icons.Resolve(state);
@@ -75,10 +77,10 @@ public partial class EntityTileViewModel : ObservableObject
         }
     }
 
-    private static string FormatState(HaEntityState state)
+    private string FormatState(HaEntityState state)
     {
         if (state.IsUnavailable)
-            return "Unavailable";
+            return _localization["State_Unavailable"];
         var unit = state.GetAttributeString("unit_of_measurement");
         return unit is null ? Capitalize(state.State) : $"{state.State} {unit}";
     }
