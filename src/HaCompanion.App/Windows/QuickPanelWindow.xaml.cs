@@ -80,6 +80,7 @@ public sealed partial class QuickPanelWindow : Window
         Activate();
         _isOpen = true;
         AnimateIn();
+        _ = ViewModel.EnsureDashboardsAsync();
 
         // Put focus inside the panel so Esc + Deactivated dismissal work immediately.
         if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
@@ -194,6 +195,12 @@ public sealed partial class QuickPanelWindow : Window
     {
         if (ViewModel.Catalog.IsEditing)
             return; // in edit mode taps are for arranging, not switching
+        if (e.ClickedItem is EntityTileViewModel tile)
+            await tile.ToggleCommand.ExecuteAsync(null);
+    }
+
+    private async void Dashboard_ItemClick(object sender, ItemClickEventArgs e)
+    {
         if (e.ClickedItem is EntityTileViewModel tile)
             await tile.ToggleCommand.ExecuteAsync(null);
     }

@@ -37,6 +37,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
     private readonly IHaConnection _connection;
     private readonly IUiDispatcher _ui;
     private readonly ITileLayoutStore _layoutStore;
+    private readonly MdiIconProvider _icons;
     private readonly Dictionary<string, EntityTileViewModel> _tilesById = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EntityGroupViewModel> _groupsByDomain = new(StringComparer.Ordinal);
     private List<string> _pinnedIds;
@@ -65,11 +66,12 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
 
     public bool ShowEditHint => IsEditing && !HasPinned;
 
-    public EntityCatalogViewModel(IHaConnection connection, IUiDispatcher ui, ITileLayoutStore layoutStore)
+    public EntityCatalogViewModel(IHaConnection connection, IUiDispatcher ui, ITileLayoutStore layoutStore, MdiIconProvider icons)
     {
         _connection = connection;
         _ui = ui;
         _layoutStore = layoutStore;
+        _icons = icons;
         _pinnedIds = [.. _layoutStore.LoadPinned()];
 
         foreach (var state in _connection.Entities.Values)
@@ -129,7 +131,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
             return;
         }
 
-        var tile = new EntityTileViewModel(_connection, state);
+        var tile = new EntityTileViewModel(_connection, _icons, state);
         _tilesById[state.EntityId] = tile;
 
         var group = GetOrCreateGroup(state.Domain);
@@ -193,7 +195,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         if (_groupsByDomain.TryGetValue(domain, out var group))
             return group;
 
-        group = new EntityGroupViewModel(domain, HeaderFor(domain), DomainCatalog.Glyph(domain));
+        group = new EntityGroupViewModel(domain, HeaderFor(domain), _icons.DomainGlyph(domain));
         _groupsByDomain[domain] = group;
         InsertGroupSorted(group);
         return group;
@@ -231,6 +233,14 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
             if (d == domain)
                 return header;
         return char.ToUpperInvariant(domain[0]) + domain[1..].Replace('_', ' ');
+    }
+
+    /// <summary>Map a list of entity ids to the known actionable tiles (in the given order).</summary>
+    public IEnumerable<EntityTileViewModel> ResolveTiles(IEnumerable<string> entityIds)
+    {
+        foreach (var id in entityIds)
+            if (_tilesById.TryGetValue(id, out var tile))
+                yield return tile;
     }
 
     private void UpdateDerived() => IsEmpty = _tilesById.Count == 0;

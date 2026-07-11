@@ -101,6 +101,65 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         return dashboards;
     }
 
+    public async Task<IReadOnlyList<string>> GetDashboardEntityIdsAsync(string? urlPath, CancellationToken ct = default)
+    {
+        var fields = string.IsNullOrEmpty(urlPath)
+            ? null
+            : new Dictionary<string, object?> { ["url_path"] = urlPath };
+
+        var config = await _ws.SendCommandAsync("lovelace/config", fields, ct).ConfigureAwait(false);
+
+        var ids = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        ExtractEntityIds(config, ids, seen);
+        return ids;
+    }
+
+    private static void ExtractEntityIds(System.Text.Json.JsonElement el, List<string> ids, HashSet<string> seen)
+    {
+        switch (el.ValueKind)
+        {
+            case System.Text.Json.JsonValueKind.Object:
+                foreach (var prop in el.EnumerateObject())
+                {
+                    if ((prop.NameEquals("entity") || prop.NameEquals("entity_id"))
+                        && prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+                        AddId(prop.Value.GetString(), ids, seen);
+                    else
+                        ExtractEntityIds(prop.Value, ids, seen);
+                }
+                break;
+            case System.Text.Json.JsonValueKind.Array:
+                foreach (var item in el.EnumerateArray())
+                {
+                    if (item.ValueKind == System.Text.Json.JsonValueKind.String)
+                        AddId(item.GetString(), ids, seen); // e.g. entities: ["light.kitchen", ...]
+                    else
+                        ExtractEntityIds(item, ids, seen);
+                }
+                break;
+        }
+    }
+
+    private static void AddId(string? id, List<string> ids, HashSet<string> seen)
+    {
+        if (id is not null && IsEntityId(id) && seen.Add(id))
+            ids.Add(id);
+    }
+
+    private static bool IsEntityId(string s)
+    {
+        var dot = s.IndexOf('.');
+        if (dot <= 0 || dot == s.Length - 1)
+            return false;
+        if (s.IndexOf('.', dot + 1) >= 0)
+            return false; // exactly one dot
+        foreach (var c in s)
+            if (!(char.IsLetterOrDigit(c) || c == '_' || c == '.'))
+                return false;
+        return true;
+    }
+
     private void OnWebSocketStatusChanged(object? sender, HaConnectionStatus status) =>
         StatusChanged?.Invoke(this, status);
 

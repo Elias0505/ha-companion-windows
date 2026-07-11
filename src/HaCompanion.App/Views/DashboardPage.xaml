@@ -46,8 +46,8 @@
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
-                                            <FontIcon Glyph="{Binding Glyph}" FontSize="14"
-                                                      FontFamily="{ThemeResource SymbolThemeFontFamily}" Opacity="0.8" />
+                                            <FontIcon Glyph="{Binding IconGlyph}" FontSize="15"
+                                                      FontFamily="{StaticResource MdiFont}" Opacity="0.8" />
                                             <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                     </DataTemplate>
@@ -70,7 +70,7 @@
                            Opacity="0.6" TextWrapping="Wrap"
                            Visibility="{Binding Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
 
-                <!-- Favourites (pinned, drag-reorderable in edit mode) -->
+                <!-- Favourites -->
                 <StackPanel Spacing="10"
                             Visibility="{Binding Catalog.ShowPinnedArea, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -95,8 +95,8 @@
                                         <StackPanel Spacing="7">
                                             <Border Width="38" Height="38" CornerRadius="19" HorizontalAlignment="Left"
                                                     Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
-                                                <FontIcon Glyph="{Binding Glyph}" FontSize="17"
-                                                          FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                <FontIcon Glyph="{Binding IconGlyph}" FontSize="19"
+                                                          FontFamily="{StaticResource MdiFont}"
                                                           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
                                             </Border>
                                             <TextBlock Text="{Binding FriendlyName}" FontSize="13"
@@ -127,7 +127,7 @@
                         <DataTemplate>
                             <StackPanel Spacing="10">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="{Binding Glyph}" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                    <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
                                               FontSize="16" Opacity="0.8" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding Header}" Style="{StaticResource SubtitleTextBlockStyle}" />
                                     <Border CornerRadius="9" Padding="7,1" VerticalAlignment="Center"
@@ -148,8 +148,8 @@
                                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                                         Padding="14" CornerRadius="10">
                                                     <StackPanel Spacing="6">
-                                                        <FontIcon Glyph="{Binding Glyph}"
-                                                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                        <FontIcon Glyph="{Binding IconGlyph}"
+                                                                  FontFamily="{StaticResource MdiFont}"
                                                                   FontSize="22" HorizontalAlignment="Left"
                                                                   Foreground="{Binding IsOn, Converter={StaticResource StateBrush}}" />
                                                         <TextBlock Text="{Binding FriendlyName}"

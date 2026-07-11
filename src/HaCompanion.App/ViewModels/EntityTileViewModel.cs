@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Models;
+using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
 using HaCompanion.Core.Services;
 
@@ -11,12 +12,15 @@ namespace HaCompanion.App.ViewModels;
 public partial class EntityTileViewModel : ObservableObject
 {
     private readonly IHaConnection _connection;
+    private readonly MdiIconProvider _icons;
 
     public string EntityId { get; }
 
     public string Domain { get; }
 
-    public string Glyph { get; }
+    /// <summary>Material Design Icons glyph (rendered with the bundled MDI font).</summary>
+    [ObservableProperty]
+    private string _iconGlyph;
 
     [ObservableProperty]
     private string _friendlyName;
@@ -34,12 +38,13 @@ public partial class EntityTileViewModel : ObservableObject
     [ObservableProperty]
     private bool _isPinned;
 
-    public EntityTileViewModel(IHaConnection connection, HaEntityState state)
+    public EntityTileViewModel(IHaConnection connection, MdiIconProvider icons, HaEntityState state)
     {
         _connection = connection;
+        _icons = icons;
         EntityId = state.EntityId;
         Domain = state.Domain;
-        Glyph = DomainCatalog.Glyph(Domain);
+        _iconGlyph = icons.Resolve(state);
         _friendlyName = state.FriendlyName;
         _stateText = FormatState(state);
         _isOn = state.IsOn;
@@ -49,6 +54,7 @@ public partial class EntityTileViewModel : ObservableObject
     /// <summary>Apply a new state snapshot from Home Assistant.</summary>
     public void Update(HaEntityState state)
     {
+        IconGlyph = _icons.Resolve(state);
         FriendlyName = state.FriendlyName;
         StateText = FormatState(state);
         IsOn = state.IsOn;

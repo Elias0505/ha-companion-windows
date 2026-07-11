@@ -59,6 +59,7 @@ public partial class App : Application
         services.AddSingleton<IUiDispatcher, DispatcherQueueUiDispatcher>();
         services.AddSingleton<ISettingsStore, SettingsStore>();
         services.AddSingleton<ITileLayoutStore, TileLayoutStore>();
+        services.AddSingleton<MdiIconProvider>();
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IQuickPanelController, QuickPanelController>();
