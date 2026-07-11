@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Services;
@@ -11,6 +12,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
+using Windows.UI;
+using WinRT.Interop;
 
 namespace HaCompanion.App.Windows;
 
@@ -35,12 +38,21 @@ public sealed partial class MainWindow : Window
         if (File.Exists(iconPath))
             AppWindow.SetIcon(iconPath);
 
+        // Force the native title bar (incl. the min/max/close caption buttons) into dark mode.
+        var useDark = 1;
+        DwmSetWindowAttribute(WindowNative.GetWindowHandle(this), 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref useDark, sizeof(int));
+
         if (AppWindowTitleBar.IsCustomizationSupported())
         {
             var titleBar = AppWindow.TitleBar;
             titleBar.ButtonBackgroundColor = Colors.Transparent;
             titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
             titleBar.ButtonForegroundColor = Colors.White;
+            titleBar.ButtonInactiveForegroundColor = Color.FromArgb(255, 160, 160, 160);
+            titleBar.ButtonHoverBackgroundColor = Color.FromArgb(40, 255, 255, 255);
+            titleBar.ButtonHoverForegroundColor = Colors.White;
+            titleBar.ButtonPressedBackgroundColor = Color.FromArgb(24, 255, 255, 255);
+            titleBar.ButtonPressedForegroundColor = Colors.White;
         }
 
         AppWindow.Closing += OnClosing;
@@ -97,4 +109,7 @@ public sealed partial class MainWindow : Window
         args.Cancel = true;
         sender.Hide();
     }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 }

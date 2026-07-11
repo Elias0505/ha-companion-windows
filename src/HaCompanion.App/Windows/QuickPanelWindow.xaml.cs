@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -27,14 +28,20 @@ public sealed partial class QuickPanelWindow : Window
 
     public QuickPanelViewModel ViewModel { get; }
 
+    private const double SlideDurationMs = 220;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+
     private readonly IntPtr _hwnd;
     private readonly ISettingsStore _settingsStore;
     private readonly Stopwatch _slideClock = new();
+    private DispatcherQueueTimer? _slideTimer;
     private Task? _webInitTask;
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
-    private double _fromX;
-    private double _toX;
+    private int _restX;
+    private int _offX;
     private int _slideY;
     private bool _slideShowing;
     private bool _isOpen;
@@ -52,6 +59,10 @@ public sealed partial class QuickPanelWindow : Window
         // slides in together with the content (no lag) and shows no window border.
 
         _hwnd = WindowNative.GetWindowHandle(this);
+
+        _slideTimer = DispatcherQueue.CreateTimer();
+        _slideTimer.Interval = TimeSpan.FromMilliseconds(8);
+        _slideTimer.Tick += OnSlideTick;
 
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;
@@ -81,19 +92,20 @@ public sealed partial class QuickPanelWindow : Window
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
         var work = area.WorkArea;
         var scale = GetDpiForWindow(_hwnd) / 96.0;
-        var width = (int)(_panelWidthDip * scale);
-        _slideY = work.Y;
-        var finalX = work.X + work.Width - width;
-        var offX = work.X + work.Width; // fully off the right edge
+        var width = (int)Math.Round(_panelWidthDip * scale);
 
-        // Park the window off-screen, reveal it, then slide the WHOLE window in — so
-        // background, content and the embedded WebView all move together as one unit.
-        AppWindow.MoveAndResize(new RectInt32(offX, work.Y, width, work.Height));
+        _slideY = work.Y;
+        _restX = work.X + work.Width - width; // resting left edge, flush right inside the work area
+        _offX = work.X + work.Width;          // fully off the right edge
+
+        // Size the window once and park it off-screen, then slide the whole opaque window in —
+        // background, content and the embedded WebView move together as one unit.
+        AppWindow.MoveAndResize(new RectInt32(_offX, work.Y, width, work.Height));
         AppWindow.Show();
         Activate();
         ApplyNoBorder();
         _isOpen = true;
-        StartSlide(offX, finalX, showing: true);
+        BeginSlide(showing: true);
 
         _ = ViewModel.EnsureDashboardsAsync();
         if (FocusManager.FindFirstFocusableElement(RootGrid) is Control focusable)
@@ -110,34 +122,35 @@ public sealed partial class QuickPanelWindow : Window
         ViewModel.Catalog.IsEditing = false;
         UpdateEditIcon();
 
-        var currentX = AppWindow.Position.X;
-        StartSlide(currentX, currentX + AppWindow.Size.Width, showing: false);
+        BeginSlide(showing: false);
     }
 
-    private void StartSlide(double fromX, double toX, bool showing)
+    private void BeginSlide(bool showing)
     {
-        _fromX = fromX;
-        _toX = toX;
         _slideShowing = showing;
         _slideClock.Restart();
-        CompositionTarget.Rendering -= OnSlideFrame;
-        CompositionTarget.Rendering += OnSlideFrame;
+        _slideTimer!.Stop(); // never let two slides overlap
+        _slideTimer.Start();
     }
 
-    private void OnSlideFrame(object? sender, object e)
+    private void OnSlideTick(DispatcherQueueTimer sender, object args)
     {
-        const double durationMs = 240;
-        var t = _slideClock.Elapsed.TotalMilliseconds / durationMs;
-        if (t > 1)
-            t = 1;
+        var t = _slideClock.Elapsed.TotalMilliseconds / SlideDurationMs;
+        if (t >= 1.0)
+            t = 1.0;
         var eased = 1 - Math.Pow(1 - t, 3); // ease-out cubic
-        var x = (int)Math.Round(_fromX + (_toX - _fromX) * eased);
-        AppWindow.Move(new PointInt32(x, _slideY));
 
-        if (t >= 1)
+        var from = _slideShowing ? _offX : _restX;
+        var to = _slideShowing ? _restX : _offX;
+        var x = (int)Math.Round(from + (to - from) * eased);
+
+        // Move position only (no resize / z-order / activation) for a smooth, jank-free slide.
+        SetWindowPos(_hwnd, IntPtr.Zero, x, _slideY, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+        if (t >= 1.0)
         {
+            _slideTimer!.Stop();
             _slideClock.Stop();
-            CompositionTarget.Rendering -= OnSlideFrame;
             if (!_slideShowing)
                 AppWindow.Hide();
         }
@@ -261,4 +274,7 @@ public sealed partial class QuickPanelWindow : Window
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 }
