@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaCompanion.Core", "src\HaC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaCompanion.App", "src\HaCompanion.App\HaCompanion.App.csproj", "{A6301427-6E99-4ECC-9B0A-80E082BA7BB7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HaCompanion.Core.Tests", "tests\HaCompanion.Core.Tests\HaCompanion.Core.Tests.csproj", "{F7D07DC1-4336-407A-AACF-21C9D461029A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,18 @@ Global
 		{A6301427-6E99-4ECC-9B0A-80E082BA7BB7}.Release|x64.Build.0 = Release|x64
 		{A6301427-6E99-4ECC-9B0A-80E082BA7BB7}.Release|x86.ActiveCfg = Release|x64
 		{A6301427-6E99-4ECC-9B0A-80E082BA7BB7}.Release|x86.Build.0 = Release|x64
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Debug|x64.Build.0 = Debug|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Debug|x86.Build.0 = Debug|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Release|x64.ActiveCfg = Release|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Release|x64.Build.0 = Release|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Release|x86.ActiveCfg = Release|Any CPU
+		{F7D07DC1-4336-407A-AACF-21C9D461029A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

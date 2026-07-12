@@ -137,7 +137,7 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         return ids;
     }
 
-    private static void ExtractEntityIds(System.Text.Json.JsonElement el, List<string> ids, HashSet<string> seen)
+    internal static void ExtractEntityIds(System.Text.Json.JsonElement el, List<string> ids, HashSet<string> seen)
     {
         switch (el.ValueKind)
         {

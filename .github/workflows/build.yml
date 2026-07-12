@@ -22,6 +22,8 @@ jobs:
           dotnet-version: '9.0.x'
       - name: Build HaCompanion.Core
         run: dotnet build src/HaCompanion.Core/HaCompanion.Core.csproj -c Release -p:EnableWindowsTargeting=true
+      - name: Test HaCompanion.Core
+        run: dotnet test tests/HaCompanion.Core.Tests/HaCompanion.Core.Tests.csproj -c Release
 
   app:
     name: App (WinUI 3, Windows)

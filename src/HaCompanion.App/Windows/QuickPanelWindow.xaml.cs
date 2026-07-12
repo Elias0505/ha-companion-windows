@@ -5,6 +5,7 @@ using HaCompanion.App.Controls;
 using HaCompanion.App.Models;
 using global::Windows.ApplicationModel.DataTransfer;
 using HaCompanion.App.Services;
+using HaCompanion.Core.Models;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;

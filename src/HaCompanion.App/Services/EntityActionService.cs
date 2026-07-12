@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using HaCompanion.App.Infrastructure;
-using HaCompanion.App.Models;
+using HaCompanion.Core.Models;
 using HaCompanion.App.Windows;
 using HaCompanion.Core.Services;
 using Microsoft.Extensions.Logging;

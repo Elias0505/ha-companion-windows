@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-namespace HaCompanion.App.Models;
+namespace HaCompanion.Core.Models;
 
 /// <summary>
 /// Knows which Home Assistant domains are worth surfacing as quick-action tiles,

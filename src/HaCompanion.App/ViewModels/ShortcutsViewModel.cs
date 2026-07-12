@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Services;
+using HaCompanion.Core.Models;
 
 namespace HaCompanion.App.ViewModels;
 
@@ -58,7 +59,7 @@ public sealed partial class ShortcutsViewModel : ObservableObject
     }
 
     public IReadOnlyList<EntityTileViewModel> Search(string query) =>
-        _catalog.SearchTiles(query).Where(t => Models.DomainCatalog.HasAction(t.Domain)).ToList();
+        _catalog.SearchTiles(query).Where(t => DomainCatalog.HasAction(t.Domain)).ToList();
 
     partial void OnSelectedTileChanged(EntityTileViewModel? value) => OnPropertyChanged(nameof(CanAdd));
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Runtime.InteropServices;
+using HaCompanion.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using WinRT.Interop;
@@ -17,10 +18,6 @@ public sealed class HotkeyService : IHotkeyService
     private const uint WM_HOTKEY = 0x0312;
     private const int HOTKEY_ID = 0xB001;
 
-    private const uint MOD_ALT = 0x0001;
-    private const uint MOD_CONTROL = 0x0002;
-    private const uint MOD_SHIFT = 0x0004;
-    private const uint MOD_WIN = 0x0008;
     private const uint MOD_NOREPEAT = 0x4000;
 
     private delegate IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
@@ -100,53 +97,8 @@ public sealed class HotkeyService : IHotkeyService
         _actionsByHotkeyId.Clear();
     }
 
-    private static bool TryParse(string combo, out uint modifiers, out uint vk)
-    {
-        modifiers = 0;
-        vk = 0;
-        if (string.IsNullOrWhiteSpace(combo))
-            return false;
-
-        var parts = combo.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length < 2)
-            return false;
-
-        for (var i = 0; i < parts.Length - 1; i++)
-        {
-            switch (parts[i].ToLowerInvariant())
-            {
-                case "win":
-                case "windows":
-                case "meta":
-                    modifiers |= MOD_WIN;
-                    break;
-                case "ctrl":
-                case "control":
-                    modifiers |= MOD_CONTROL;
-                    break;
-                case "alt":
-                    modifiers |= MOD_ALT;
-                    break;
-                case "shift":
-                    modifiers |= MOD_SHIFT;
-                    break;
-                default:
-                    return false;
-            }
-        }
-
-        var key = parts[^1].ToUpperInvariant();
-        if (key.Length == 1 && ((key[0] >= 'A' && key[0] <= 'Z') || (key[0] >= '0' && key[0] <= '9')))
-            vk = key[0];
-        else if (key is "SPACE")
-            vk = 0x20;
-        else if (key.Length is 2 or 3 && key[0] == 'F' && int.TryParse(key.AsSpan(1), out var n) && n is >= 1 and <= 12)
-            vk = (uint)(0x70 + n - 1);
-        else
-            return false;
-
-        return modifiers != 0;
-    }
+    private static bool TryParse(string combo, out uint modifiers, out uint vk) =>
+        HotkeyCombo.TryParse(combo, out modifiers, out vk); // parsing rules live (tested) in Core
 
     private IntPtr HandleMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
