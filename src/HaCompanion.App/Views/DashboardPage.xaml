@@ -196,14 +196,13 @@
                     </hc:VariableTileGridView>
                 </StackPanel>
 
-                <!-- All devices, auto-grouped -->
-                <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Spacing="22" />
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
+                <!-- All devices, auto-grouped. Deliberately non-virtualizing (ItemsControl):
+                     nested ItemsRepeaters inside a StackPanel can only ESTIMATE the total
+                     height, which made the scroll position jump/flicker near the bottom. -->
+                <ItemsControl ItemsSource="{Binding Catalog.Groups}">
+                    <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="10" Margin="0,0,0,22">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
                                               FontSize="16" Opacity="0.8" VerticalAlignment="Center" />
@@ -214,16 +213,18 @@
                                     </Border>
                                 </StackPanel>
 
-                                <ItemsRepeater ItemsSource="{Binding Tiles}">
-                                    <ItemsRepeater.Layout>
-                                        <UniformGridLayout MinItemWidth="164" MinItemHeight="96"
-                                                           MinColumnSpacing="10" MinRowSpacing="10" />
-                                    </ItemsRepeater.Layout>
-                                    <ItemsRepeater.ItemTemplate>
+                                <ItemsControl ItemsSource="{Binding Tiles}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="174" ItemHeight="106" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid>
+                                            <Grid Margin="0,0,10,10">
                                                 <Button Command="{Binding ToggleCommand}"
-                                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Left" VerticalContentAlignment="Top"
                                                         Padding="14" CornerRadius="10"
                                                         AutomationProperties.Name="{Binding FriendlyName}"
                                                         AutomationProperties.HelpText="{Binding StateText}">
@@ -249,12 +250,12 @@
                                                 </Button>
                                             </Grid>
                                         </DataTemplate>
-                                    </ItemsRepeater.ItemTemplate>
-                                </ItemsRepeater>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </ScrollViewer>
     </Grid>

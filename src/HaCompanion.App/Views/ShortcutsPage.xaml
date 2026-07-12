@@ -111,26 +111,26 @@
                  tapping one selects it for the new shortcut. -->
             <TextBlock Text="{Binding [Sc_Browse], Source={StaticResource Loc}}"
                        Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,8,0,0" />
-            <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
-                <ItemsRepeater.Layout>
-                    <StackLayout Spacing="14" />
-                </ItemsRepeater.Layout>
-                <ItemsRepeater.ItemTemplate>
+            <!-- Non-virtualizing on purpose — see the start page's browse list. -->
+            <ItemsControl ItemsSource="{Binding Catalog.Groups}">
+                <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="8" Margin="0,0,0,14">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
                                           FontSize="14" Opacity="0.8" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Opacity="0.9" />
                             </StackPanel>
-                            <ItemsRepeater ItemsSource="{Binding Tiles}">
-                                <ItemsRepeater.Layout>
-                                    <UniformGridLayout MinItemWidth="196" MinRowSpacing="6" MinColumnSpacing="6"
-                                                       ItemsStretch="Fill" />
-                                </ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate>
+                            <ItemsControl ItemsSource="{Binding Tiles}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="202" ItemHeight="42" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                        <Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left" Margin="0,0,6,6"
                                                 Padding="10,7" Click="QuickPick_Click"
                                                 AutomationProperties.Name="{Binding FriendlyName}">
                                             <StackPanel Orientation="Horizontal" Spacing="9">
@@ -141,12 +141,12 @@
                                             </StackPanel>
                                         </Button>
                                     </DataTemplate>
-                                </ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
     </ScrollViewer>
 </Page>
