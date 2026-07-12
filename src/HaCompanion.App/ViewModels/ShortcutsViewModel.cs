@@ -33,6 +33,9 @@ public sealed partial class ShortcutsViewModel : ObservableObject
 
     public ObservableCollection<ShortcutItemViewModel> Items { get; } = new();
 
+    /// <summary>Category-grouped catalog for the quick-pick browse (same groups as the start page).</summary>
+    public EntityCatalogViewModel Catalog => _catalog;
+
     [ObservableProperty]
     private EntityTileViewModel? _selectedTile;
 

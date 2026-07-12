@@ -31,7 +31,8 @@
                 <AutoSuggestBox x:Name="EntityBox" Grid.Column="0"
                                 PlaceholderText="{Binding [Sc_PickEntity], Source={StaticResource Loc}}"
                                 TextChanged="EntityBox_TextChanged"
-                                SuggestionChosen="EntityBox_SuggestionChosen">
+                                SuggestionChosen="EntityBox_SuggestionChosen"
+                                QuerySubmitted="EntityBox_QuerySubmitted">
                     <AutoSuggestBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
@@ -105,6 +106,47 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+
+            <!-- Quick pick: all devices grouped by category (same sections as the start page);
+                 tapping one selects it for the new shortcut. -->
+            <TextBlock Text="{Binding [Sc_Browse], Source={StaticResource Loc}}"
+                       Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,8,0,0" />
+            <ItemsRepeater ItemsSource="{Binding Catalog.Groups}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Spacing="14" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
+                                          FontSize="14" Opacity="0.8" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Opacity="0.9" />
+                            </StackPanel>
+                            <ItemsRepeater ItemsSource="{Binding Tiles}">
+                                <ItemsRepeater.Layout>
+                                    <UniformGridLayout MinItemWidth="196" MinRowSpacing="6" MinColumnSpacing="6"
+                                                       ItemsStretch="Fill" />
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                Padding="10,7" Click="QuickPick_Click"
+                                                AutomationProperties.Name="{Binding FriendlyName}">
+                                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                                <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
+                                                          FontSize="15" Opacity="0.85" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding FriendlyName}" FontSize="13"
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
         </StackPanel>
     </ScrollViewer>
 </Page>

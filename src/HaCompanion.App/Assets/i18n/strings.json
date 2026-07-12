@@ -80,7 +80,8 @@
     "Sc_Add": "Add",
     "Sc_Empty": "No shortcuts yet — pick a device above and record a key combination.",
     "Sc_InUse": "not available (already in use)",
-    "Osd_Done": "Triggered"
+    "Osd_Done": "Triggered",
+    "Sc_Browse": "Quick pick by category"
   },
   "de": {
     "Nav_Start": "Start",
@@ -163,7 +164,8 @@
     "Sc_Add": "Hinzufügen",
     "Sc_Empty": "Noch keine Kurzbefehle — wähle oben ein Gerät und nimm eine Tastenkombination auf.",
     "Sc_InUse": "nicht verfügbar (bereits belegt)",
-    "Osd_Done": "Ausgelöst"
+    "Osd_Done": "Ausgelöst",
+    "Sc_Browse": "Schnellauswahl nach Kategorie"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -246,7 +248,8 @@
     "Sc_Add": "Añadir",
     "Sc_Empty": "Aún no hay atajos: elige un dispositivo arriba y graba una combinación de teclas.",
     "Sc_InUse": "no disponible (ya en uso)",
-    "Osd_Done": "Activado"
+    "Osd_Done": "Activado",
+    "Sc_Browse": "Selección rápida por categoría"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -329,7 +332,8 @@
     "Sc_Add": "Ajouter",
     "Sc_Empty": "Aucun raccourci pour l'instant — choisissez un appareil ci-dessus et enregistrez une combinaison.",
     "Sc_InUse": "indisponible (déjà utilisée)",
-    "Osd_Done": "Déclenché"
+    "Osd_Done": "Déclenché",
+    "Sc_Browse": "Sélection rapide par catégorie"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -412,7 +416,8 @@
     "Sc_Add": "添加",
     "Sc_Empty": "还没有快捷键 — 在上方选择设备并录制按键组合。",
     "Sc_InUse": "不可用（已被占用）",
-    "Osd_Done": "已触发"
+    "Osd_Done": "已触发",
+    "Sc_Browse": "按类别快速选择"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -495,6 +500,7 @@
     "Sc_Add": "जोड़ें",
     "Sc_Empty": "अभी कोई शॉर्टकट नहीं — ऊपर डिवाइस चुनें और कुंजी संयोजन रिकॉर्ड करें।",
     "Sc_InUse": "उपलब्ध नहीं (पहले से उपयोग में)",
-    "Osd_Done": "ट्रिगर किया गया"
+    "Osd_Done": "ट्रिगर किया गया",
+    "Sc_Browse": "श्रेणी के अनुसार त्वरित चयन"
   }
 }

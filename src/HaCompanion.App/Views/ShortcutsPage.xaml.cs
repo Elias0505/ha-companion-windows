@@ -41,8 +41,12 @@ public sealed partial class ShortcutsPage : Page
     {
         if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput)
             return;
-        ViewModel.SelectedTile = null; // typing invalidates the previous pick
-        sender.ItemsSource = ViewModel.Search(sender.Text);
+        var results = ViewModel.Search(sender.Text);
+        sender.ItemsSource = results;
+        // A fully typed name counts as a pick too — otherwise the box LOOKS filled while
+        // nothing is selected and Add stays disabled.
+        ViewModel.SelectedTile = results.FirstOrDefault(t =>
+            string.Equals(t.FriendlyName, sender.Text.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
     private void EntityBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
@@ -51,6 +55,28 @@ public sealed partial class ShortcutsPage : Page
         {
             ViewModel.SelectedTile = tile;
             sender.Text = tile.FriendlyName;
+        }
+    }
+
+    private void EntityBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        // Enter without clicking a suggestion: take the chosen item or the best match.
+        var tile = args.ChosenSuggestion as EntityTileViewModel
+                   ?? ViewModel.Search(args.QueryText).FirstOrDefault();
+        if (tile is not null)
+        {
+            ViewModel.SelectedTile = tile;
+            sender.Text = tile.FriendlyName;
+        }
+    }
+
+    /// <summary>A tap in the category quick-pick selects that entity for the new shortcut.</summary>
+    private void QuickPick_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+        {
+            ViewModel.SelectedTile = tile;
+            EntityBox.Text = tile.FriendlyName;
         }
     }
 
