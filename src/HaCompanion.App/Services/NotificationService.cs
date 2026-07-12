@@ -45,6 +45,7 @@ public sealed class NotificationService : INotificationService
                 .AddText(message)
                 .BuildNotification();
             AppNotificationManager.Default.Show(toast);
+            _logger.LogInformation("Toast shown: {Title}", title);
         }
         catch (Exception ex)
         {

@@ -57,6 +57,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _autostart;
 
     [ObservableProperty]
+    private bool _showHaNotifications = true;
+
+    [ObservableProperty]
     private LanguageOption? _selectedLanguage;
 
     [ObservableProperty]
@@ -108,6 +111,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         QuickPanelWidth = settings.QuickPanelWidth;
         QuickPanelDragResize = settings.QuickPanelDragResize;
         Autostart = _startup.IsEnabled;
+        ShowHaNotifications = settings.ShowHaNotifications;
         SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
                            ?? _localization.Languages[0];
         if (!HotkeyPresets.Contains(Hotkey))
@@ -179,6 +183,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Language = SelectedLanguage?.Code ?? "en";
         settings.QuickPanelStartView = SelectedStartView?.Value ?? "last";
         settings.QuickPanelDragResize = QuickPanelDragResize;
+        settings.ShowHaNotifications = ShowHaNotifications;
         return settings;
     }
 
@@ -199,6 +204,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnSelectedStartViewChanged(StartViewOption? value)
     {
         if (!_loading && value is not null)
+            _settingsStore.Save(BuildSettings());
+    }
+
+    partial void OnShowHaNotificationsChanged(bool value)
+    {
+        if (!_loading)
             _settingsStore.Save(BuildSettings());
     }
 

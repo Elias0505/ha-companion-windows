@@ -20,10 +20,16 @@ public interface IHaConnection
     /// <summary>Raised whenever an entity's state is (re)loaded or changes.</summary>
     event EventHandler<HaEntityState>? EntityUpdated;
 
+    /// <summary>Raised when Home Assistant adds a persistent notification.</summary>
+    event EventHandler<HaNotification>? NotificationReceived;
+
     /// <summary>Validate credentials, load the initial snapshot and start the live feed.</summary>
     Task<bool> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default);
 
     void Disconnect();
+
+    /// <summary>Skip the current reconnect backoff (e.g. network restored / resume from sleep).</summary>
+    void PokeReconnect();
 
     Task RefreshStatesAsync(CancellationToken ct = default);
 

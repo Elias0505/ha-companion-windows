@@ -87,7 +87,8 @@
     "Osd_Opened": "Opened",
     "Osd_Closed": "Closed",
     "Set_Autostart": "Start with Windows",
-    "Tray_Reconnect": "Reconnect"
+    "Tray_Reconnect": "Reconnect",
+    "Set_HaNotify": "Show Home Assistant notifications as Windows toasts"
   },
   "de": {
     "Nav_Start": "Start",
@@ -177,7 +178,8 @@
     "Osd_Opened": "Geöffnet",
     "Osd_Closed": "Geschlossen",
     "Set_Autostart": "Mit Windows starten",
-    "Tray_Reconnect": "Neu verbinden"
+    "Tray_Reconnect": "Neu verbinden",
+    "Set_HaNotify": "Home-Assistant-Benachrichtigungen als Windows-Meldungen zeigen"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -267,7 +269,8 @@
     "Osd_Opened": "Abierto",
     "Osd_Closed": "Cerrado",
     "Set_Autostart": "Iniciar con Windows",
-    "Tray_Reconnect": "Reconectar"
+    "Tray_Reconnect": "Reconectar",
+    "Set_HaNotify": "Mostrar notificaciones de Home Assistant como avisos de Windows"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -357,7 +360,8 @@
     "Osd_Opened": "Ouvert",
     "Osd_Closed": "Fermé",
     "Set_Autostart": "Démarrer avec Windows",
-    "Tray_Reconnect": "Reconnecter"
+    "Tray_Reconnect": "Reconnecter",
+    "Set_HaNotify": "Afficher les notifications Home Assistant comme alertes Windows"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -447,7 +451,8 @@
     "Osd_Opened": "已打开",
     "Osd_Closed": "已关闭",
     "Set_Autostart": "随 Windows 启动",
-    "Tray_Reconnect": "重新连接"
+    "Tray_Reconnect": "重新连接",
+    "Set_HaNotify": "将 Home Assistant 通知显示为 Windows 通知"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -537,6 +542,7 @@
     "Osd_Opened": "खोला गया",
     "Osd_Closed": "बंद किया गया",
     "Set_Autostart": "Windows के साथ शुरू करें",
-    "Tray_Reconnect": "फिर से कनेक्ट करें"
+    "Tray_Reconnect": "फिर से कनेक्ट करें",
+    "Set_HaNotify": "Home Assistant सूचनाएँ Windows सूचना के रूप में दिखाएँ"
   }
 }

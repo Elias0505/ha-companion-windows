@@ -92,6 +92,19 @@ public partial class App : Application
         // Keep an existing autostart entry pointing at the current exe (path may change on update).
         Services.GetRequiredService<IStartupService>().SelfHeal();
 
+        // Retry the connection immediately when the network returns or the machine resumes.
+        Services.GetRequiredService<IConnectivityWatcher>().Initialize();
+
+        // HA persistent notifications -> native Windows toasts (toggle in Settings).
+        var connection = Services.GetRequiredService<HaCompanion.Core.Services.IHaConnection>();
+        var notifications = Services.GetRequiredService<INotificationService>();
+        var settingsStore = Services.GetRequiredService<ISettingsStore>();
+        connection.NotificationReceived += (_, n) =>
+        {
+            if (settingsStore.Load().ShowHaNotifications)
+                notifications.Show(n.Title, n.Message);
+        };
+
         var log = Services.GetRequiredService<ILogger<App>>();
         var autostarted = Environment.GetCommandLineArgs().Contains(StartupService.AutostartArg);
         log.LogInformation("HA Companion {Version} started{Mode}",
@@ -130,6 +143,7 @@ public partial class App : Application
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IQuickPanelController, QuickPanelController>();
         services.AddSingleton<IStartupService, StartupService>();
+        services.AddSingleton<IConnectivityWatcher, ConnectivityWatcher>();
         services.AddSingleton<IShortcutStore, ShortcutStore>();
         services.AddSingleton<IShortcutManager, ShortcutManager>();
 

@@ -23,6 +23,7 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         _logger = logger;
         _ws.StatusChanged += OnWebSocketStatusChanged;
         _ws.StateChanged += OnWebSocketStateChanged;
+        _ws.NotificationReceived += (_, n) => NotificationReceived?.Invoke(this, n);
     }
 
     public HaConnectionStatus Status => _ws.Status;
@@ -32,6 +33,8 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
     public event EventHandler<HaConnectionStatus>? StatusChanged;
 
     public event EventHandler<HaEntityState>? EntityUpdated;
+
+    public event EventHandler<HaNotification>? NotificationReceived;
 
     public async Task<bool> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default)
     {
@@ -52,6 +55,8 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
     }
 
     public void Disconnect() => _ws.Stop();
+
+    public void PokeReconnect() => _ws.PokeReconnect();
 
     public async Task RefreshStatesAsync(CancellationToken ct = default)
     {

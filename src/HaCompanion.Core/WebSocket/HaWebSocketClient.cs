@@ -23,6 +23,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private readonly ConcurrentDictionary<int, TaskCompletionSource<JsonElement>> _pending = new();
 
     private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _backoffSkip; // cancelled by PokeReconnect() to end a wait early
     private bool _sessionReachedConnected;
     private Task? _supervisor;
     private ClientWebSocket? _activeSocket;
@@ -30,11 +31,15 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private string _token = string.Empty;
     private bool _ignoreCertErrors;
     private int _msgId;
+    private int _notificationSubId; // id of the persistent_notification/subscribe command
 
     public HaConnectionStatus Status { get; private set; } = HaConnectionStatus.Disconnected;
 
     public event EventHandler<HaConnectionStatus>? StatusChanged;
     public event EventHandler<HaEntityState>? StateChanged;
+
+    /// <summary>Raised when Home Assistant ADDS a persistent notification.</summary>
+    public event EventHandler<HaNotification>? NotificationReceived;
 
     public HaWebSocketClient(ILogger<HaWebSocketClient> logger) => _logger = logger;
 
@@ -47,6 +52,17 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         _ignoreCertErrors = ignoreCertErrors;
         _cts = new CancellationTokenSource();
         _supervisor = Task.Run(() => SuperviseAsync(_cts.Token));
+    }
+
+    /// <summary>
+    /// Skip the current reconnect backoff (network came back / machine resumed): a waiting
+    /// supervisor retries immediately with a fresh 1s backoff. Safe from any thread; no-op
+    /// while connected or stopped.
+    /// </summary>
+    public void PokeReconnect()
+    {
+        try { _backoffSkip?.Cancel(); }
+        catch (ObjectDisposedException) { /* raced with the wait ending — fine */ }
     }
 
     public void Stop()
@@ -139,15 +155,26 @@ public sealed class HaWebSocketClient : IAsyncDisposable
                 backoffSeconds = 1.0;
 
             SetStatus(HaConnectionStatus.Reconnecting);
+            using var skip = new CancellationTokenSource();
+            _backoffSkip = skip;
+            using var wait = CancellationTokenSource.CreateLinkedTokenSource(ct, skip.Token);
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), ct).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), wait.Token).ConfigureAwait(false);
+                backoffSeconds = Math.Min(30, backoffSeconds * 2);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 break;
             }
-            backoffSeconds = Math.Min(30, backoffSeconds * 2);
+            catch (OperationCanceledException)
+            {
+                backoffSeconds = 1.0; // poked: retry right away and start the ladder over
+            }
+            finally
+            {
+                _backoffSkip = null;
+            }
         }
 
         if (Status != HaConnectionStatus.AuthFailed)
@@ -199,6 +226,14 @@ public sealed class HaWebSocketClient : IAsyncDisposable
                 event_type = "state_changed",
             }, JsonOptions), ct).ConfigureAwait(false);
 
+            // subscribe to persistent notifications (pushed as added/removed/current events)
+            _notificationSubId = NextId();
+            await SendRawAsync(socket, JsonSerializer.Serialize(new
+            {
+                id = _notificationSubId,
+                type = "persistent_notification/subscribe",
+            }, JsonOptions), ct).ConfigureAwait(false);
+
             // receive loop
             while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open)
             {
@@ -241,7 +276,43 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }
 
         if (type == "event")
-            DispatchStateChanged(root);
+        {
+            if (root.TryGetProperty("id", out var evId) && evId.TryGetInt32(out var eid)
+                && eid == _notificationSubId)
+                DispatchNotification(root);
+            else
+                DispatchStateChanged(root);
+        }
+    }
+
+    private void DispatchNotification(JsonElement root)
+    {
+        // Shape: { id, type:"event", event: { type: "added"|"removed"|"current"|"updated",
+        //          notifications: { "<id>": { notification_id, title, message, ... } } } }
+        // Only freshly ADDED notifications become toasts — the initial "current" batch
+        // would replay old ones at every reconnect.
+        try
+        {
+            if (!root.TryGetProperty("event", out var ev)
+                || !ev.TryGetProperty("type", out var evType) || evType.GetString() != "added"
+                || !ev.TryGetProperty("notifications", out var items)
+                || items.ValueKind != JsonValueKind.Object)
+                return;
+
+            foreach (var item in items.EnumerateObject())
+            {
+                var n = item.Value;
+                var id = n.TryGetProperty("notification_id", out var i) ? i.GetString() ?? item.Name : item.Name;
+                var title = n.TryGetProperty("title", out var t) ? t.GetString() : null;
+                var message = n.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "";
+                NotificationReceived?.Invoke(this,
+                    new HaNotification(id, string.IsNullOrWhiteSpace(title) ? "Home Assistant" : title!, message));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not parse persistent notification payload");
+        }
     }
 
     private void DispatchStateChanged(JsonElement root)

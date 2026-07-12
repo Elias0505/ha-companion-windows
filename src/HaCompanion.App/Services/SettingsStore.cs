@@ -67,6 +67,7 @@ public sealed class SettingsStore : ISettingsStore
                     : persisted.QuickPanelStartOnDashboard ? "firstdash" : "last",
                 QuickPanelDragResize = persisted.QuickPanelDragResize,
                 QuickPanelSortByCategory = persisted.QuickPanelSortByCategory,
+                ShowHaNotifications = persisted.ShowHaNotifications,
                 Token = Unprotect(persisted.TokenProtected),
             };
         }
@@ -94,6 +95,7 @@ public sealed class SettingsStore : ISettingsStore
             QuickPanelStartView = settings.QuickPanelStartView,
             QuickPanelDragResize = settings.QuickPanelDragResize,
             QuickPanelSortByCategory = settings.QuickPanelSortByCategory,
+            ShowHaNotifications = settings.ShowHaNotifications,
             TokenProtected = Protect(settings.Token),
         };
 
@@ -116,6 +118,7 @@ public sealed class SettingsStore : ISettingsStore
         QuickPanelStartView = s.QuickPanelStartView,
         QuickPanelDragResize = s.QuickPanelDragResize,
         QuickPanelSortByCategory = s.QuickPanelSortByCategory,
+        ShowHaNotifications = s.ShowHaNotifications,
     };
 
     private string Protect(string plain)
@@ -162,6 +165,7 @@ public sealed class SettingsStore : ISettingsStore
         public string QuickPanelStartView { get; set; } = string.Empty;
         public bool QuickPanelDragResize { get; set; } = true;
         public bool QuickPanelSortByCategory { get; set; }
+        public bool ShowHaNotifications { get; set; } = true;
         public string TokenProtected { get; set; } = string.Empty;
     }
 }

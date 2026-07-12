@@ -36,6 +36,9 @@ public sealed class AppSettings
     /// <summary>Sort quick-panel favourites by category (start-page order) instead of manual order.</summary>
     public bool QuickPanelSortByCategory { get; set; }
 
+    /// <summary>Show Home Assistant persistent notifications as native Windows toasts.</summary>
+    public bool ShowHaNotifications { get; set; } = true;
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 
