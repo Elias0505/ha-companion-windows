@@ -18,4 +18,16 @@ public interface IHotkeyService
     bool Register(string combo);
 
     void Unregister();
+
+    /// <summary>Raised with the action key when one of the extra action hotkeys is pressed.</summary>
+    event EventHandler<string>? ActionPressed;
+
+    /// <summary>
+    /// Register an additional global hotkey bound to an action key (e.g. an entity id).
+    /// Returns false when the combo is invalid or already taken system-wide.
+    /// </summary>
+    bool RegisterAction(string combo, string actionKey);
+
+    /// <summary>Unregister all action hotkeys (the main panel hotkey stays).</summary>
+    void ClearActions();
 }

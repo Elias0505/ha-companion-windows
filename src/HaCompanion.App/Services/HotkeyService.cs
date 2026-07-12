@@ -26,11 +26,15 @@ public sealed class HotkeyService : IHotkeyService
     private delegate IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     private readonly ILogger<HotkeyService> _logger;
+    private readonly Dictionary<int, string> _actionsByHotkeyId = new();
     private WndProc? _newProc; // held to prevent GC of the delegate
     private IntPtr _oldProc;
     private IntPtr _hwnd;
+    private int _nextActionId = 0xB100; // panel hotkey stays at HOTKEY_ID
 
     public event EventHandler? HotkeyPressed;
+
+    public event EventHandler<string>? ActionPressed;
 
     public bool IsRegistered { get; private set; }
 
@@ -72,6 +76,28 @@ public sealed class HotkeyService : IHotkeyService
             UnregisterHotKey(_hwnd, HOTKEY_ID);
             IsRegistered = false;
         }
+    }
+
+    public bool RegisterAction(string combo, string actionKey)
+    {
+        if (_hwnd == IntPtr.Zero || !TryParse(combo, out var modifiers, out var vk))
+            return false;
+
+        var id = _nextActionId++;
+        if (!RegisterHotKey(_hwnd, id, modifiers | MOD_NOREPEAT, vk))
+        {
+            _logger.LogWarning("Could not register action hotkey '{Combo}' (reserved or already in use).", combo);
+            return false;
+        }
+        _actionsByHotkeyId[id] = actionKey;
+        return true;
+    }
+
+    public void ClearActions()
+    {
+        foreach (var id in _actionsByHotkeyId.Keys)
+            UnregisterHotKey(_hwnd, id);
+        _actionsByHotkeyId.Clear();
     }
 
     private static bool TryParse(string combo, out uint modifiers, out uint vk)
@@ -124,13 +150,16 @@ public sealed class HotkeyService : IHotkeyService
 
     private IntPtr HandleMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
-        if (msg == WM_HOTKEY && (int)wParam == HOTKEY_ID)
+        if (msg == WM_HOTKEY)
         {
             // An exception must never escape into the window procedure — it would take the
             // whole process down. Log and carry on; the next press gets a fresh attempt.
             try
             {
-                HotkeyPressed?.Invoke(this, EventArgs.Empty);
+                if ((int)wParam == HOTKEY_ID)
+                    HotkeyPressed?.Invoke(this, EventArgs.Empty);
+                else if (_actionsByHotkeyId.TryGetValue((int)wParam, out var actionKey))
+                    ActionPressed?.Invoke(this, actionKey);
             }
             catch (Exception ex)
             {

@@ -85,6 +85,9 @@ public partial class App : Application
         hotkeys.Register(string.IsNullOrWhiteSpace(storedHotkey) ? "Win+Ctrl+H" : storedHotkey);
         hotkeys.HotkeyPressed += (_, _) => quickPanel.Toggle();
 
+        // Entity shortcuts: register the stored hotkey->entity bindings (needs the hooked window).
+        Services.GetRequiredService<IShortcutManager>().Initialize();
+
         MainWindow.Activate();
 
         // Auto-connect if we already have stored settings.
@@ -107,6 +110,8 @@ public partial class App : Application
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IQuickPanelController, QuickPanelController>();
+        services.AddSingleton<IShortcutStore, ShortcutStore>();
+        services.AddSingleton<IShortcutManager, ShortcutManager>();
 
         // View models
         services.AddSingleton<EntityCatalogViewModel>();
@@ -114,6 +119,7 @@ public partial class App : Application
         services.AddSingleton<DashboardViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<QuickPanelViewModel>();
+        services.AddSingleton<ShortcutsViewModel>();
 
         // Windows
         services.AddSingleton<MainWindow>();

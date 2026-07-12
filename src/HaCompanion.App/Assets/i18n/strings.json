@@ -72,7 +72,15 @@
     "Tip_Resize": "Resize: drag, or click for presets",
     "Tip_SortCategory": "Sort by category",
     "Set_StartView": "Default view when the panel opens",
-    "Set_StartLast": "Remember last view"
+    "Set_StartLast": "Remember last view",
+    "Nav_Shortcuts": "Shortcuts",
+    "Sc_Intro": "Assign a key combination to any device or script — it works system-wide, whenever the app is running.",
+    "Sc_PickEntity": "Search device or script…",
+    "Sc_Record": "Record keys",
+    "Sc_Add": "Add",
+    "Sc_Empty": "No shortcuts yet — pick a device above and record a key combination.",
+    "Sc_InUse": "not available (already in use)",
+    "Osd_Done": "Triggered"
   },
   "de": {
     "Nav_Start": "Start",
@@ -147,7 +155,15 @@
     "Tip_Resize": "Größe ändern: ziehen, oder klicken für Voreinstellungen",
     "Tip_SortCategory": "Nach Kategorie sortieren",
     "Set_StartView": "Standardansicht beim Öffnen des Panels",
-    "Set_StartLast": "Zuletzt verwendete Ansicht merken"
+    "Set_StartLast": "Zuletzt verwendete Ansicht merken",
+    "Nav_Shortcuts": "Kurzbefehle",
+    "Sc_Intro": "Weise jedem Gerät oder Skript eine Tastenkombination zu — sie funktioniert systemweit, solange die App läuft.",
+    "Sc_PickEntity": "Gerät oder Skript suchen…",
+    "Sc_Record": "Tasten aufnehmen",
+    "Sc_Add": "Hinzufügen",
+    "Sc_Empty": "Noch keine Kurzbefehle — wähle oben ein Gerät und nimm eine Tastenkombination auf.",
+    "Sc_InUse": "nicht verfügbar (bereits belegt)",
+    "Osd_Done": "Ausgelöst"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -222,7 +238,15 @@
     "Tip_Resize": "Cambiar tamaño: arrastra, o haz clic para tamaños predefinidos",
     "Tip_SortCategory": "Ordenar por categoría",
     "Set_StartView": "Vista predeterminada al abrir el panel",
-    "Set_StartLast": "Recordar la última vista"
+    "Set_StartLast": "Recordar la última vista",
+    "Nav_Shortcuts": "Atajos",
+    "Sc_Intro": "Asigna una combinación de teclas a cualquier dispositivo o script: funciona en todo el sistema mientras la app esté abierta.",
+    "Sc_PickEntity": "Buscar dispositivo o script…",
+    "Sc_Record": "Grabar teclas",
+    "Sc_Add": "Añadir",
+    "Sc_Empty": "Aún no hay atajos: elige un dispositivo arriba y graba una combinación de teclas.",
+    "Sc_InUse": "no disponible (ya en uso)",
+    "Osd_Done": "Activado"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -297,7 +321,15 @@
     "Tip_Resize": "Redimensionner : glisser, ou cliquer pour les préréglages",
     "Tip_SortCategory": "Trier par catégorie",
     "Set_StartView": "Vue par défaut à l'ouverture du panneau",
-    "Set_StartLast": "Mémoriser la dernière vue"
+    "Set_StartLast": "Mémoriser la dernière vue",
+    "Nav_Shortcuts": "Raccourcis",
+    "Sc_Intro": "Attribuez une combinaison de touches à n'importe quel appareil ou script — elle fonctionne dans tout le système tant que l'application tourne.",
+    "Sc_PickEntity": "Rechercher un appareil ou un script…",
+    "Sc_Record": "Enregistrer les touches",
+    "Sc_Add": "Ajouter",
+    "Sc_Empty": "Aucun raccourci pour l'instant — choisissez un appareil ci-dessus et enregistrez une combinaison.",
+    "Sc_InUse": "indisponible (déjà utilisée)",
+    "Osd_Done": "Déclenché"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -372,7 +404,15 @@
     "Tip_Resize": "调整大小：拖动，或点击使用预设",
     "Tip_SortCategory": "按类别排序",
     "Set_StartView": "面板打开时的默认视图",
-    "Set_StartLast": "记住上次的视图"
+    "Set_StartLast": "记住上次的视图",
+    "Nav_Shortcuts": "快捷键",
+    "Sc_Intro": "为任意设备或脚本分配按键组合 — 只要应用在运行，即可在整个系统范围内使用。",
+    "Sc_PickEntity": "搜索设备或脚本…",
+    "Sc_Record": "录制按键",
+    "Sc_Add": "添加",
+    "Sc_Empty": "还没有快捷键 — 在上方选择设备并录制按键组合。",
+    "Sc_InUse": "不可用（已被占用）",
+    "Osd_Done": "已触发"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -447,6 +487,14 @@
     "Tip_Resize": "आकार बदलें: खींचें, या प्रीसेट के लिए क्लिक करें",
     "Tip_SortCategory": "श्रेणी के अनुसार क्रमबद्ध करें",
     "Set_StartView": "पैनल खुलने पर डिफ़ॉल्ट दृश्य",
-    "Set_StartLast": "पिछला दृश्य याद रखें"
+    "Set_StartLast": "पिछला दृश्य याद रखें",
+    "Nav_Shortcuts": "शॉर्टकट",
+    "Sc_Intro": "किसी भी डिवाइस या स्क्रिप्ट को कुंजी संयोजन सौंपें — ऐप चलते समय यह पूरे सिस्टम में काम करता है।",
+    "Sc_PickEntity": "डिवाइस या स्क्रिप्ट खोजें…",
+    "Sc_Record": "कुंजियाँ रिकॉर्ड करें",
+    "Sc_Add": "जोड़ें",
+    "Sc_Empty": "अभी कोई शॉर्टकट नहीं — ऊपर डिवाइस चुनें और कुंजी संयोजन रिकॉर्ड करें।",
+    "Sc_InUse": "उपलब्ध नहीं (पहले से उपयोग में)",
+    "Osd_Done": "ट्रिगर किया गया"
   }
 }

@@ -140,6 +140,21 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         SetTileSpans(tile, cols, rows);
     }
 
+    /// <summary>The tile for an entity id, or null when unknown (e.g. entity removed in HA).</summary>
+    public EntityTileViewModel? FindTile(string entityId) =>
+        _tilesById.GetValueOrDefault(entityId);
+
+    /// <summary>Search ALL actionable tiles (pinned or not) — used by the shortcuts page.</summary>
+    public IReadOnlyList<EntityTileViewModel> SearchTiles(string query, int take = 20) =>
+        _tilesById.Values
+            .Where(t => string.IsNullOrWhiteSpace(query)
+                        || t.FriendlyName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                        || t.EntityId.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(t => DomainRank(t.Domain))
+            .ThenBy(t => t.FriendlyName, StringComparer.OrdinalIgnoreCase)
+            .Take(take)
+            .ToList();
+
     /// <summary>Refresh <see cref="AddCandidates"/> for the add-tile flyout.</summary>
     public void FilterCandidates(string query)
     {
