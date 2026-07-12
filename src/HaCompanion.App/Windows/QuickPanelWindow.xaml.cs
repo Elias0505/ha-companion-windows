@@ -91,7 +91,10 @@ public sealed partial class QuickPanelWindow : Window
         ViewModel.Catalog.TileSizeChanged += (_, tile) =>
         {
             if (ViewModel.SortByCategory)
-                ViewModel.RebuildGroups(); // category sections re-created with fresh spans
+                // Deferred: this event can originate from a grip's own PointerReleased inside a
+                // category section — rebuilding the sections synchronously would tear down the
+                // visual tree the event is still routing through.
+                DispatcherQueue.TryEnqueue(() => ViewModel.RebuildGroups());
             else
                 PinnedGrid.RefreshSpans(tile);
         };
@@ -154,7 +157,7 @@ public sealed partial class QuickPanelWindow : Window
         _winW = (int)Math.Round(_panelWidthDip * _scale);
         _winY = mi.rcWork.Top;
         _winH = mi.rcWork.Bottom - mi.rcWork.Top;
-        _restX = mi.rcWork.Right - _winW; // flush to the right edge of the cursor's monitor
+        _restX = mi.rcWork.Right - _winW; // flush to the right edge of the primary display
         _offX = mi.rcWork.Right;          // just off that right edge
     }
 

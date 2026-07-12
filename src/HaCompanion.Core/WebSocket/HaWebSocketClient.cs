@@ -23,6 +23,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private readonly ConcurrentDictionary<int, TaskCompletionSource<JsonElement>> _pending = new();
 
     private CancellationTokenSource? _cts;
+    private bool _sessionReachedConnected;
     private Task? _supervisor;
     private ClientWebSocket? _activeSocket;
     private Uri _uri = null!;
@@ -103,10 +104,10 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         var backoffSeconds = 1.0;
         while (!ct.IsCancellationRequested)
         {
+            _sessionReachedConnected = false;
             try
             {
                 await ConnectAndListenAsync(ct).ConfigureAwait(false);
-                backoffSeconds = 1.0; // clean session ended; reset backoff
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -130,6 +131,12 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             // Auth failures don't heal themselves — stop retrying and surface the state.
             if (Status == HaConnectionStatus.AuthFailed)
                 break;
+
+            // A session that actually reached Connected earns a fresh backoff — real drops end
+            // in exceptions, so resetting only on a "clean" return meant the delay ratcheted up
+            // permanently (1s -> ... -> 30s) across days of otherwise stable connections.
+            if (_sessionReachedConnected)
+                backoffSeconds = 1.0;
 
             SetStatus(HaConnectionStatus.Reconnecting);
             try
@@ -182,6 +189,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         try
         {
             SetStatus(HaConnectionStatus.Connected);
+            _sessionReachedConnected = true;
 
             // subscribe to state changes
             await SendRawAsync(socket, JsonSerializer.Serialize(new

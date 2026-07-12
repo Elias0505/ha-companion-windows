@@ -43,12 +43,17 @@ public sealed class HaEntityState
             ? v.GetString() ?? EntityId
             : EntityId;
 
-    /// <summary>True for the common "active" states (on / open / home).</summary>
+    /// <summary>
+    /// True for the common "active" states (on / open / home / unlocked). "unlocked" must be
+    /// active: locks report locked/unlocked, and without it a lock always read as inactive —
+    /// so toggling resolved to "unlock" every time and a lock could never be LOCKED again.
+    /// </summary>
     [JsonIgnore]
     public bool IsOn =>
         State.Equals("on", StringComparison.OrdinalIgnoreCase)
         || State.Equals("open", StringComparison.OrdinalIgnoreCase)
-        || State.Equals("home", StringComparison.OrdinalIgnoreCase);
+        || State.Equals("home", StringComparison.OrdinalIgnoreCase)
+        || State.Equals("unlocked", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when Home Assistant reports the entity as unavailable/unknown.</summary>
     [JsonIgnore]
