@@ -14,6 +14,60 @@
         <Grid.Resources>
             <conv:StateBrushConverter x:Key="StateBrush" />
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+
+            <!-- Shared between the flat favourites grid and the per-category grids -->
+            <ItemsPanelTemplate x:Key="TileCellsPanel">
+                <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="112" ItemHeight="108" />
+            </ItemsPanelTemplate>
+            <Style x:Key="TileContainerStyle" TargetType="GridViewItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+            </Style>
+            <DataTemplate x:Key="TileTemplate">
+                <Grid Margin="3"
+                      AutomationProperties.Name="{Binding FriendlyName}"
+                      AutomationProperties.HelpText="{Binding StateText}">
+                    <Border CornerRadius="10" Padding="10"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <StackPanel Spacing="6" VerticalAlignment="Top">
+                            <Border Width="34" Height="34" CornerRadius="17" HorizontalAlignment="Left"
+                                    Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
+                                <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
+                                          FontSize="18" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Border>
+                            <TextBlock Text="{Binding FriendlyName}" FontSize="12"
+                                       TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding StateText}" FontSize="11" Opacity="0.6"
+                                       TextTrimming="CharacterEllipsis" MaxLines="1" />
+                        </StackPanel>
+                    </Border>
+                    <Button Width="30" Height="30" Padding="0" CornerRadius="15"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0"
+                            Background="{ThemeResource ControlFillColorDefaultBrush}"
+                            Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
+                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}"
+                            AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
+                        <FontIcon Glyph="&#xE711;" FontSize="10" />
+                    </Button>
+                    <hc:CornerGrip Width="30" Height="30" CornerRadius="15"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"
+                            Background="{ThemeResource ControlFillColorDefaultBrush}"
+                            Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
+                            ToolTipService.ToolTip="{Binding [Tip_Resize], Source={StaticResource Loc}}"
+                            AutomationProperties.Name="{Binding [Tip_Resize], Source={StaticResource Loc}}"
+                            PointerPressed="ResizeGripTile_PointerPressed"
+                            PointerMoved="ResizeGripTile_PointerMoved"
+                            PointerReleased="ResizeGripTile_PointerReleased"
+                            PointerCaptureLost="ResizeGripTile_PointerCaptureLost">
+                        <FontIcon Glyph="&#xE740;" FontSize="10"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </hc:CornerGrip>
+                </Grid>
+            </DataTemplate>
         </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Escape" Invoked="OnEscape" />
@@ -66,8 +120,12 @@
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
                                                     <FontIcon Glyph="{Binding IconGlyph}" FontSize="15"
-                                                              FontFamily="{StaticResource MdiFont}" Opacity="0.8" />
-                                                    <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                                              FontFamily="{StaticResource MdiFont}" Opacity="0.8"
+                                                              VerticalAlignment="Center" />
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding CategoryName}" FontSize="11" Opacity="0.55" />
+                                                    </StackPanel>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ListView.ItemTemplate>
@@ -94,74 +152,48 @@
             <Grid Grid.Row="2">
                 <!-- Favourites: manually pinned tiles only (no auto-populate) -->
                 <Grid Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
-                    <hc:VariableTileGridView x:Name="PinnedGrid"
-                              Visibility="{Binding Catalog.HasPinned, Converter={StaticResource BoolToVisibility}}"
-                              ItemsSource="{Binding PinnedView}"
-                              SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
-                              CanDragItems="{Binding Catalog.IsEditing}"
-                              AllowDrop="{Binding Catalog.IsEditing}"
-                              DragItemsStarting="PinnedGrid_DragItemsStarting"
-                              DragOver="PinnedGrid_DragOver"
-                              Drop="PinnedGrid_Drop">
-                        <GridView.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="112" ItemHeight="108" />
-                            </ItemsPanelTemplate>
-                        </GridView.ItemsPanel>
-                        <GridView.ItemContainerStyle>
-                            <Style TargetType="GridViewItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="VerticalContentAlignment" Value="Stretch" />
-                                <Setter Property="Margin" Value="0" />
-                                <Setter Property="MinWidth" Value="0" />
-                                <Setter Property="MinHeight" Value="0" />
-                            </Style>
-                        </GridView.ItemContainerStyle>
-                        <GridView.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="3"
-                                      AutomationProperties.Name="{Binding FriendlyName}"
-                                      AutomationProperties.HelpText="{Binding StateText}">
-                                    <Border CornerRadius="10" Padding="10"
-                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                        <StackPanel Spacing="6" VerticalAlignment="Top">
-                                            <Border Width="34" Height="34" CornerRadius="17" HorizontalAlignment="Left"
-                                                    Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
-                                                <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
-                                                          FontSize="18" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
-                                            </Border>
-                                            <TextBlock Text="{Binding FriendlyName}" FontSize="12"
-                                                       TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap" />
-                                            <TextBlock Text="{Binding StateText}" FontSize="11" Opacity="0.6"
-                                                       TextTrimming="CharacterEllipsis" MaxLines="1" />
+                    <!-- Manual order: one free-form grid; tiles rearrange live while dragging -->
+                    <Grid Visibility="{Binding SortByCategory, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                        <hc:VariableTileGridView x:Name="PinnedGrid"
+                                  Visibility="{Binding Catalog.HasPinned, Converter={StaticResource BoolToVisibility}}"
+                                  ItemsSource="{Binding Catalog.Pinned}"
+                                  ItemTemplate="{StaticResource TileTemplate}"
+                                  ItemContainerStyle="{StaticResource TileContainerStyle}"
+                                  ItemsPanel="{StaticResource TileCellsPanel}"
+                                  SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
+                                  CanDragItems="{Binding Catalog.IsEditing}"
+                                  AllowDrop="{Binding Catalog.IsEditing}"
+                                  DragItemsStarting="PinnedGrid_DragItemsStarting"
+                                  DragItemsCompleted="PinnedGrid_DragItemsCompleted"
+                                  DragOver="PinnedGrid_DragOver"
+                                  Drop="PinnedGrid_Drop" />
+                    </Grid>
+
+                    <!-- Category mode: named sections, same titles/order as the start page -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  Visibility="{Binding SortByCategory, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding PinnedGroups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Spacing="6" Margin="0,0,0,14">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
+                                                      FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Opacity="0.9" />
                                         </StackPanel>
-                                    </Border>
-                                    <Button Width="30" Height="30" Padding="0" CornerRadius="15"
-                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0"
-                                            Background="{ThemeResource ControlFillColorDefaultBrush}"
-                                            Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
-                                            Click="Unpin_Click" ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}"
-                                            AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
-                                        <FontIcon Glyph="&#xE711;" FontSize="10" />
-                                    </Button>
-                                    <hc:CornerGrip Width="30" Height="30" CornerRadius="15"
-                                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"
-                                            Background="{ThemeResource ControlFillColorDefaultBrush}"
-                                            Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
-                                            ToolTipService.ToolTip="{Binding [Tip_Resize], Source={StaticResource Loc}}"
-                                            AutomationProperties.Name="{Binding [Tip_Resize], Source={StaticResource Loc}}"
-                                            PointerPressed="ResizeGripTile_PointerPressed"
-                                            PointerMoved="ResizeGripTile_PointerMoved"
-                                            PointerReleased="ResizeGripTile_PointerReleased"
-                                            PointerCaptureLost="ResizeGripTile_PointerCaptureLost">
-                                        <FontIcon Glyph="&#xE740;" FontSize="10"
-                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    </hc:CornerGrip>
-                                </Grid>
-                            </DataTemplate>
-                        </GridView.ItemTemplate>
-                    </hc:VariableTileGridView>
+                                        <hc:VariableTileGridView
+                                                  ItemsSource="{Binding Tiles}"
+                                                  ItemTemplate="{StaticResource TileTemplate}"
+                                                  ItemContainerStyle="{StaticResource TileContainerStyle}"
+                                                  ItemsPanel="{StaticResource TileCellsPanel}"
+                                                  SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
+                                                  ScrollViewer.VerticalScrollMode="Disabled"
+                                                  ScrollViewer.VerticalScrollBarVisibility="Hidden" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
 
                     <TextBlock Text="{Binding [Panel_NoTiles], Source={StaticResource Loc}}"
                                Opacity="0.55" TextWrapping="Wrap" Margin="4,8,4,0" VerticalAlignment="Top"

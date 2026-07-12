@@ -87,14 +87,14 @@ public sealed partial class DashboardPage : Page
     {
         if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
         {
-            _tileResize.Begin((UIElement)sender, e, tile, PinnedGrid);
+            _tileResize.Begin((UIElement)sender, e, tile, TileCellWidth, TileCellHeight);
             e.Handled = true; // keep the press from starting an item drag
         }
     }
 
     private void ResizeGripTile_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
-        if (_tileResize.Update(e, PinnedGrid, TileCellWidth, TileCellHeight, PinnedGrid))
+        if (_tileResize.Update(e))
             e.Handled = true;
     }
 
@@ -118,9 +118,12 @@ public sealed partial class DashboardPage : Page
     }
 
     // ----- manual tile reorder (built-in GridView reorder doesn't work on a
-    //       VariableSizedWrapGrid, so drag-and-drop is handled explicitly) -----
+    //       VariableSizedWrapGrid, so drag-and-drop is handled explicitly). While the
+    //       drag is in flight the other tiles rearrange reactively: every DragOver maps
+    //       the pointer to an insertion slot and live-moves the dragged tile there. -----
 
     private EntityTileViewModel? _draggedTile;
+    private long _lastLiveMoveMs;
 
     private void PinnedGrid_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
     {
@@ -128,28 +131,54 @@ public sealed partial class DashboardPage : Page
         e.Data.RequestedOperation = DataPackageOperation.Move;
     }
 
-    private void PinnedGrid_DragOver(object sender, DragEventArgs e) =>
-        e.AcceptedOperation = _draggedTile is null
-            ? DataPackageOperation.None
-            : DataPackageOperation.Move;
+    private void PinnedGrid_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args) =>
+        _draggedTile = null; // also covers drops outside the grid
+
+    private void PinnedGrid_DragOver(object sender, DragEventArgs e)
+    {
+        if (_draggedTile is null)
+        {
+            e.AcceptedOperation = DataPackageOperation.None;
+            return;
+        }
+        e.AcceptedOperation = DataPackageOperation.Move;
+        LiveReorder(e.GetPosition(PinnedGrid));
+    }
 
     private void PinnedGrid_Drop(object sender, DragEventArgs e)
     {
-        var dragged = _draggedTile;
+        // Final settle (usually a no-op — the tile was already live-moved while dragging).
+        if (_draggedTile is not null)
+        {
+            _lastLiveMoveMs = 0; // bypass the debounce for the definitive drop position
+            LiveReorder(e.GetPosition(PinnedGrid));
+        }
         _draggedTile = null;
-        if (dragged is null)
+    }
+
+    /// <summary>
+    /// Move the dragged tile to the slot under the pointer so the grid re-flows while the drag
+    /// is still in progress. Debounced: right after a move the geometry shifts under the pointer,
+    /// and recomputing immediately would oscillate between the old and new slot.
+    /// </summary>
+    private void LiveReorder(global::Windows.Foundation.Point position)
+    {
+        if (Environment.TickCount64 - _lastLiveMoveMs < 150)
             return;
 
         var source = ViewModel.Catalog.Pinned;
-        var from = source.IndexOf(dragged);
+        var from = source.IndexOf(_draggedTile!);
         if (from < 0)
             return;
 
-        var to = TileDragHelper.InsertionIndex(PinnedGrid, e.GetPosition(PinnedGrid), source.Count);
+        var to = TileDragHelper.InsertionIndex(PinnedGrid, position, source.Count);
         if (to > from)
             to--;
         to = Math.Clamp(to, 0, source.Count - 1);
         if (to != from)
+        {
             source.Move(from, to); // persisted via the catalog's CollectionChanged handler
+            _lastLiveMoveMs = Environment.TickCount64;
+        }
     }
 }

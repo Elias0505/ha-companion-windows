@@ -50,8 +50,12 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
                                             <FontIcon Glyph="{Binding IconGlyph}" FontSize="15"
-                                                      FontFamily="{StaticResource MdiFont}" Opacity="0.8" />
-                                            <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                                      FontFamily="{StaticResource MdiFont}" Opacity="0.8"
+                                                      VerticalAlignment="Center" />
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding CategoryName}" FontSize="11" Opacity="0.55" />
+                                            </StackPanel>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
@@ -90,6 +94,7 @@
                               CanDragItems="{Binding Catalog.IsEditing}"
                               AllowDrop="{Binding Catalog.IsEditing}"
                               DragItemsStarting="PinnedGrid_DragItemsStarting"
+                              DragItemsCompleted="PinnedGrid_DragItemsCompleted"
                               DragOver="PinnedGrid_DragOver"
                               Drop="PinnedGrid_Drop">
                         <GridView.ItemsPanel>

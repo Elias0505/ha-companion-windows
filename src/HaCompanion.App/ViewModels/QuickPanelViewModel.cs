@@ -18,6 +18,8 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     private readonly IHaConnection _connection;
     private readonly IUiDispatcher _ui;
     private readonly ISettingsStore _settingsStore;
+    private readonly LocalizationService _localization;
+    private readonly MdiIconProvider _icons;
 
     public EntityCatalogViewModel Catalog { get; }
 
@@ -27,12 +29,13 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     public ObservableCollection<QuickDashboard> Dashboards { get; } = new() { QuickDashboard.Favorites };
 
     /// <summary>
-    /// What the favourites grid actually shows: the pinned tiles either in the user's manual
-    /// order or sorted by category (like the start page), depending on <see cref="SortByCategory"/>.
+    /// Category mode: the pinned tiles grouped into named sections (same order and localized
+    /// titles as the start page). Only populated while <see cref="SortByCategory"/> is on;
+    /// manual mode binds the grid straight to <see cref="EntityCatalogViewModel.Pinned"/>.
     /// </summary>
-    public ObservableCollection<EntityTileViewModel> PinnedView { get; } = new();
+    public ObservableCollection<EntityGroupViewModel> PinnedGroups { get; } = new();
 
-    /// <summary>Sort favourites by category (start-page section order) instead of manual order.</summary>
+    /// <summary>Sort favourites into named category sections instead of the manual order.</summary>
     [ObservableProperty]
     private bool _sortByCategory;
 
@@ -47,16 +50,19 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     /// <summary>Raised when a real HA dashboard is chosen; the window navigates the WebView.</summary>
     public event EventHandler<QuickDashboard>? DashboardRequested;
 
-    public QuickPanelViewModel(EntityCatalogViewModel catalog, ShellViewModel shell, IHaConnection connection, IUiDispatcher ui, ISettingsStore settingsStore)
+    public QuickPanelViewModel(EntityCatalogViewModel catalog, ShellViewModel shell, IHaConnection connection, IUiDispatcher ui, ISettingsStore settingsStore, LocalizationService localization, MdiIconProvider icons)
     {
         Catalog = catalog;
         Shell = shell;
         _connection = connection;
         _ui = ui;
         _settingsStore = settingsStore;
+        _localization = localization;
+        _icons = icons;
         _sortByCategory = settingsStore.Load().QuickPanelSortByCategory;
-        Catalog.Pinned.CollectionChanged += (_, _) => RebuildPinnedView();
-        RebuildPinnedView();
+        Catalog.Pinned.CollectionChanged += (_, _) => RebuildGroups();
+        _localization.LanguageChanged += (_, _) => _ui.Post(RebuildGroups); // section titles are localized
+        RebuildGroups();
     }
 
     partial void OnSortByCategoryChanged(bool value)
@@ -64,20 +70,26 @@ public sealed partial class QuickPanelViewModel : ObservableObject
         var settings = _settingsStore.Load();
         settings.QuickPanelSortByCategory = value;
         _settingsStore.Save(settings);
-        RebuildPinnedView();
+        RebuildGroups();
     }
 
-    private void RebuildPinnedView()
+    /// <summary>Re-derive the named category sections (no-op while in manual order).</summary>
+    public void RebuildGroups()
     {
-        var tiles = SortByCategory
-            ? Catalog.Pinned
-                .OrderBy(t => EntityCatalogViewModel.DomainRank(t.Domain))
-                .ThenBy(t => t.FriendlyName, StringComparer.OrdinalIgnoreCase)
-                .ToList()
-            : Catalog.Pinned.ToList();
-        PinnedView.Clear();
-        foreach (var tile in tiles)
-            PinnedView.Add(tile);
+        PinnedGroups.Clear();
+        if (!SortByCategory)
+            return;
+
+        foreach (var group in Catalog.Pinned
+                     .GroupBy(t => t.Domain)
+                     .OrderBy(g => EntityCatalogViewModel.DomainRank(g.Key)))
+        {
+            var section = new EntityGroupViewModel(group.Key, _localization.Group(group.Key), _icons.DomainGlyph(group.Key));
+            foreach (var tile in group.OrderBy(t => t.FriendlyName, StringComparer.OrdinalIgnoreCase))
+                section.Tiles.Add(tile);
+            section.Count = section.Tiles.Count;
+            PinnedGroups.Add(section);
+        }
     }
 
     /// <summary>

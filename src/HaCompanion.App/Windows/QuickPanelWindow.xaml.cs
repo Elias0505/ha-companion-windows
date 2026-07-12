@@ -87,8 +87,14 @@ public sealed partial class QuickPanelWindow : Window
         InitializeComponent();
         RootGrid.DataContext = viewModel;
         ViewModel.DashboardRequested += OnDashboardRequested;
-        // Size changes made on the start page must re-flow this grid too (shared tiles).
-        ViewModel.Catalog.TileSizeChanged += (_, tile) => PinnedGrid.RefreshSpans(tile);
+        // Size changes made on the start page must re-flow this view too (shared tiles).
+        ViewModel.Catalog.TileSizeChanged += (_, tile) =>
+        {
+            if (ViewModel.SortByCategory)
+                ViewModel.RebuildGroups(); // category sections re-created with fresh spans
+            else
+                PinnedGrid.RefreshSpans(tile);
+        };
 
         Title = "HA Companion — Quick Panel";
         _hwnd = WindowNative.GetWindowHandle(this);
@@ -440,14 +446,15 @@ public sealed partial class QuickPanelWindow : Window
     {
         if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
         {
-            _tileResize.Begin((UIElement)sender, e, tile, PinnedGrid);
+            // The owning grid (flat or per-category) is found from the grip via the visual tree.
+            _tileResize.Begin((UIElement)sender, e, tile, TileCellWidth, TileCellHeight);
             e.Handled = true; // keep the press from starting an item drag
         }
     }
 
     private void ResizeGripTile_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
-        if (_tileResize.Update(e, PinnedGrid, TileCellWidth, TileCellHeight, PinnedGrid))
+        if (_tileResize.Update(e))
             e.Handled = true;
     }
 
@@ -471,9 +478,12 @@ public sealed partial class QuickPanelWindow : Window
     }
 
     // ----- manual tile reorder (built-in GridView reorder doesn't work on a
-    //       VariableSizedWrapGrid, so drag-and-drop is handled explicitly) -----
+    //       VariableSizedWrapGrid, so drag-and-drop is handled explicitly). While the
+    //       drag is in flight the other tiles rearrange reactively: every DragOver maps
+    //       the pointer to an insertion slot and live-moves the dragged tile there. -----
 
     private EntityTileViewModel? _draggedTile;
+    private long _lastLiveMoveMs;
 
     private void PinnedGrid_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
     {
@@ -481,30 +491,55 @@ public sealed partial class QuickPanelWindow : Window
         e.Data.RequestedOperation = DataPackageOperation.Move;
     }
 
-    private void PinnedGrid_DragOver(object sender, DragEventArgs e) =>
-        e.AcceptedOperation = _draggedTile is null || ViewModel.SortByCategory
-            ? DataPackageOperation.None
-            : DataPackageOperation.Move;
+    private void PinnedGrid_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args) =>
+        _draggedTile = null; // also covers drops outside the grid
+
+    private void PinnedGrid_DragOver(object sender, DragEventArgs e)
+    {
+        if (_draggedTile is null || ViewModel.SortByCategory)
+        {
+            e.AcceptedOperation = DataPackageOperation.None;
+            return;
+        }
+        e.AcceptedOperation = DataPackageOperation.Move;
+        LiveReorder(e.GetPosition(PinnedGrid));
+    }
 
     private void PinnedGrid_Drop(object sender, DragEventArgs e)
     {
-        var dragged = _draggedTile;
+        // Final settle (usually a no-op — the tile was already live-moved while dragging).
+        if (_draggedTile is not null && !ViewModel.SortByCategory)
+        {
+            _lastLiveMoveMs = 0; // bypass the debounce for the definitive drop position
+            LiveReorder(e.GetPosition(PinnedGrid));
+        }
         _draggedTile = null;
-        // In category mode the order is computed, not user-defined — nothing to reorder.
-        if (dragged is null || ViewModel.SortByCategory)
+    }
+
+    /// <summary>
+    /// Move the dragged tile to the slot under the pointer so the grid re-flows while the drag
+    /// is still in progress. Debounced: right after a move the geometry shifts under the pointer,
+    /// and recomputing immediately would oscillate between the old and new slot.
+    /// </summary>
+    private void LiveReorder(global::Windows.Foundation.Point position)
+    {
+        if (Environment.TickCount64 - _lastLiveMoveMs < 150)
             return;
 
-        var source = ViewModel.Catalog.Pinned; // manual mode: PinnedView mirrors this order 1:1
-        var from = source.IndexOf(dragged);
+        var source = ViewModel.Catalog.Pinned;
+        var from = source.IndexOf(_draggedTile!);
         if (from < 0)
             return;
 
-        var to = TileDragHelper.InsertionIndex(PinnedGrid, e.GetPosition(PinnedGrid), source.Count);
+        var to = TileDragHelper.InsertionIndex(PinnedGrid, position, source.Count);
         if (to > from)
             to--;
         to = Math.Clamp(to, 0, source.Count - 1);
         if (to != from)
+        {
             source.Move(from, to); // persisted via the catalog's CollectionChanged handler
+            _lastLiveMoveMs = Environment.TickCount64;
+        }
     }
 
     // ----- live drag-to-resize (left-edge grip) -----

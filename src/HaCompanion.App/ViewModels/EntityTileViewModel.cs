@@ -81,8 +81,15 @@ public partial class EntityTileViewModel : ObservableObject
         IsUnavailable = state.IsUnavailable;
     }
 
-    /// <summary>Re-derive the localized state text (called when the UI language changes).</summary>
-    public void RefreshStateText() => StateText = FormatState(_state);
+    /// <summary>Localized category (domain group) name, e.g. "Lights" — shown in the add-tile search.</summary>
+    public string CategoryName => _localization.Group(Domain);
+
+    /// <summary>Re-derive the localized texts (called when the UI language changes).</summary>
+    public void RefreshStateText()
+    {
+        StateText = FormatState(_state);
+        OnPropertyChanged(nameof(CategoryName));
+    }
 
     [RelayCommand]
     private async Task ToggleAsync()
