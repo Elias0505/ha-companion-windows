@@ -10,12 +10,12 @@ public interface ITileLayoutStore
 {
     IReadOnlyList<string> LoadPinned();
 
-    /// <summary>Per-entity tile size mode (0 small / 1 wide / 2 large); entities not listed are small.</summary>
-    IReadOnlyDictionary<string, int> LoadSizes();
+    /// <summary>Per-entity tile spans in grid cells (cols, rows); entities not listed are 1×1.</summary>
+    IReadOnlyDictionary<string, (int Cols, int Rows)> LoadSpans();
 
     void SavePinned(IReadOnlyList<string> entityIds);
 
-    void SaveSizes(IReadOnlyDictionary<string, int> sizes);
+    void SaveSpans(IReadOnlyDictionary<string, (int Cols, int Rows)> spans);
 }
 
 /// <inheritdoc cref="ITileLayoutStore"/>
@@ -39,7 +39,30 @@ public sealed class TileLayoutStore : ITileLayoutStore
 
     public IReadOnlyList<string> LoadPinned() => GetLayout().Pinned;
 
-    public IReadOnlyDictionary<string, int> LoadSizes() => GetLayout().Sizes ?? new Dictionary<string, int>();
+    public IReadOnlyDictionary<string, (int Cols, int Rows)> LoadSpans()
+    {
+        var layout = GetLayout();
+        var result = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
+
+        if (layout.Spans is not null)
+        {
+            foreach (var (id, text) in layout.Spans)
+            {
+                var parts = text.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var c) && int.TryParse(parts[1], out var r))
+                    result[id] = (c, r);
+            }
+        }
+        else if (layout.Sizes is not null)
+        {
+            // Migrate the short-lived preset format (1 = wide, 2 = large) to free spans.
+            foreach (var (id, mode) in layout.Sizes)
+                if (mode is 1 or 2)
+                    result[id] = (2, mode == 2 ? 2 : 1);
+        }
+
+        return result;
+    }
 
     public void SavePinned(IReadOnlyList<string> entityIds)
     {
@@ -47,10 +70,14 @@ public sealed class TileLayoutStore : ITileLayoutStore
         Write();
     }
 
-    public void SaveSizes(IReadOnlyDictionary<string, int> sizes)
+    public void SaveSpans(IReadOnlyDictionary<string, (int Cols, int Rows)> spans)
     {
-        // Only persist non-default sizes; missing = small.
-        GetLayout().Sizes = sizes.Where(kv => kv.Value > 0).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var layout = GetLayout();
+        // Only persist non-default sizes ("CxR"); missing = 1×1. The legacy Sizes key is dropped.
+        layout.Spans = spans
+            .Where(kv => kv.Value.Cols > 1 || kv.Value.Rows > 1)
+            .ToDictionary(kv => kv.Key, kv => $"{kv.Value.Cols}x{kv.Value.Rows}");
+        layout.Sizes = null;
         Write();
     }
 
@@ -91,6 +118,12 @@ public sealed class TileLayoutStore : ITileLayoutStore
     {
         public List<string> Pinned { get; set; } = [];
 
+        /// <summary>Legacy preset sizes (read for migration only; never written back).</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, int>? Sizes { get; set; }
+
+        /// <summary>Per-entity spans as "ColsxRows" (e.g. "2x1"); missing = 1×1.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public Dictionary<string, string>? Spans { get; set; }
     }
 }

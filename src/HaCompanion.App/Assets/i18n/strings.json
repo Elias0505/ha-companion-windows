@@ -69,7 +69,7 @@
     "Dash_NoWebView": "The WebView2 runtime is missing. Install it from https://developer.microsoft.com/microsoft-edge/webview2/ and reopen this page.",
     "Dash_EmbedFailed": "Could not start the embedded view: {0}",
     "Dash_ListFailed": "Could not list dashboards (not connected?) — showing the default dashboard.",
-    "Tip_Resize": "Change tile size",
+    "Tip_Resize": "Resize: drag, or click for presets",
     "Tip_SortCategory": "Sort by category"
   },
   "de": {
@@ -142,7 +142,7 @@
     "Dash_NoWebView": "Die WebView2-Runtime fehlt. Installiere sie von https://developer.microsoft.com/microsoft-edge/webview2/ und öffne diese Seite erneut.",
     "Dash_EmbedFailed": "Eingebettete Ansicht konnte nicht gestartet werden: {0}",
     "Dash_ListFailed": "Dashboards konnten nicht geladen werden (nicht verbunden?) — zeige das Standard-Dashboard.",
-    "Tip_Resize": "Kachelgröße ändern",
+    "Tip_Resize": "Größe ändern: ziehen, oder klicken für Voreinstellungen",
     "Tip_SortCategory": "Nach Kategorie sortieren"
   },
   "es": {
@@ -215,7 +215,7 @@
     "Dash_NoWebView": "Falta el entorno WebView2. Instálalo desde https://developer.microsoft.com/microsoft-edge/webview2/ y vuelve a abrir esta página.",
     "Dash_EmbedFailed": "No se pudo iniciar la vista integrada: {0}",
     "Dash_ListFailed": "No se pudieron listar los paneles (¿sin conexión?): se muestra el panel predeterminado.",
-    "Tip_Resize": "Cambiar tamaño del mosaico",
+    "Tip_Resize": "Cambiar tamaño: arrastra, o haz clic para tamaños predefinidos",
     "Tip_SortCategory": "Ordenar por categoría"
   },
   "fr": {
@@ -288,7 +288,7 @@
     "Dash_NoWebView": "Le runtime WebView2 est manquant. Installez-le depuis https://developer.microsoft.com/microsoft-edge/webview2/ puis rouvrez cette page.",
     "Dash_EmbedFailed": "Impossible de démarrer la vue intégrée : {0}",
     "Dash_ListFailed": "Impossible de lister les tableaux de bord (non connecté ?) — affichage du tableau de bord par défaut.",
-    "Tip_Resize": "Changer la taille de la tuile",
+    "Tip_Resize": "Redimensionner : glisser, ou cliquer pour les préréglages",
     "Tip_SortCategory": "Trier par catégorie"
   },
   "zh": {
@@ -361,7 +361,7 @@
     "Dash_NoWebView": "缺少 WebView2 运行时。请从 https://developer.microsoft.com/microsoft-edge/webview2/ 安装后重新打开此页面。",
     "Dash_EmbedFailed": "无法启动嵌入视图：{0}",
     "Dash_ListFailed": "无法获取仪表板列表（未连接？）— 显示默认仪表板。",
-    "Tip_Resize": "更改磁贴大小",
+    "Tip_Resize": "调整大小：拖动，或点击使用预设",
     "Tip_SortCategory": "按类别排序"
   },
   "hi": {
@@ -434,7 +434,7 @@
     "Dash_NoWebView": "WebView2 रनटाइम मौजूद नहीं है। इसे https://developer.microsoft.com/microsoft-edge/webview2/ से इंस्टॉल करें और यह पेज फिर से खोलें।",
     "Dash_EmbedFailed": "एम्बेडेड व्यू शुरू नहीं हो सका: {0}",
     "Dash_ListFailed": "डैशबोर्ड सूची नहीं मिल सकी (कनेक्ट नहीं?) — डिफ़ॉल्ट डैशबोर्ड दिखाया जा रहा है।",
-    "Tip_Resize": "टाइल का आकार बदलें",
+    "Tip_Resize": "आकार बदलें: खींचें, या प्रीसेट के लिए क्लिक करें",
     "Tip_SortCategory": "श्रेणी के अनुसार क्रमबद्ध करें"
   }
 }

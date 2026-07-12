@@ -429,10 +429,45 @@ public sealed partial class QuickPanelWindow : Window
             await tile.ToggleCommand.ExecuteAsync(null);
     }
 
-    private void Resize_Click(object sender, RoutedEventArgs e)
+    // ----- hand-drag tile resize (corner grip; click still cycles the presets) -----
+
+    private const double TileCellWidth = 112;  // must match the VariableSizedWrapGrid ItemWidth
+    private const double TileCellHeight = 108; // must match the VariableSizedWrapGrid ItemHeight
+
+    private readonly TileResizeDrag _tileResize = new();
+
+    private void ResizeGripTile_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
-            ViewModel.Catalog.CycleTileSize(tile); // TileSizeChanged re-flows this grid
+        {
+            _tileResize.Begin((UIElement)sender, e, tile, PinnedGrid);
+            e.Handled = true; // keep the press from starting an item drag
+        }
+    }
+
+    private void ResizeGripTile_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (_tileResize.Update(e, PinnedGrid, TileCellWidth, TileCellHeight, PinnedGrid))
+            e.Handled = true;
+    }
+
+    private void ResizeGripTile_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        var (tile, moved) = _tileResize.End((UIElement)sender, e);
+        if (tile is null)
+            return;
+        if (moved)
+            ViewModel.Catalog.SetTileSpans(tile, tile.ColSpan, tile.RowSpan); // persist the dragged size
+        else
+            ViewModel.Catalog.CycleTileSize(tile); // plain click: next preset
+        e.Handled = true;
+    }
+
+    private void ResizeGripTile_PointerCaptureLost(object sender, PointerRoutedEventArgs e)
+    {
+        var (tile, moved) = _tileResize.End(null, e);
+        if (tile is not null && moved)
+            ViewModel.Catalog.SetTileSpans(tile, tile.ColSpan, tile.RowSpan);
     }
 
     // ----- manual tile reorder (built-in GridView reorder doesn't work on a

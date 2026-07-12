@@ -135,14 +135,19 @@
                                             AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
                                         <FontIcon Glyph="&#xE711;" FontSize="10" />
                                     </Button>
-                                    <Button Width="30" Height="30" Padding="0" CornerRadius="15"
+                                    <hc:CornerGrip Width="30" Height="30" CornerRadius="15"
                                             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"
                                             Background="{ThemeResource ControlFillColorDefaultBrush}"
                                             Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}}"
-                                            Click="Resize_Click" ToolTipService.ToolTip="{Binding [Tip_Resize], Source={StaticResource Loc}}"
-                                            AutomationProperties.Name="{Binding [Tip_Resize], Source={StaticResource Loc}}">
-                                        <FontIcon Glyph="&#xE740;" FontSize="10" />
-                                    </Button>
+                                            ToolTipService.ToolTip="{Binding [Tip_Resize], Source={StaticResource Loc}}"
+                                            AutomationProperties.Name="{Binding [Tip_Resize], Source={StaticResource Loc}}"
+                                            PointerPressed="ResizeGripTile_PointerPressed"
+                                            PointerMoved="ResizeGripTile_PointerMoved"
+                                            PointerReleased="ResizeGripTile_PointerReleased"
+                                            PointerCaptureLost="ResizeGripTile_PointerCaptureLost">
+                                        <FontIcon Glyph="&#xE740;" FontSize="10"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </hc:CornerGrip>
                                 </Grid>
                             </DataTemplate>
                         </GridView.ItemTemplate>

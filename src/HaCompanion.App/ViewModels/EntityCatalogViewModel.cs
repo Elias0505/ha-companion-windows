@@ -42,7 +42,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
     private readonly Dictionary<string, EntityTileViewModel> _tilesById = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EntityGroupViewModel> _groupsByDomain = new(StringComparer.Ordinal);
     private List<string> _pinnedIds;
-    private readonly Dictionary<string, int> _sizesById;
+    private readonly Dictionary<string, (int Cols, int Rows)> _spansById;
     private bool _suppressLayoutSave;
 
     /// <summary>Raised after a tile's size mode changed (views refresh the container spans).</summary>
@@ -82,7 +82,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         _icons = icons;
         _localization = localization;
         _pinnedIds = [.. _layoutStore.LoadPinned()];
-        _sizesById = new Dictionary<string, int>(_layoutStore.LoadSizes(), StringComparer.Ordinal);
+        _spansById = new Dictionary<string, (int, int)>(_layoutStore.LoadSpans(), StringComparer.Ordinal);
 
         foreach (var state in _connection.Entities.Values)
             Apply(state);
@@ -116,16 +116,28 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         }
     }
 
-    /// <summary>Cycle a tile through small → wide → large and persist the choice.</summary>
+    /// <summary>Set a tile's size in grid cells, persist it and notify the views.</summary>
+    public void SetTileSpans(EntityTileViewModel tile, int cols, int rows)
+    {
+        tile.SetSpans(cols, rows);
+        if (tile is { ColSpan: 1, RowSpan: 1 })
+            _spansById.Remove(tile.EntityId);
+        else
+            _spansById[tile.EntityId] = (tile.ColSpan, tile.RowSpan);
+        _layoutStore.SaveSpans(_spansById);
+        TileSizeChanged?.Invoke(this, tile);
+    }
+
+    /// <summary>Advance a tile through the size presets (1×1 → 2×1 → 2×2 → 1×1).</summary>
     public void CycleTileSize(EntityTileViewModel tile)
     {
-        tile.CycleSize();
-        if (tile.SizeMode == 0)
-            _sizesById.Remove(tile.EntityId);
-        else
-            _sizesById[tile.EntityId] = tile.SizeMode;
-        _layoutStore.SaveSizes(_sizesById);
-        TileSizeChanged?.Invoke(this, tile);
+        var (cols, rows) = (tile.ColSpan, tile.RowSpan) switch
+        {
+            (1, 1) => (2, 1),
+            (2, 1) => (2, 2),
+            _ => (1, 1),
+        };
+        SetTileSpans(tile, cols, rows);
     }
 
     /// <summary>Refresh <see cref="AddCandidates"/> for the add-tile flyout.</summary>
@@ -163,7 +175,8 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         }
 
         var tile = new EntityTileViewModel(_connection, _icons, _localization, state);
-        tile.SetSizeMode(_sizesById.GetValueOrDefault(state.EntityId));
+        var (cols, rows) = _spansById.GetValueOrDefault(state.EntityId, (1, 1));
+        tile.SetSpans(cols, rows);
         _tilesById[state.EntityId] = tile;
 
         var group = GetOrCreateGroup(state.Domain);
