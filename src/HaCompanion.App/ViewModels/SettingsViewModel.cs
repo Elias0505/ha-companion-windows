@@ -244,6 +244,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         RefreshHotkeyStatus();
     }
 
+    /// <summary>App version shown at the bottom of the settings page.</summary>
+    public string AppVersion =>
+        "HA Companion " + (typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "?");
+
     /// <summary>Localized prompt shown while the user is recording a custom hotkey.</summary>
     public string RecordPrompt => _localization["Set_RecordPrompt"];
 

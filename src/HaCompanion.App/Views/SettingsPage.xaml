@@ -84,6 +84,8 @@
                     Command="{x:Bind ViewModel.SaveAndConnectCommand}" />
 
             <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" TextWrapping="Wrap" Opacity="0.9" />
+
+            <TextBlock Text="{x:Bind ViewModel.AppVersion}" FontSize="12" Opacity="0.45" Margin="0,8,0,0" />
         </StackPanel>
     </ScrollViewer>
 </Page>

@@ -17,6 +17,16 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - 🔌 **Live connection** — REST for actions + WebSocket for push updates (auto-reconnect).
 - 🧰 **System tray** — right-click → Open / Quick panel / Exit; closing the window hides to tray.
 - 🔒 **Token stored securely** — the long-lived token is encrypted with Windows DPAPI, never in plaintext.
+- ⌨️ **Entity shortcuts** — bind any key combination to any device or script (own Shortcuts tab with category quick-pick); a clean OSD toast slides in bottom-right saying exactly what happened ("Turned on/off", live-confirmed by HA).
+- 🚀 **Ctrl+K launcher** — search & trigger any entity from the quick panel without touching the mouse layout.
+- 🧱 **Start-menu style tiles** — resize tiles freely by dragging their corner grip (1×1 up to 4×3), drag to reorder with live re-flow, optional category sections.
+- 📈 **Sensor tiles** — pin read-only sensors (PV power, temperatures, …) as live value tiles.
+- 🎚 **Tile quick controls** — right-click a tile: brightness slider for lights, target temperature for climate, play/pause + volume for media players.
+- 🔔 **HA notifications** — persistent notifications appear as native Windows toasts (optional).
+- 🔁 **Robust connection** — instant reconnect on network change / resume from sleep; exponential backoff resets after healthy sessions.
+- 🖥️ **Start with Windows** — optional autostart, silently into the tray; tray icon mirrors the connection state.
+- 🪵 **File logging** — app.log / crash.log under %LOCALAPPDATA%\HaCompanion for easy diagnosis.
+- ✅ **Unit-tested core** — the protocol/parsing layer is covered by xunit tests, run in CI.
 
 ### Planned
 
