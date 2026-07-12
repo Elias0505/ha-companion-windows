@@ -48,6 +48,7 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     private bool _isDefaultView;
 
     private bool _syncingDefaultFlag;
+    private bool _rebuildingDashboards;
 
     [ObservableProperty]
     private QuickDashboard _selectedDashboard = QuickDashboard.Favorites;
@@ -170,14 +171,24 @@ public sealed partial class QuickPanelViewModel : ObservableObject
                               || !Dashboards.Skip(1).SequenceEqual(fresh); // records: value equality
                 if (changed)
                 {
-                    var previous = SelectedDashboard;
-                    while (Dashboards.Count > 1)
-                        Dashboards.RemoveAt(Dashboards.Count - 1);
-                    foreach (var d in fresh)
-                        Dashboards.Add(d);
-                    if (previous is { IsFavorites: false })
-                        SelectedDashboard = fresh.FirstOrDefault(d => d.UrlPath == previous.UrlPath)
-                                            ?? QuickDashboard.Favorites;
+                    // Clearing the list momentarily nulls the ComboBox selection — that
+                    // transient state must not be persisted as the "last view".
+                    _rebuildingDashboards = true;
+                    try
+                    {
+                        var previous = SelectedDashboard;
+                        while (Dashboards.Count > 1)
+                            Dashboards.RemoveAt(Dashboards.Count - 1);
+                        foreach (var d in fresh)
+                            Dashboards.Add(d);
+                        if (previous is { IsFavorites: false })
+                            SelectedDashboard = fresh.FirstOrDefault(d => d.UrlPath == previous.UrlPath)
+                                                ?? QuickDashboard.Favorites;
+                    }
+                    finally
+                    {
+                        _rebuildingDashboards = false;
+                    }
                 }
 
                 // Re-apply the default view — it may point at a dashboard that only just
@@ -201,12 +212,15 @@ public sealed partial class QuickPanelViewModel : ObservableObject
             DashboardRequested?.Invoke(this, value);
 
         // Remember the shown view across app restarts (used by the "last view" start mode).
-        var encoded = EncodeView(value);
-        var settings = _settingsStore.Load();
-        if (settings.QuickPanelLastView != encoded)
+        if (!_rebuildingDashboards)
         {
-            settings.QuickPanelLastView = encoded;
-            _settingsStore.Save(settings);
+            var encoded = EncodeView(value);
+            var settings = _settingsStore.Load();
+            if (settings.QuickPanelLastView != encoded)
+            {
+                settings.QuickPanelLastView = encoded;
+                _settingsStore.Save(settings);
+            }
         }
         SyncDefaultFlag(); // the pin reflects whether THIS view is the configured default
     }

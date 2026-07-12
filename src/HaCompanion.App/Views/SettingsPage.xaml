@@ -75,6 +75,7 @@
                     <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip4], Source={StaticResource Loc}}" />
                     <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip5], Source={StaticResource Loc}}" />
                     <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip6], Source={StaticResource Loc}}" />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip7], Source={StaticResource Loc}}" />
                 </StackPanel>
             </Expander>
 

@@ -146,7 +146,13 @@ public sealed partial class MainWindow : Window
     {
         // Fully quit: stop hiding-to-tray, remove the icon, release the hotkey, exit.
         AppWindow.Closing -= OnClosing;
-        try { App.Services.GetRequiredService<IHotkeyService>().Unregister(); } catch { }
+        try
+        {
+            var hotkeys = App.Services.GetRequiredService<IHotkeyService>();
+            hotkeys.Unregister();
+            hotkeys.ClearActions(); // entity shortcuts too, not just the panel hotkey
+        }
+        catch { }
         Tray.Dispose();
         Application.Current.Exit();
     }

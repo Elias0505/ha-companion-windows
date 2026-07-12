@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HaCompanion.App.Infrastructure;
-using HaCompanion.App.Models;
 using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
 using HaCompanion.Core.Services;
@@ -146,9 +145,14 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
     public EntityTileViewModel? FindTile(string entityId) =>
         _tilesById.GetValueOrDefault(entityId);
 
-    /// <summary>Search ALL actionable tiles (pinned or not) — used by the shortcuts page.</summary>
-    public IReadOnlyList<EntityTileViewModel> SearchTiles(string query, int take = 20) =>
+    /// <summary>
+    /// Search all tiles (pinned or not). With <paramref name="actionableOnly"/> the filter runs
+    /// BEFORE the take — filtering afterwards could return nothing even though actionable
+    /// matches exist, whenever a query mostly hits (read-only) sensors.
+    /// </summary>
+    public IReadOnlyList<EntityTileViewModel> SearchTiles(string query, int take = 20, bool actionableOnly = false) =>
         _tilesById.Values
+            .Where(t => !actionableOnly || DomainCatalog.HasAction(t.Domain))
             .Where(t => string.IsNullOrWhiteSpace(query)
                         || t.FriendlyName.Contains(query, StringComparison.OrdinalIgnoreCase)
                         || t.EntityId.Contains(query, StringComparison.OrdinalIgnoreCase))

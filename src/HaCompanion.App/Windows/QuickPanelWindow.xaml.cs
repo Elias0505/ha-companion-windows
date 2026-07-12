@@ -2,7 +2,6 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using HaCompanion.App.Controls;
-using HaCompanion.App.Models;
 using global::Windows.ApplicationModel.DataTransfer;
 using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
@@ -618,7 +617,7 @@ public sealed partial class QuickPanelWindow : Window
     }
 
     private IReadOnlyList<EntityTileViewModel> SearchActionable(string query) =>
-        ViewModel.Catalog.SearchTiles(query).Where(t => DomainCatalog.HasAction(t.Domain)).ToList();
+        ViewModel.Catalog.SearchTiles(query, actionableOnly: true);
 
     private void LauncherBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {

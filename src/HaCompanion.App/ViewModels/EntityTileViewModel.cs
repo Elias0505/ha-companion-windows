@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using HaCompanion.App.Models;
 using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
 using HaCompanion.Core.Services;
@@ -85,8 +84,8 @@ public partial class EntityTileViewModel : ObservableObject
 
     // ----- stage-2 controls (context flyout: brightness / target temperature / media) -----
 
-    private const int ServiceThrottleMs = 300;
-    private long _lastServiceMs;
+    private const int SliderDebounceMs = 250;
+    private int _sliderVersion;
 
     /// <summary>Lights: brightness slider in the tile's context flyout.</summary>
     public bool HasBrightness => Domain == "light";
@@ -133,12 +132,15 @@ public partial class EntityTileViewModel : ObservableObject
             VolumePct = Math.Round(v.GetDouble() * 100.0);
     }
 
-    /// <summary>Slider handler; throttled — sliders fire continuously while dragging.</summary>
+    /// <summary>
+    /// Slider handler; debounced TRAILING — sliders fire continuously while dragging, and a
+    /// leading throttle would drop the FINAL value, leaving the light at wherever the last
+    /// non-throttled tick happened instead of where the user released the thumb.
+    /// </summary>
     public void SetBrightness(double pct)
     {
-        if (!Throttle())
-            return;
-        _ = CallAsync("light", "turn_on", new Dictionary<string, object?> { ["brightness_pct"] = (int)pct });
+        BrightnessPct = pct;
+        DebouncedCall("light", "turn_on", new Dictionary<string, object?> { ["brightness_pct"] = (int)pct });
     }
 
     public void NudgeTemperature(double delta)
@@ -152,18 +154,20 @@ public partial class EntityTileViewModel : ObservableObject
 
     public void SetVolume(double pct)
     {
-        if (!Throttle())
-            return;
-        _ = CallAsync("media_player", "volume_set", new Dictionary<string, object?> { ["volume_level"] = Math.Round(pct / 100.0, 2) });
+        VolumePct = pct;
+        DebouncedCall("media_player", "volume_set", new Dictionary<string, object?> { ["volume_level"] = Math.Round(pct / 100.0, 2) });
     }
 
-    private bool Throttle()
+    /// <summary>Send only the LAST value once the slider has been still for the debounce window.</summary>
+    private void DebouncedCall(string domain, string service, Dictionary<string, object?> data)
     {
-        var now = Environment.TickCount64;
-        if (now - _lastServiceMs < ServiceThrottleMs)
-            return false;
-        _lastServiceMs = now;
-        return true;
+        var version = Interlocked.Increment(ref _sliderVersion);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(SliderDebounceMs).ConfigureAwait(false);
+            if (version == _sliderVersion)
+                await CallAsync(domain, service, data).ConfigureAwait(false);
+        });
     }
 
     private async Task CallAsync(string domain, string service, Dictionary<string, object?>? data)
