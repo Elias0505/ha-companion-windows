@@ -25,6 +25,7 @@ public sealed partial class ShortcutsPage : Page
         ViewModel = App.Services.GetRequiredService<ShortcutsViewModel>();
         InitializeComponent();
         DataContext = ViewModel;
+        SmoothScroll.Attach(PageScroll);
         UpdateRecordLabel();
     }
 

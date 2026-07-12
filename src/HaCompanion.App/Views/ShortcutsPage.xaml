@@ -13,7 +13,7 @@
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
     </Page.Resources>
 
-    <ScrollViewer>
+    <ScrollViewer x:Name="PageScroll">
         <StackPanel Spacing="16" MaxWidth="640" Padding="24" HorizontalAlignment="Left">
             <TextBlock Text="{Binding [Nav_Shortcuts], Source={StaticResource Loc}}"
                        Style="{StaticResource TitleTextBlockStyle}" />
@@ -64,7 +64,11 @@
                        Opacity="0.55" TextWrapping="Wrap"
                        Visibility="{x:Bind ViewModel.HasItems, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
 
-            <ListView ItemsSource="{x:Bind ViewModel.Items}" SelectionMode="None">
+            <ListView ItemsSource="{x:Bind ViewModel.Items}" SelectionMode="None"
+                      ScrollViewer.VerticalScrollMode="Disabled"
+                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                      ScrollViewer.HorizontalScrollMode="Disabled"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Grid ColumnSpacing="12" Padding="0,8">

@@ -87,6 +87,7 @@ public sealed partial class QuickPanelWindow : Window
         _settingsStore = App.Services.GetRequiredService<ISettingsStore>();
         InitializeComponent();
         RootGrid.DataContext = viewModel;
+        SmoothScroll.Attach(GroupScroll);
         ViewModel.DashboardRequested += OnDashboardRequested;
         // Size changes made on the start page must re-flow this view too (shared tiles).
         ViewModel.Catalog.TileSizeChanged += (_, tile) =>

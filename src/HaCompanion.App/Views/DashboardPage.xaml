@@ -72,7 +72,7 @@
             </Button>
         </Grid>
 
-        <ScrollViewer Grid.Row="1">
+        <ScrollViewer x:Name="PageScroll" Grid.Row="1">
             <StackPanel Spacing="24">
                 <TextBlock Text="{Binding [Start_Empty], Source={StaticResource Loc}}"
                            Opacity="0.6" TextWrapping="Wrap"
@@ -89,6 +89,10 @@
                                Opacity="0.55" TextWrapping="Wrap"
                                Visibility="{Binding Catalog.ShowEditHint, Converter={StaticResource BoolToVisibility}}" />
                     <hc:VariableTileGridView x:Name="PinnedGrid"
+                              ScrollViewer.VerticalScrollMode="Disabled"
+                              ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                              ScrollViewer.HorizontalScrollMode="Disabled"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                               ItemsSource="{Binding Catalog.Pinned}"
                               SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
                               CanDragItems="{Binding Catalog.IsEditing}"
