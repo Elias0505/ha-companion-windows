@@ -24,8 +24,11 @@ public sealed class AppSettings
     /// <summary>UI language code (en, de, es, fr, zh, hi).</summary>
     public string Language { get; set; } = "en";
 
-    /// <summary>Open the quick panel on your HA dashboard instead of Favourites.</summary>
-    public bool QuickPanelStartOnDashboard { get; set; }
+    /// <summary>
+    /// What the quick panel shows on every open: "last" (remember the last view),
+    /// "favorites", or "dash:&lt;url_path&gt;" for a specific HA dashboard.
+    /// </summary>
+    public string QuickPanelStartView { get; set; } = "last";
 
     /// <summary>Allow resizing the quick panel by dragging the grip on its left edge.</summary>
     public bool QuickPanelDragResize { get; set; } = true;

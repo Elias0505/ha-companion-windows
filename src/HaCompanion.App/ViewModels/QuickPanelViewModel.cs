@@ -93,6 +93,30 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Select the configured default view (Settings → "Default view when the panel opens").
+    /// Called on every panel open; "last" keeps whatever was selected before.
+    /// </summary>
+    public void ApplyStartView()
+    {
+        var view = _settingsStore.Load().QuickPanelStartView;
+        switch (view)
+        {
+            case "favorites":
+                SelectedDashboard = QuickDashboard.Favorites;
+                break;
+            case "firstdash" when Dashboards.Count > 1: // migrated legacy "open on dashboard"
+                SelectedDashboard = Dashboards[1];
+                break;
+            case not null when view.StartsWith("dash:", StringComparison.Ordinal):
+                var path = view["dash:".Length..];
+                if (Dashboards.FirstOrDefault(d => !d.IsFavorites && (d.UrlPath ?? "") == path) is { } match)
+                    SelectedDashboard = match;
+                break;
+            // "last" (default): keep the previous selection.
+        }
+    }
+
+    /// <summary>
     /// Sync the picker with HA's dashboard list (called on every panel open). The list is only
     /// rebuilt when it actually changed in HA, so the current selection normally survives; if
     /// the selected dashboard was removed, the picker falls back to Favourites.
@@ -106,7 +130,6 @@ public sealed partial class QuickPanelViewModel : ObservableObject
             var list = await _connection.ListDashboardsAsync();
             _ui.Post(() =>
             {
-                var firstLoad = Dashboards.Count <= 1;
                 var fresh = list.Select(d => new QuickDashboard(d.Title, d.UrlPath, false)).ToList();
                 var changed = Dashboards.Count != fresh.Count + 1
                               || !Dashboards.Skip(1).SequenceEqual(fresh); // records: value equality
@@ -122,9 +145,9 @@ public sealed partial class QuickPanelViewModel : ObservableObject
                                             ?? QuickDashboard.Favorites;
                 }
 
-                // If configured, open the panel on the first HA dashboard instead of Favourites.
-                if (firstLoad && _settingsStore.Load().QuickPanelStartOnDashboard && Dashboards.Count > 1)
-                    SelectedDashboard = Dashboards[1];
+                // Re-apply the default view — it may point at a dashboard that only just
+                // became known (first open after launch).
+                ApplyStartView();
             });
         }
         catch

@@ -227,6 +227,7 @@ public sealed partial class QuickPanelWindow : Window
                 _inSetup = false;
             }
 
+            ViewModel.ApplyStartView(); // configured default view, applied on every open
             _ = ViewModel.EnsureDashboardsAsync();
             // FocusState.Pointer focuses the first control WITHOUT drawing the keyboard focus
             // rectangle, which previously looked like a thin "selected" outline on the panel.

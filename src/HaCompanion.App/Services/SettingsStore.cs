@@ -61,7 +61,10 @@ public sealed class SettingsStore : ISettingsStore
                 AutoHideQuickPanel = persisted.AutoHideQuickPanel,
                 QuickPanelWidth = persisted.QuickPanelWidth is >= 320 and <= 900 ? persisted.QuickPanelWidth : 400,
                 Language = string.IsNullOrWhiteSpace(persisted.Language) ? "en" : persisted.Language,
-                QuickPanelStartOnDashboard = persisted.QuickPanelStartOnDashboard,
+                // Migrate the legacy bool: true used to mean "open on the first dashboard".
+                QuickPanelStartView = !string.IsNullOrEmpty(persisted.QuickPanelStartView)
+                    ? persisted.QuickPanelStartView
+                    : persisted.QuickPanelStartOnDashboard ? "firstdash" : "last",
                 QuickPanelDragResize = persisted.QuickPanelDragResize,
                 QuickPanelSortByCategory = persisted.QuickPanelSortByCategory,
                 Token = Unprotect(persisted.TokenProtected),
@@ -88,7 +91,7 @@ public sealed class SettingsStore : ISettingsStore
             AutoHideQuickPanel = settings.AutoHideQuickPanel,
             QuickPanelWidth = settings.QuickPanelWidth,
             Language = settings.Language,
-            QuickPanelStartOnDashboard = settings.QuickPanelStartOnDashboard,
+            QuickPanelStartView = settings.QuickPanelStartView,
             QuickPanelDragResize = settings.QuickPanelDragResize,
             QuickPanelSortByCategory = settings.QuickPanelSortByCategory,
             TokenProtected = Protect(settings.Token),
@@ -110,7 +113,7 @@ public sealed class SettingsStore : ISettingsStore
         AutoHideQuickPanel = s.AutoHideQuickPanel,
         QuickPanelWidth = s.QuickPanelWidth,
         Language = s.Language,
-        QuickPanelStartOnDashboard = s.QuickPanelStartOnDashboard,
+        QuickPanelStartView = s.QuickPanelStartView,
         QuickPanelDragResize = s.QuickPanelDragResize,
         QuickPanelSortByCategory = s.QuickPanelSortByCategory,
     };
@@ -155,7 +158,8 @@ public sealed class SettingsStore : ISettingsStore
         public bool AutoHideQuickPanel { get; set; } = true;
         public int QuickPanelWidth { get; set; } = 400;
         public string Language { get; set; } = "en";
-        public bool QuickPanelStartOnDashboard { get; set; }
+        public bool QuickPanelStartOnDashboard { get; set; } // legacy; read for migration only
+        public string QuickPanelStartView { get; set; } = string.Empty;
         public bool QuickPanelDragResize { get; set; } = true;
         public bool QuickPanelSortByCategory { get; set; }
         public string TokenProtected { get; set; } = string.Empty;

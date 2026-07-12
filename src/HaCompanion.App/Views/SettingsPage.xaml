@@ -34,8 +34,11 @@
             <ToggleSwitch Header="{Binding [Set_AutoHide], Source={StaticResource Loc}}"
                           IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
 
-            <ToggleSwitch Header="{Binding [Set_StartOnDashboard], Source={StaticResource Loc}}"
-                          IsOn="{x:Bind ViewModel.QuickPanelStartOnDashboard, Mode=TwoWay}" />
+            <ComboBox Header="{Binding [Set_StartView], Source={StaticResource Loc}}"
+                      HorizontalAlignment="Stretch"
+                      DisplayMemberPath="Label"
+                      ItemsSource="{x:Bind ViewModel.StartViewOptions}"
+                      SelectedItem="{x:Bind ViewModel.SelectedStartView, Mode=TwoWay}" />
 
             <Slider Header="{Binding [Set_Width], Source={StaticResource Loc}}"
                     Minimum="320" Maximum="900" StepFrequency="20" TickFrequency="0"

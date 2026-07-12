@@ -70,7 +70,9 @@
     "Dash_EmbedFailed": "Could not start the embedded view: {0}",
     "Dash_ListFailed": "Could not list dashboards (not connected?) — showing the default dashboard.",
     "Tip_Resize": "Resize: drag, or click for presets",
-    "Tip_SortCategory": "Sort by category"
+    "Tip_SortCategory": "Sort by category",
+    "Set_StartView": "Default view when the panel opens",
+    "Set_StartLast": "Remember last view"
   },
   "de": {
     "Nav_Start": "Start",
@@ -143,7 +145,9 @@
     "Dash_EmbedFailed": "Eingebettete Ansicht konnte nicht gestartet werden: {0}",
     "Dash_ListFailed": "Dashboards konnten nicht geladen werden (nicht verbunden?) — zeige das Standard-Dashboard.",
     "Tip_Resize": "Größe ändern: ziehen, oder klicken für Voreinstellungen",
-    "Tip_SortCategory": "Nach Kategorie sortieren"
+    "Tip_SortCategory": "Nach Kategorie sortieren",
+    "Set_StartView": "Standardansicht beim Öffnen des Panels",
+    "Set_StartLast": "Zuletzt verwendete Ansicht merken"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -216,7 +220,9 @@
     "Dash_EmbedFailed": "No se pudo iniciar la vista integrada: {0}",
     "Dash_ListFailed": "No se pudieron listar los paneles (¿sin conexión?): se muestra el panel predeterminado.",
     "Tip_Resize": "Cambiar tamaño: arrastra, o haz clic para tamaños predefinidos",
-    "Tip_SortCategory": "Ordenar por categoría"
+    "Tip_SortCategory": "Ordenar por categoría",
+    "Set_StartView": "Vista predeterminada al abrir el panel",
+    "Set_StartLast": "Recordar la última vista"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -289,7 +295,9 @@
     "Dash_EmbedFailed": "Impossible de démarrer la vue intégrée : {0}",
     "Dash_ListFailed": "Impossible de lister les tableaux de bord (non connecté ?) — affichage du tableau de bord par défaut.",
     "Tip_Resize": "Redimensionner : glisser, ou cliquer pour les préréglages",
-    "Tip_SortCategory": "Trier par catégorie"
+    "Tip_SortCategory": "Trier par catégorie",
+    "Set_StartView": "Vue par défaut à l'ouverture du panneau",
+    "Set_StartLast": "Mémoriser la dernière vue"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -362,7 +370,9 @@
     "Dash_EmbedFailed": "无法启动嵌入视图：{0}",
     "Dash_ListFailed": "无法获取仪表板列表（未连接？）— 显示默认仪表板。",
     "Tip_Resize": "调整大小：拖动，或点击使用预设",
-    "Tip_SortCategory": "按类别排序"
+    "Tip_SortCategory": "按类别排序",
+    "Set_StartView": "面板打开时的默认视图",
+    "Set_StartLast": "记住上次的视图"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -435,6 +445,8 @@
     "Dash_EmbedFailed": "एम्बेडेड व्यू शुरू नहीं हो सका: {0}",
     "Dash_ListFailed": "डैशबोर्ड सूची नहीं मिल सकी (कनेक्ट नहीं?) — डिफ़ॉल्ट डैशबोर्ड दिखाया जा रहा है।",
     "Tip_Resize": "आकार बदलें: खींचें, या प्रीसेट के लिए क्लिक करें",
-    "Tip_SortCategory": "श्रेणी के अनुसार क्रमबद्ध करें"
+    "Tip_SortCategory": "श्रेणी के अनुसार क्रमबद्ध करें",
+    "Set_StartView": "पैनल खुलने पर डिफ़ॉल्ट दृश्य",
+    "Set_StartLast": "पिछला दृश्य याद रखें"
   }
 }

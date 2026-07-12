@@ -2,10 +2,15 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Models;
 using HaCompanion.App.Services;
+using HaCompanion.Core.Services;
 
 namespace HaCompanion.App.ViewModels;
+
+/// <summary>An entry in the "default view when the panel opens" picker.</summary>
+public sealed record StartViewOption(string Value, string Label);
 
 /// <summary>Backing view model for the settings page: connection, hotkey and panel behaviour.</summary>
 public sealed partial class SettingsViewModel : ObservableObject
@@ -15,6 +20,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IHotkeyService _hotkeys;
     private readonly LocalizationService _localization;
     private readonly IQuickPanelController _quickPanel;
+    private readonly IHaConnection _connection;
+    private readonly IUiDispatcher _ui;
     private bool _loading;
 
     [ObservableProperty]
@@ -35,8 +42,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private double _quickPanelWidth = 400;
 
+    /// <summary>Choices for what the quick panel shows on open (last / favourites / a dashboard).</summary>
+    public ObservableCollection<StartViewOption> StartViewOptions { get; } = new();
+
     [ObservableProperty]
-    private bool _quickPanelStartOnDashboard;
+    private StartViewOption? _selectedStartView;
 
     [ObservableProperty]
     private bool _quickPanelDragResize = true;
@@ -60,16 +70,24 @@ public sealed partial class SettingsViewModel : ObservableObject
         "Win+Ctrl+H", "Ctrl+Alt+H", "Ctrl+Shift+H", "Ctrl+Alt+Space", "Win+Ctrl+Space", "Ctrl+Alt+A",
     };
 
-    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel)
+    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel, IHaConnection connection, IUiDispatcher ui)
     {
         _settingsStore = settingsStore;
         _shell = shell;
         _hotkeys = hotkeys;
         _localization = localization;
         _quickPanel = quickPanel;
+        _connection = connection;
+        _ui = ui;
         Load();
-        // Keep the (localized) hotkey status in sync when the UI language changes.
-        _localization.LanguageChanged += (_, _) => RefreshHotkeyStatus();
+        // Keep localized texts in sync when the UI language changes.
+        _localization.LanguageChanged += (_, _) =>
+        {
+            RefreshHotkeyStatus();
+            RebuildStartViewOptions(_settingsStore.Load().QuickPanelStartView);
+            _ = LoadStartViewDashboardsAsync();
+        };
+        _ = LoadStartViewDashboardsAsync();
     }
 
     private void Load()
@@ -82,14 +100,62 @@ public sealed partial class SettingsViewModel : ObservableObject
         Hotkey = string.IsNullOrWhiteSpace(settings.Hotkey) ? "Win+Ctrl+H" : settings.Hotkey;
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
         QuickPanelWidth = settings.QuickPanelWidth;
-        QuickPanelStartOnDashboard = settings.QuickPanelStartOnDashboard;
         QuickPanelDragResize = settings.QuickPanelDragResize;
         SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
                            ?? _localization.Languages[0];
         if (!HotkeyPresets.Contains(Hotkey))
             HotkeyPresets.Insert(0, Hotkey);
+        RebuildStartViewOptions(settings.QuickPanelStartView);
         _loading = false;
         RefreshHotkeyStatus();
+    }
+
+    /// <summary>
+    /// (Re)build the "default view" picker: last / favourites, plus the stored dashboard value
+    /// as a placeholder until <see cref="LoadStartViewDashboardsAsync"/> fills in real titles.
+    /// </summary>
+    private void RebuildStartViewOptions(string currentValue, IReadOnlyList<Core.Models.HaDashboardInfo>? dashboards = null)
+    {
+        var wasLoading = _loading;
+        _loading = true;
+        try
+        {
+            StartViewOptions.Clear();
+            StartViewOptions.Add(new StartViewOption("last", _localization["Set_StartLast"]));
+            StartViewOptions.Add(new StartViewOption("favorites", _localization["Fav_Title"]));
+            if (dashboards is not null)
+            {
+                foreach (var d in dashboards)
+                    StartViewOptions.Add(new StartViewOption($"dash:{d.UrlPath ?? ""}", d.Title));
+            }
+
+            var selected = StartViewOptions.FirstOrDefault(o => o.Value == currentValue);
+            if (selected is null && currentValue.StartsWith("dash:", StringComparison.Ordinal))
+            {
+                // Keep an unknown stored dashboard selectable until the real list arrives.
+                selected = new StartViewOption(currentValue, currentValue["dash:".Length..]);
+                StartViewOptions.Add(selected);
+            }
+            SelectedStartView = selected ?? StartViewOptions[0];
+        }
+        finally
+        {
+            _loading = wasLoading;
+        }
+    }
+
+    /// <summary>Fill the picker with the real HA dashboards (best-effort; needs a connection).</summary>
+    private async Task LoadStartViewDashboardsAsync()
+    {
+        try
+        {
+            var dashboards = await _connection.ListDashboardsAsync();
+            _ui.Post(() => RebuildStartViewOptions(_settingsStore.Load().QuickPanelStartView, dashboards));
+        }
+        catch
+        {
+            // Not connected yet — the picker still offers last/favourites; retried after connect.
+        }
     }
 
     private AppSettings BuildSettings()
@@ -104,7 +170,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.AutoHideQuickPanel = AutoHideQuickPanel;
         settings.QuickPanelWidth = (int)QuickPanelWidth;
         settings.Language = SelectedLanguage?.Code ?? "en";
-        settings.QuickPanelStartOnDashboard = QuickPanelStartOnDashboard;
+        settings.QuickPanelStartView = SelectedStartView?.Value ?? "last";
         settings.QuickPanelDragResize = QuickPanelDragResize;
         return settings;
     }
@@ -123,9 +189,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         _quickPanel.PreviewWidth(); // show the panel live so the user sees the size
     }
 
-    partial void OnQuickPanelStartOnDashboardChanged(bool value)
+    partial void OnSelectedStartViewChanged(StartViewOption? value)
     {
-        if (!_loading)
+        if (!_loading && value is not null)
             _settingsStore.Save(BuildSettings());
     }
 
@@ -181,5 +247,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var ok = await _shell.ConnectAsync(settings);
         StatusMessage = _localization[ok ? "Set_MsgConnected" : "Set_MsgFailed"];
         IsBusy = false;
+        if (ok)
+            _ = LoadStartViewDashboardsAsync(); // the default-view picker can now list real dashboards
     }
 }
