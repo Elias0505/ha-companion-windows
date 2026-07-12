@@ -207,12 +207,24 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Dashboard picker -->
-            <ComboBox Grid.Row="1" HorizontalAlignment="Stretch"
-                      AutomationProperties.Name="{Binding [Nav_Dashboards], Source={StaticResource Loc}}"
-                      ItemsSource="{Binding Dashboards}"
-                      DisplayMemberPath="Title"
-                      SelectedItem="{Binding SelectedDashboard, Mode=TwoWay}" />
+            <!-- Dashboard picker + pin-as-default -->
+            <Grid Grid.Row="1" ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ComboBox Grid.Column="0" HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="{Binding [Nav_Dashboards], Source={StaticResource Loc}}"
+                          ItemsSource="{Binding Dashboards}"
+                          DisplayMemberPath="Title"
+                          SelectedItem="{Binding SelectedDashboard, Mode=TwoWay}" />
+                <ToggleButton Grid.Column="1" Padding="8" VerticalAlignment="Stretch"
+                              IsChecked="{Binding IsDefaultView, Mode=TwoWay}"
+                              ToolTipService.ToolTip="{Binding [Tip_PinDefault], Source={StaticResource Loc}}"
+                              AutomationProperties.Name="{Binding [Tip_PinDefault], Source={StaticResource Loc}}">
+                    <FontIcon Glyph="&#xE718;" FontSize="14" />
+                </ToggleButton>
+            </Grid>
 
             <!-- Content -->
             <Grid Grid.Row="2">

@@ -65,6 +65,7 @@ public sealed class SettingsStore : ISettingsStore
                 QuickPanelStartView = !string.IsNullOrEmpty(persisted.QuickPanelStartView)
                     ? persisted.QuickPanelStartView
                     : persisted.QuickPanelStartOnDashboard ? "firstdash" : "last",
+                QuickPanelLastView = string.IsNullOrEmpty(persisted.QuickPanelLastView) ? "favorites" : persisted.QuickPanelLastView,
                 QuickPanelDragResize = persisted.QuickPanelDragResize,
                 QuickPanelSortByCategory = persisted.QuickPanelSortByCategory,
                 ShowHaNotifications = persisted.ShowHaNotifications,
@@ -93,6 +94,7 @@ public sealed class SettingsStore : ISettingsStore
             QuickPanelWidth = settings.QuickPanelWidth,
             Language = settings.Language,
             QuickPanelStartView = settings.QuickPanelStartView,
+            QuickPanelLastView = settings.QuickPanelLastView,
             QuickPanelDragResize = settings.QuickPanelDragResize,
             QuickPanelSortByCategory = settings.QuickPanelSortByCategory,
             ShowHaNotifications = settings.ShowHaNotifications,
@@ -116,6 +118,7 @@ public sealed class SettingsStore : ISettingsStore
         QuickPanelWidth = s.QuickPanelWidth,
         Language = s.Language,
         QuickPanelStartView = s.QuickPanelStartView,
+        QuickPanelLastView = s.QuickPanelLastView,
         QuickPanelDragResize = s.QuickPanelDragResize,
         QuickPanelSortByCategory = s.QuickPanelSortByCategory,
         ShowHaNotifications = s.ShowHaNotifications,
@@ -163,6 +166,7 @@ public sealed class SettingsStore : ISettingsStore
         public string Language { get; set; } = "en";
         public bool QuickPanelStartOnDashboard { get; set; } // legacy; read for migration only
         public string QuickPanelStartView { get; set; } = string.Empty;
+        public string QuickPanelLastView { get; set; } = string.Empty;
         public bool QuickPanelDragResize { get; set; } = true;
         public bool QuickPanelSortByCategory { get; set; }
         public bool ShowHaNotifications { get; set; } = true;

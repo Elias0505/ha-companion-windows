@@ -96,7 +96,8 @@
     "Fly_Volume": "Volume",
     "Fly_PlayPause": "Play / Pause",
     "Set_Tip7": "Tip: right-click a tile for more controls — brightness for lights, target temperature for climate, play/pause and volume for media players.",
-    "Panel_SearchPh": "Search & switch (Ctrl+K)"
+    "Panel_SearchPh": "Search & switch (Ctrl+K)",
+    "Tip_PinDefault": "Pin this view as the default (off = remember last view)"
   },
   "de": {
     "Nav_Start": "Start",
@@ -195,7 +196,8 @@
     "Fly_Volume": "Lautstärke",
     "Fly_PlayPause": "Wiedergabe / Pause",
     "Set_Tip7": "Tipp: Rechtsklick auf eine Kachel für mehr Steuerung — Helligkeit bei Lichtern, Zieltemperatur bei Klima, Wiedergabe/Lautstärke bei Medien.",
-    "Panel_SearchPh": "Suchen & schalten (Strg+K)"
+    "Panel_SearchPh": "Suchen & schalten (Strg+K)",
+    "Tip_PinDefault": "Diese Ansicht als Standard anheften (aus = zuletzt verwendete merken)"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -294,7 +296,8 @@
     "Fly_Volume": "Volumen",
     "Fly_PlayPause": "Reproducir / Pausa",
     "Set_Tip7": "Consejo: clic derecho en un mosaico para más controles: brillo, temperatura objetivo o reproducción/volumen.",
-    "Panel_SearchPh": "Buscar y accionar (Ctrl+K)"
+    "Panel_SearchPh": "Buscar y accionar (Ctrl+K)",
+    "Tip_PinDefault": "Fijar esta vista como predeterminada (des. = recordar la última)"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -393,7 +396,8 @@
     "Fly_Volume": "Volume",
     "Fly_PlayPause": "Lecture / Pause",
     "Set_Tip7": "Astuce : clic droit sur une tuile pour plus de contrôles — luminosité, température cible ou lecture/volume.",
-    "Panel_SearchPh": "Rechercher et commuter (Ctrl+K)"
+    "Panel_SearchPh": "Rechercher et commuter (Ctrl+K)",
+    "Tip_PinDefault": "Épingler cette vue par défaut (désactivé = mémoriser la dernière)"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -492,7 +496,8 @@
     "Fly_Volume": "音量",
     "Fly_PlayPause": "播放 / 暂停",
     "Set_Tip7": "提示：右键点击磁贴获取更多控制 — 灯光亮度、空调目标温度、媒体播放/音量。",
-    "Panel_SearchPh": "搜索并控制 (Ctrl+K)"
+    "Panel_SearchPh": "搜索并控制 (Ctrl+K)",
+    "Tip_PinDefault": "将此视图固定为默认（关闭 = 记住上次视图）"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -591,6 +596,7 @@
     "Fly_Volume": "आवाज़",
     "Fly_PlayPause": "चलाएँ / रोकें",
     "Set_Tip7": "सुझाव: अधिक नियंत्रण के लिए टाइल पर राइट-क्लिक करें — रोशनी की चमक, जलवायु तापमान, मीडिया प्लेबैक/वॉल्यूम।",
-    "Panel_SearchPh": "खोजें और चलाएँ (Ctrl+K)"
+    "Panel_SearchPh": "खोजें और चलाएँ (Ctrl+K)",
+    "Tip_PinDefault": "इस दृश्य को डिफ़ॉल्ट के रूप में पिन करें (बंद = पिछला याद रखें)"
   }
 }

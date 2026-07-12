@@ -155,12 +155,19 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    private IReadOnlyList<Core.Models.HaDashboardInfo>? _startViewDashboards;
+
+    /// <summary>Re-read the stored default view (the panel's pin button may have changed it).</summary>
+    public void RefreshStartViewSelection() =>
+        RebuildStartViewOptions(_settingsStore.Load().QuickPanelStartView, _startViewDashboards);
+
     /// <summary>Fill the picker with the real HA dashboards (best-effort; needs a connection).</summary>
     private async Task LoadStartViewDashboardsAsync()
     {
         try
         {
             var dashboards = await _connection.ListDashboardsAsync();
+            _startViewDashboards = dashboards;
             _ui.Post(() => RebuildStartViewOptions(_settingsStore.Load().QuickPanelStartView, dashboards));
         }
         catch

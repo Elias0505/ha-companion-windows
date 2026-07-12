@@ -30,6 +30,12 @@ public sealed class AppSettings
     /// </summary>
     public string QuickPanelStartView { get; set; } = "last";
 
+    /// <summary>
+    /// The view the panel actually showed last ("favorites" or "dash:&lt;url_path&gt;") —
+    /// persisted on every switch so "remember last view" survives app restarts.
+    /// </summary>
+    public string QuickPanelLastView { get; set; } = "favorites";
+
     /// <summary>Allow resizing the quick panel by dragging the grip on its left edge.</summary>
     public bool QuickPanelDragResize { get; set; } = true;
 

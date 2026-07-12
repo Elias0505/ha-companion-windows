@@ -19,6 +19,9 @@ public sealed partial class SettingsPage : Page
         ViewModel = App.Services.GetRequiredService<SettingsViewModel>();
         InitializeComponent();
         TokenBox.Password = ViewModel.Token; // one-time init; updates flow via PasswordChanged
+        // The page is cached: re-sync the default-view picker on every visit — the quick
+        // panel's pin button changes the stored value behind this page's back.
+        Loaded += (_, _) => ViewModel.RefreshStartViewSelection();
     }
 
     private void TokenBox_PasswordChanged(object sender, RoutedEventArgs e) =>

@@ -39,6 +39,16 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     [ObservableProperty]
     private bool _sortByCategory;
 
+    /// <summary>
+    /// Header pin: true while the CURRENT view is the configured default. Toggling on pins
+    /// the current view as the start default; toggling off returns to "remember last view" —
+    /// no trip to Settings needed.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isDefaultView;
+
+    private bool _syncingDefaultFlag;
+
     [ObservableProperty]
     private QuickDashboard _selectedDashboard = QuickDashboard.Favorites;
 
@@ -63,6 +73,26 @@ public sealed partial class QuickPanelViewModel : ObservableObject
         Catalog.Pinned.CollectionChanged += (_, _) => RebuildGroups();
         _localization.LanguageChanged += (_, _) => _ui.Post(RebuildGroups); // section titles are localized
         RebuildGroups();
+        SyncDefaultFlag();
+    }
+
+    private static string EncodeView(QuickDashboard? view) =>
+        view is null or { IsFavorites: true } ? "favorites" : $"dash:{view.UrlPath ?? ""}";
+
+    private void SyncDefaultFlag()
+    {
+        _syncingDefaultFlag = true;
+        IsDefaultView = _settingsStore.Load().QuickPanelStartView == EncodeView(SelectedDashboard);
+        _syncingDefaultFlag = false;
+    }
+
+    partial void OnIsDefaultViewChanged(bool value)
+    {
+        if (_syncingDefaultFlag)
+            return;
+        var settings = _settingsStore.Load();
+        settings.QuickPanelStartView = value ? EncodeView(SelectedDashboard) : "last";
+        _settingsStore.Save(settings);
     }
 
     partial void OnSortByCategoryChanged(bool value)
@@ -98,7 +128,13 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     /// </summary>
     public void ApplyStartView()
     {
-        var view = _settingsStore.Load().QuickPanelStartView;
+        var settings = _settingsStore.Load();
+        var view = settings.QuickPanelStartView;
+        // "last" restores the persisted selection — it must survive app restarts, not just
+        // panel closes, so the target comes from settings rather than in-memory state.
+        if (view == "last")
+            view = settings.QuickPanelLastView;
+
         switch (view)
         {
             case "favorites":
@@ -112,7 +148,6 @@ public sealed partial class QuickPanelViewModel : ObservableObject
                 if (Dashboards.FirstOrDefault(d => !d.IsFavorites && (d.UrlPath ?? "") == path) is { } match)
                     SelectedDashboard = match;
                 break;
-            // "last" (default): keep the previous selection.
         }
     }
 
@@ -164,5 +199,15 @@ public sealed partial class QuickPanelViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowDashboard));
         if (value is { IsFavorites: false })
             DashboardRequested?.Invoke(this, value);
+
+        // Remember the shown view across app restarts (used by the "last view" start mode).
+        var encoded = EncodeView(value);
+        var settings = _settingsStore.Load();
+        if (settings.QuickPanelLastView != encoded)
+        {
+            settings.QuickPanelLastView = encoded;
+            _settingsStore.Save(settings);
+        }
+        SyncDefaultFlag(); // the pin reflects whether THIS view is the configured default
     }
 }
