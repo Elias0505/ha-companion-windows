@@ -48,6 +48,9 @@
             <ToggleSwitch Header="{Binding [Set_DragResize], Source={StaticResource Loc}}"
                           IsOn="{x:Bind ViewModel.QuickPanelDragResize, Mode=TwoWay}" />
 
+            <ToggleSwitch Header="{Binding [Set_Autostart], Source={StaticResource Loc}}"
+                          IsOn="{x:Bind ViewModel.Autostart, Mode=TwoWay}" />
+
             <ComboBox Header="{Binding [Set_Hotkey], Source={StaticResource Loc}}"
                       HorizontalAlignment="Stretch"
                       ItemsSource="{x:Bind ViewModel.HotkeyPresets}"

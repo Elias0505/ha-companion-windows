@@ -85,7 +85,9 @@
     "Osd_On": "Turned on",
     "Osd_Off": "Turned off",
     "Osd_Opened": "Opened",
-    "Osd_Closed": "Closed"
+    "Osd_Closed": "Closed",
+    "Set_Autostart": "Start with Windows",
+    "Tray_Reconnect": "Reconnect"
   },
   "de": {
     "Nav_Start": "Start",
@@ -173,7 +175,9 @@
     "Osd_On": "Eingeschaltet",
     "Osd_Off": "Ausgeschaltet",
     "Osd_Opened": "Geöffnet",
-    "Osd_Closed": "Geschlossen"
+    "Osd_Closed": "Geschlossen",
+    "Set_Autostart": "Mit Windows starten",
+    "Tray_Reconnect": "Neu verbinden"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -261,7 +265,9 @@
     "Osd_On": "Encendido",
     "Osd_Off": "Apagado",
     "Osd_Opened": "Abierto",
-    "Osd_Closed": "Cerrado"
+    "Osd_Closed": "Cerrado",
+    "Set_Autostart": "Iniciar con Windows",
+    "Tray_Reconnect": "Reconectar"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -349,7 +355,9 @@
     "Osd_On": "Allumé",
     "Osd_Off": "Éteint",
     "Osd_Opened": "Ouvert",
-    "Osd_Closed": "Fermé"
+    "Osd_Closed": "Fermé",
+    "Set_Autostart": "Démarrer avec Windows",
+    "Tray_Reconnect": "Reconnecter"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -437,7 +445,9 @@
     "Osd_On": "已开启",
     "Osd_Off": "已关闭",
     "Osd_Opened": "已打开",
-    "Osd_Closed": "已关闭"
+    "Osd_Closed": "已关闭",
+    "Set_Autostart": "随 Windows 启动",
+    "Tray_Reconnect": "重新连接"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -525,6 +535,8 @@
     "Osd_On": "चालू किया गया",
     "Osd_Off": "बंद किया गया",
     "Osd_Opened": "खोला गया",
-    "Osd_Closed": "बंद किया गया"
+    "Osd_Closed": "बंद किया गया",
+    "Set_Autostart": "Windows के साथ शुरू करें",
+    "Tray_Reconnect": "फिर से कनेक्ट करें"
   }
 }

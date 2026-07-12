@@ -57,6 +57,11 @@
                             <FontIcon Glyph="&#xE8A0;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
+                    <MenuFlyoutItem Text="{Binding [Tray_Reconnect], Source={StaticResource Loc}}" Click="Tray_Reconnect">
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE895;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
                     <MenuFlyoutSeparator />
                     <MenuFlyoutItem Text="{Binding [Tray_Exit], Source={StaticResource Loc}}" Click="Tray_Exit">
                         <MenuFlyoutItem.Icon>

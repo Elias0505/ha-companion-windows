@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Services;
+using HaCompanion.App.ViewModels;
 using HaCompanion.App.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI;
@@ -11,6 +12,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics;
 using Windows.UI;
 using WinRT.Interop;
@@ -19,6 +21,11 @@ namespace HaCompanion.App.Windows;
 
 public sealed partial class MainWindow : Window
 {
+    private BitmapImage? _trayOnline;
+    private BitmapImage? _trayOffline;
+
+    private readonly ShellViewModel _shell;
+
     /// <summary>Left-click on the tray icon opens the window.</summary>
     public ICommand OpenCommand { get; }
 
@@ -29,6 +36,17 @@ public sealed partial class MainWindow : Window
 
         Tray.LeftClickCommand = OpenCommand;
         Tray.ForceCreate(); // ensure the tray icon actually appears (esp. unpackaged)
+
+        // Tray icon mirrors the connection: coloured when connected, grey otherwise,
+        // with the live status text in the tooltip. Defer the first update — swapping the
+        // icon during construction is exactly the kind of thing that can wedge H.NotifyIcon.
+        _shell = App.Services.GetRequiredService<ShellViewModel>();
+        _shell.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(ShellViewModel.IsConnected) or nameof(ShellViewModel.StatusText))
+                UpdateTrayStatus();
+        };
+        DispatcherQueue.TryEnqueue(UpdateTrayStatus);
 
         Title = "HA Companion";
         SystemBackdrop = new MicaBackdrop();
@@ -102,6 +120,24 @@ public sealed partial class MainWindow : Window
     }
 
     private void Tray_Open(object sender, RoutedEventArgs e) => ShowFromTray();
+
+    private void UpdateTrayStatus()
+    {
+        try
+        {
+            _trayOnline ??= new BitmapImage(new Uri("ms-appx:///Assets/tray.ico"));
+            _trayOffline ??= new BitmapImage(new Uri("ms-appx:///Assets/tray_offline.ico"));
+            Tray.ToolTipText = $"HA Companion \u2014 {_shell.StatusText}";
+            Tray.IconSource = _shell.IsConnected ? _trayOnline : _trayOffline;
+        }
+        catch
+        {
+            // status display is best-effort — never let it disturb the window
+        }
+    }
+
+    private void Tray_Reconnect(object sender, RoutedEventArgs e) =>
+        _ = _shell.InitializeAsync(); // re-runs the stored-settings connect
 
     private void Tray_QuickPanel(object sender, RoutedEventArgs e) =>
         App.Services.GetRequiredService<IQuickPanelController>().Toggle();

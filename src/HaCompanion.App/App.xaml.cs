@@ -7,6 +7,7 @@ using HaCompanion.App.ViewModels;
 using HaCompanion.App.Windows;
 using HaCompanion.Core.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 
 namespace HaCompanion.App;
@@ -88,7 +89,18 @@ public partial class App : Application
         // Entity shortcuts: register the stored hotkey->entity bindings (needs the hooked window).
         Services.GetRequiredService<IShortcutManager>().Initialize();
 
-        MainWindow.Activate();
+        // Keep an existing autostart entry pointing at the current exe (path may change on update).
+        Services.GetRequiredService<IStartupService>().SelfHeal();
+
+        var log = Services.GetRequiredService<ILogger<App>>();
+        var autostarted = Environment.GetCommandLineArgs().Contains(StartupService.AutostartArg);
+        log.LogInformation("HA Companion {Version} started{Mode}",
+            typeof(App).Assembly.GetName().Version, autostarted ? " (autostart, tray only)" : "");
+
+        // Launched by the autostart entry: stay silently in the tray (hotkeys/panel active),
+        // don't pop the main window into the user's face at every boot.
+        if (!autostarted)
+            MainWindow.Activate();
 
         // Auto-connect if we already have stored settings.
         _ = Services.GetRequiredService<ShellViewModel>().InitializeAsync();
@@ -98,7 +110,14 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
 
-        services.AddLogging();
+        // File sink: without a provider every ILogger warning silently vanished.
+        var logPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "HaCompanion", "app.log");
+        Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+        services.AddLogging(builder => builder
+            .SetMinimumLevel(LogLevel.Information)
+            .AddProvider(new FileLoggerProvider(logPath)));
         services.AddHaCompanionCore();
 
         // Infrastructure + app services
@@ -110,6 +129,7 @@ public partial class App : Application
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IQuickPanelController, QuickPanelController>();
+        services.AddSingleton<IStartupService, StartupService>();
         services.AddSingleton<IShortcutStore, ShortcutStore>();
         services.AddSingleton<IShortcutManager, ShortcutManager>();
 

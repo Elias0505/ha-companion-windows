@@ -22,6 +22,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IQuickPanelController _quickPanel;
     private readonly IHaConnection _connection;
     private readonly IUiDispatcher _ui;
+    private readonly IStartupService _startup;
     private bool _loading;
 
     [ObservableProperty]
@@ -51,6 +52,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _quickPanelDragResize = true;
 
+    /// <summary>Start with Windows — backed directly by the registry Run key (not settings.json).</summary>
+    [ObservableProperty]
+    private bool _autostart;
+
     [ObservableProperty]
     private LanguageOption? _selectedLanguage;
 
@@ -70,7 +75,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         "Win+Ctrl+H", "Ctrl+Alt+H", "Ctrl+Shift+H", "Ctrl+Alt+Space", "Win+Ctrl+Space", "Ctrl+Alt+A",
     };
 
-    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel, IHaConnection connection, IUiDispatcher ui)
+    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel, IHaConnection connection, IUiDispatcher ui, IStartupService startup)
     {
         _settingsStore = settingsStore;
         _shell = shell;
@@ -79,6 +84,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _quickPanel = quickPanel;
         _connection = connection;
         _ui = ui;
+        _startup = startup;
         Load();
         // Keep localized texts in sync when the UI language changes.
         _localization.LanguageChanged += (_, _) =>
@@ -101,6 +107,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
         QuickPanelWidth = settings.QuickPanelWidth;
         QuickPanelDragResize = settings.QuickPanelDragResize;
+        Autostart = _startup.IsEnabled;
         SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
                            ?? _localization.Languages[0];
         if (!HotkeyPresets.Contains(Hotkey))
@@ -193,6 +200,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (!_loading && value is not null)
             _settingsStore.Save(BuildSettings());
+    }
+
+    partial void OnAutostartChanged(bool value)
+    {
+        if (!_loading)
+            _startup.SetEnabled(value);
     }
 
     partial void OnQuickPanelDragResizeChanged(bool value)
