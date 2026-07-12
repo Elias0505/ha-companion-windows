@@ -42,7 +42,11 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
     private readonly Dictionary<string, EntityTileViewModel> _tilesById = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EntityGroupViewModel> _groupsByDomain = new(StringComparer.Ordinal);
     private List<string> _pinnedIds;
+    private readonly Dictionary<string, int> _sizesById;
     private bool _suppressLayoutSave;
+
+    /// <summary>Raised after a tile's size mode changed (views refresh the container spans).</summary>
+    public event EventHandler<EntityTileViewModel>? TileSizeChanged;
 
     public ObservableCollection<EntityGroupViewModel> Groups { get; } = new();
 
@@ -78,6 +82,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         _icons = icons;
         _localization = localization;
         _pinnedIds = [.. _layoutStore.LoadPinned()];
+        _sizesById = new Dictionary<string, int>(_layoutStore.LoadSizes(), StringComparer.Ordinal);
 
         foreach (var state in _connection.Entities.Values)
             Apply(state);
@@ -109,6 +114,18 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
             tile.IsPinned = true;
             Pinned.Add(tile);
         }
+    }
+
+    /// <summary>Cycle a tile through small → wide → large and persist the choice.</summary>
+    public void CycleTileSize(EntityTileViewModel tile)
+    {
+        tile.CycleSize();
+        if (tile.SizeMode == 0)
+            _sizesById.Remove(tile.EntityId);
+        else
+            _sizesById[tile.EntityId] = tile.SizeMode;
+        _layoutStore.SaveSizes(_sizesById);
+        TileSizeChanged?.Invoke(this, tile);
     }
 
     /// <summary>Refresh <see cref="AddCandidates"/> for the add-tile flyout.</summary>
@@ -146,6 +163,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         }
 
         var tile = new EntityTileViewModel(_connection, _icons, _localization, state);
+        tile.SetSizeMode(_sizesById.GetValueOrDefault(state.EntityId));
         _tilesById[state.EntityId] = tile;
 
         var group = GetOrCreateGroup(state.Domain);
@@ -234,7 +252,8 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         group.Tiles.Insert(index, tile);
     }
 
-    private static int DomainRank(string domain)
+    /// <summary>Category order used for grouping/sorting (matches the start page's sections).</summary>
+    public static int DomainRank(string domain)
     {
         for (var i = 0; i < DomainOrder.Length; i++)
             if (DomainOrder[i].Domain == domain)

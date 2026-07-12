@@ -63,6 +63,7 @@ public sealed class SettingsStore : ISettingsStore
                 Language = string.IsNullOrWhiteSpace(persisted.Language) ? "en" : persisted.Language,
                 QuickPanelStartOnDashboard = persisted.QuickPanelStartOnDashboard,
                 QuickPanelDragResize = persisted.QuickPanelDragResize,
+                QuickPanelSortByCategory = persisted.QuickPanelSortByCategory,
                 Token = Unprotect(persisted.TokenProtected),
             };
         }
@@ -89,6 +90,7 @@ public sealed class SettingsStore : ISettingsStore
             Language = settings.Language,
             QuickPanelStartOnDashboard = settings.QuickPanelStartOnDashboard,
             QuickPanelDragResize = settings.QuickPanelDragResize,
+            QuickPanelSortByCategory = settings.QuickPanelSortByCategory,
             TokenProtected = Protect(settings.Token),
         };
 
@@ -110,6 +112,7 @@ public sealed class SettingsStore : ISettingsStore
         Language = s.Language,
         QuickPanelStartOnDashboard = s.QuickPanelStartOnDashboard,
         QuickPanelDragResize = s.QuickPanelDragResize,
+        QuickPanelSortByCategory = s.QuickPanelSortByCategory,
     };
 
     private string Protect(string plain)
@@ -154,6 +157,7 @@ public sealed class SettingsStore : ISettingsStore
         public string Language { get; set; } = "en";
         public bool QuickPanelStartOnDashboard { get; set; }
         public bool QuickPanelDragResize { get; set; } = true;
+        public bool QuickPanelSortByCategory { get; set; }
         public string TokenProtected { get; set; } = string.Empty;
     }
 }

@@ -30,6 +30,9 @@ public sealed class AppSettings
     /// <summary>Allow resizing the quick panel by dragging the grip on its left edge.</summary>
     public bool QuickPanelDragResize { get; set; } = true;
 
+    /// <summary>Sort quick-panel favourites by category (start-page order) instead of manual order.</summary>
+    public bool QuickPanelSortByCategory { get; set; }
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 

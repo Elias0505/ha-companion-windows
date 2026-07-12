@@ -40,6 +40,29 @@ public partial class EntityTileViewModel : ObservableObject
     [ObservableProperty]
     private bool _isPinned;
 
+    /// <summary>Tile size: 0 = small (1×1), 1 = wide (2×1), 2 = large (2×2).</summary>
+    [ObservableProperty]
+    private int _sizeMode;
+
+    /// <summary>Grid cells this tile spans horizontally (derived from <see cref="SizeMode"/>).</summary>
+    [ObservableProperty]
+    private int _colSpan = 1;
+
+    /// <summary>Grid cells this tile spans vertically (derived from <see cref="SizeMode"/>).</summary>
+    [ObservableProperty]
+    private int _rowSpan = 1;
+
+    /// <summary>Apply a persisted size mode (clamped; keeps the spans consistent).</summary>
+    public void SetSizeMode(int mode)
+    {
+        SizeMode = Math.Clamp(mode, 0, 2);
+        ColSpan = SizeMode >= 1 ? 2 : 1;
+        RowSpan = SizeMode == 2 ? 2 : 1;
+    }
+
+    /// <summary>Advance to the next size (small → wide → large → small).</summary>
+    public void CycleSize() => SetSizeMode((SizeMode + 1) % 3);
+
     public EntityTileViewModel(IHaConnection connection, MdiIconProvider icons, LocalizationService localization, HaEntityState state)
     {
         _connection = connection;

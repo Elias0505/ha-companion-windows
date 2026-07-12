@@ -92,18 +92,22 @@ public sealed partial class SettingsViewModel : ObservableObject
         RefreshHotkeyStatus();
     }
 
-    private AppSettings BuildSettings() => new()
+    private AppSettings BuildSettings()
     {
-        BaseUrl = BaseUrl.Trim(),
-        Token = Token.Trim(),
-        IgnoreCertificateErrors = IgnoreCertificateErrors,
-        Hotkey = Hotkey,
-        AutoHideQuickPanel = AutoHideQuickPanel,
-        QuickPanelWidth = (int)QuickPanelWidth,
-        Language = SelectedLanguage?.Code ?? "en",
-        QuickPanelStartOnDashboard = QuickPanelStartOnDashboard,
-        QuickPanelDragResize = QuickPanelDragResize,
-    };
+        // Start from the stored settings and overwrite only what this page owns — fields
+        // managed elsewhere (e.g. the panel's sort toggle) must survive a settings save.
+        var settings = _settingsStore.Load();
+        settings.BaseUrl = BaseUrl.Trim();
+        settings.Token = Token.Trim();
+        settings.IgnoreCertificateErrors = IgnoreCertificateErrors;
+        settings.Hotkey = Hotkey;
+        settings.AutoHideQuickPanel = AutoHideQuickPanel;
+        settings.QuickPanelWidth = (int)QuickPanelWidth;
+        settings.Language = SelectedLanguage?.Code ?? "en";
+        settings.QuickPanelStartOnDashboard = QuickPanelStartOnDashboard;
+        settings.QuickPanelDragResize = QuickPanelDragResize;
+        return settings;
+    }
 
     partial void OnAutoHideQuickPanelChanged(bool value)
     {

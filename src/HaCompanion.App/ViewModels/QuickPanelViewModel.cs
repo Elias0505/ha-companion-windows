@@ -26,6 +26,16 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     /// <summary>Dropdown entries: Favourites + the user's HA dashboards.</summary>
     public ObservableCollection<QuickDashboard> Dashboards { get; } = new() { QuickDashboard.Favorites };
 
+    /// <summary>
+    /// What the favourites grid actually shows: the pinned tiles either in the user's manual
+    /// order or sorted by category (like the start page), depending on <see cref="SortByCategory"/>.
+    /// </summary>
+    public ObservableCollection<EntityTileViewModel> PinnedView { get; } = new();
+
+    /// <summary>Sort favourites by category (start-page section order) instead of manual order.</summary>
+    [ObservableProperty]
+    private bool _sortByCategory;
+
     [ObservableProperty]
     private QuickDashboard _selectedDashboard = QuickDashboard.Favorites;
 
@@ -44,6 +54,30 @@ public sealed partial class QuickPanelViewModel : ObservableObject
         _connection = connection;
         _ui = ui;
         _settingsStore = settingsStore;
+        _sortByCategory = settingsStore.Load().QuickPanelSortByCategory;
+        Catalog.Pinned.CollectionChanged += (_, _) => RebuildPinnedView();
+        RebuildPinnedView();
+    }
+
+    partial void OnSortByCategoryChanged(bool value)
+    {
+        var settings = _settingsStore.Load();
+        settings.QuickPanelSortByCategory = value;
+        _settingsStore.Save(settings);
+        RebuildPinnedView();
+    }
+
+    private void RebuildPinnedView()
+    {
+        var tiles = SortByCategory
+            ? Catalog.Pinned
+                .OrderBy(t => EntityCatalogViewModel.DomainRank(t.Domain))
+                .ThenBy(t => t.FriendlyName, StringComparer.OrdinalIgnoreCase)
+                .ToList()
+            : Catalog.Pinned.ToList();
+        PinnedView.Clear();
+        foreach (var tile in tiles)
+            PinnedView.Add(tile);
     }
 
     /// <summary>

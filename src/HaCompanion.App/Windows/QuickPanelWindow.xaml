@@ -44,6 +44,11 @@
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
                             Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
+                    <ToggleButton Padding="8" IsChecked="{Binding SortByCategory, Mode=TwoWay}"
+                                  ToolTipService.ToolTip="{Binding [Tip_SortCategory], Source={StaticResource Loc}}"
+                                  AutomationProperties.Name="{Binding [Tip_SortCategory], Source={StaticResource Loc}}">
+                        <FontIcon Glyph="&#xE8CB;" FontSize="14" />
+                    </ToggleButton>
                     <Button x:Name="AddTileButton" Padding="8" ToolTipService.ToolTip="{Binding [Tip_Add], Source={StaticResource Loc}}"
                             AutomationProperties.Name="{Binding [Tip_Add], Source={StaticResource Loc}}"
                             Click="AddTileButton_Click">
@@ -89,22 +94,38 @@
             <Grid Grid.Row="2">
                 <!-- Favourites: manually pinned tiles only (no auto-populate) -->
                 <Grid Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
-                    <GridView x:Name="PinnedGrid"
+                    <hc:VariableTileGridView x:Name="PinnedGrid"
                               Visibility="{Binding Catalog.HasPinned, Converter={StaticResource BoolToVisibility}}"
-                              ItemsSource="{Binding Catalog.Pinned}"
+                              ItemsSource="{Binding PinnedView}"
                               SelectionMode="None" IsItemClickEnabled="True" ItemClick="Pinned_ItemClick"
                               CanDragItems="{Binding Catalog.IsEditing}"
-                              CanReorderItems="{Binding Catalog.IsEditing}"
-                              AllowDrop="{Binding Catalog.IsEditing}">
+                              AllowDrop="{Binding Catalog.IsEditing}"
+                              DragItemsStarting="PinnedGrid_DragItemsStarting"
+                              DragOver="PinnedGrid_DragOver"
+                              Drop="PinnedGrid_Drop">
+                        <GridView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="112" ItemHeight="108" />
+                            </ItemsPanelTemplate>
+                        </GridView.ItemsPanel>
+                        <GridView.ItemContainerStyle>
+                            <Style TargetType="GridViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="MinWidth" Value="0" />
+                                <Setter Property="MinHeight" Value="0" />
+                            </Style>
+                        </GridView.ItemContainerStyle>
                         <GridView.ItemTemplate>
                             <DataTemplate>
-                                <Grid Width="108" Height="104" Margin="2"
+                                <Grid Margin="3"
                                       AutomationProperties.Name="{Binding FriendlyName}"
                                       AutomationProperties.HelpText="{Binding StateText}">
                                     <Border CornerRadius="10" Padding="10"
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                                        <StackPanel Spacing="6">
+                                        <StackPanel Spacing="6" VerticalAlignment="Top">
                                             <Border Width="34" Height="34" CornerRadius="17" HorizontalAlignment="Left"
                                                     Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
                                                 <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
@@ -124,10 +145,18 @@
                                             AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
                                         <FontIcon Glyph="&#xE711;" FontSize="10" />
                                     </Button>
+                                    <Button Width="30" Height="30" Padding="0" CornerRadius="15"
+                                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"
+                                            Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                            Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=RootGrid, Converter={StaticResource BoolToVisibility}}"
+                                            Click="Resize_Click" ToolTipService.ToolTip="{Binding [Tip_Resize], Source={StaticResource Loc}}"
+                                            AutomationProperties.Name="{Binding [Tip_Resize], Source={StaticResource Loc}}">
+                                        <FontIcon Glyph="&#xE740;" FontSize="10" />
+                                    </Button>
                                 </Grid>
                             </DataTemplate>
                         </GridView.ItemTemplate>
-                    </GridView>
+                    </hc:VariableTileGridView>
 
                     <TextBlock Text="{Binding [Panel_NoTiles], Source={StaticResource Loc}}"
                                Opacity="0.55" TextWrapping="Wrap" Margin="4,8,4,0" VerticalAlignment="Top"

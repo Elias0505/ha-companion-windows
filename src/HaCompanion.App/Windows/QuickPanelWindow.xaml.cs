@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.IO;
 using System.Runtime.InteropServices;
+using HaCompanion.App.Controls;
+using global::Windows.ApplicationModel.DataTransfer;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +32,7 @@ namespace HaCompanion.App.Windows;
 /// pump the message loop, so a queued WM_HOTKEY can call back mid-setup) is contained by
 /// <see cref="_inSetup"/>: nested calls only flip the target; the outer frame runs one slide.
 ///
-/// Geometry is always taken from the monitor under the mouse cursor, using that monitor's
+/// Geometry is always taken from the primary display, using that monitor's
 /// own effective DPI, and the window is positioned with absolute-pixel <c>SetWindowPos</c>
 /// calls. This is deliberate: <c>AppWindow.Move</c> reinterprets its coordinates when the
 /// window crosses a per-monitor-DPI boundary, which on a multi-monitor rig let each rapid
@@ -85,6 +87,8 @@ public sealed partial class QuickPanelWindow : Window
         InitializeComponent();
         RootGrid.DataContext = viewModel;
         ViewModel.DashboardRequested += OnDashboardRequested;
+        // Size changes made on the start page must re-flow this grid too (shared tiles).
+        ViewModel.Catalog.TileSizeChanged += (_, tile) => PinnedGrid.RefreshSpans(tile);
 
         Title = "HA Companion — Quick Panel";
         _hwnd = WindowNative.GetWindowHandle(this);
@@ -385,7 +389,9 @@ public sealed partial class QuickPanelWindow : Window
     private void UpdateEditIcon()
     {
         var editing = ViewModel.Catalog.IsEditing;
-        EditIcon.Glyph = editing ? "" : ""; // check / pencil
+        // Explicit escapes — literal PUA glyph characters once got silently lost in a file
+        // rewrite, leaving the button icon permanently blank after the first click.
+        EditIcon.Glyph = editing ? "\uE73E" : "\uE70F"; // CheckMark / Edit (pencil)
         var label = App.Services.GetRequiredService<LocalizationService>()[editing ? "Tip_Done" : "Tip_Edit"];
         ToolTipService.SetToolTip(EditButton, label);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(EditButton, label);
@@ -421,6 +427,49 @@ public sealed partial class QuickPanelWindow : Window
             return; // in edit mode taps are for arranging, not switching
         if (e.ClickedItem is EntityTileViewModel tile)
             await tile.ToggleCommand.ExecuteAsync(null);
+    }
+
+    private void Resize_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            ViewModel.Catalog.CycleTileSize(tile); // TileSizeChanged re-flows this grid
+    }
+
+    // ----- manual tile reorder (built-in GridView reorder doesn't work on a
+    //       VariableSizedWrapGrid, so drag-and-drop is handled explicitly) -----
+
+    private EntityTileViewModel? _draggedTile;
+
+    private void PinnedGrid_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
+    {
+        _draggedTile = e.Items.FirstOrDefault() as EntityTileViewModel;
+        e.Data.RequestedOperation = DataPackageOperation.Move;
+    }
+
+    private void PinnedGrid_DragOver(object sender, DragEventArgs e) =>
+        e.AcceptedOperation = _draggedTile is null || ViewModel.SortByCategory
+            ? DataPackageOperation.None
+            : DataPackageOperation.Move;
+
+    private void PinnedGrid_Drop(object sender, DragEventArgs e)
+    {
+        var dragged = _draggedTile;
+        _draggedTile = null;
+        // In category mode the order is computed, not user-defined — nothing to reorder.
+        if (dragged is null || ViewModel.SortByCategory)
+            return;
+
+        var source = ViewModel.Catalog.Pinned; // manual mode: PinnedView mirrors this order 1:1
+        var from = source.IndexOf(dragged);
+        if (from < 0)
+            return;
+
+        var to = TileDragHelper.InsertionIndex(PinnedGrid, e.GetPosition(PinnedGrid), source.Count);
+        if (to > from)
+            to--;
+        to = Math.Clamp(to, 0, source.Count - 1);
+        if (to != from)
+            source.Move(from, to); // persisted via the catalog's CollectionChanged handler
     }
 
     // ----- live drag-to-resize (left-edge grip) -----
