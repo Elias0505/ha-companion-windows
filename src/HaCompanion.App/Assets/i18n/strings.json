@@ -81,7 +81,11 @@
     "Sc_Empty": "No shortcuts yet — pick a device above and record a key combination.",
     "Sc_InUse": "not available (already in use)",
     "Osd_Done": "Triggered",
-    "Sc_Browse": "Quick pick by category"
+    "Sc_Browse": "Quick pick by category",
+    "Osd_On": "Turned on",
+    "Osd_Off": "Turned off",
+    "Osd_Opened": "Opened",
+    "Osd_Closed": "Closed"
   },
   "de": {
     "Nav_Start": "Start",
@@ -165,7 +169,11 @@
     "Sc_Empty": "Noch keine Kurzbefehle — wähle oben ein Gerät und nimm eine Tastenkombination auf.",
     "Sc_InUse": "nicht verfügbar (bereits belegt)",
     "Osd_Done": "Ausgelöst",
-    "Sc_Browse": "Schnellauswahl nach Kategorie"
+    "Sc_Browse": "Schnellauswahl nach Kategorie",
+    "Osd_On": "Eingeschaltet",
+    "Osd_Off": "Ausgeschaltet",
+    "Osd_Opened": "Geöffnet",
+    "Osd_Closed": "Geschlossen"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -249,7 +257,11 @@
     "Sc_Empty": "Aún no hay atajos: elige un dispositivo arriba y graba una combinación de teclas.",
     "Sc_InUse": "no disponible (ya en uso)",
     "Osd_Done": "Activado",
-    "Sc_Browse": "Selección rápida por categoría"
+    "Sc_Browse": "Selección rápida por categoría",
+    "Osd_On": "Encendido",
+    "Osd_Off": "Apagado",
+    "Osd_Opened": "Abierto",
+    "Osd_Closed": "Cerrado"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -333,7 +345,11 @@
     "Sc_Empty": "Aucun raccourci pour l'instant — choisissez un appareil ci-dessus et enregistrez une combinaison.",
     "Sc_InUse": "indisponible (déjà utilisée)",
     "Osd_Done": "Déclenché",
-    "Sc_Browse": "Sélection rapide par catégorie"
+    "Sc_Browse": "Sélection rapide par catégorie",
+    "Osd_On": "Allumé",
+    "Osd_Off": "Éteint",
+    "Osd_Opened": "Ouvert",
+    "Osd_Closed": "Fermé"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -417,7 +433,11 @@
     "Sc_Empty": "还没有快捷键 — 在上方选择设备并录制按键组合。",
     "Sc_InUse": "不可用（已被占用）",
     "Osd_Done": "已触发",
-    "Sc_Browse": "按类别快速选择"
+    "Sc_Browse": "按类别快速选择",
+    "Osd_On": "已开启",
+    "Osd_Off": "已关闭",
+    "Osd_Opened": "已打开",
+    "Osd_Closed": "已关闭"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -501,6 +521,10 @@
     "Sc_Empty": "अभी कोई शॉर्टकट नहीं — ऊपर डिवाइस चुनें और कुंजी संयोजन रिकॉर्ड करें।",
     "Sc_InUse": "उपलब्ध नहीं (पहले से उपयोग में)",
     "Osd_Done": "ट्रिगर किया गया",
-    "Sc_Browse": "श्रेणी के अनुसार त्वरित चयन"
+    "Sc_Browse": "श्रेणी के अनुसार त्वरित चयन",
+    "Osd_On": "चालू किया गया",
+    "Osd_Off": "बंद किया गया",
+    "Osd_Opened": "खोला गया",
+    "Osd_Closed": "बंद किया गया"
   }
 }

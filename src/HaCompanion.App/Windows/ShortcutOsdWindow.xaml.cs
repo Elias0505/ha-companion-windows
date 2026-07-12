@@ -24,6 +24,7 @@ public sealed partial class ShortcutOsdWindow : Window
     private const int HoldMs = 1600;
 
     private static readonly SolidColorBrush AccentBrush = new(Color.FromArgb(255, 10, 132, 255));
+    private static readonly SolidColorBrush OffBrush = new(Color.FromArgb(160, 140, 140, 140));
 
     private readonly IntPtr _hwnd;
     private readonly DispatcherQueueTimer _animTimer;
@@ -74,12 +75,13 @@ public sealed partial class ShortcutOsdWindow : Window
     }
 
     /// <summary>Show (or refresh) the toast for a triggered shortcut. Never takes focus.</summary>
-    public void ShowToast(string iconGlyph, string title, string subtitle)
+    /// <param name="accent">True = turning on (accent circle), false = turning off (grey circle).</param>
+    public void ShowToast(string iconGlyph, string title, string subtitle, bool accent = true)
     {
         OsdIcon.Glyph = iconGlyph;
         OsdTitle.Text = title;
         OsdSubtitle.Text = subtitle;
-        IconCircle.Background = AccentBrush;
+        IconCircle.Background = accent ? AccentBrush : OffBrush;
 
         ComputeGeometry();
         if (!_windowShown)
@@ -92,6 +94,18 @@ public sealed partial class ShortcutOsdWindow : Window
         StartSlide();
         _holdTimer.Stop();
         _holdTimer.Start();
+    }
+
+    /// <summary>
+    /// Correct the toast in place once Home Assistant reports the entity's REAL new state
+    /// (the initial subtitle is a prediction from the toggle direction).
+    /// </summary>
+    public void UpdateState(string subtitle, bool accent)
+    {
+        if (!_windowShown)
+            return;
+        OsdSubtitle.Text = subtitle;
+        IconCircle.Background = accent ? AccentBrush : OffBrush;
     }
 
     private void ComputeGeometry()
