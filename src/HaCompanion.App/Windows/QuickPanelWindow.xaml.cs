@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using HaCompanion.App.Controls;
+using HaCompanion.App.Models;
 using global::Windows.ApplicationModel.DataTransfer;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
@@ -596,6 +597,89 @@ public sealed partial class QuickPanelWindow : Window
         settings.QuickPanelWidth = _panelWidthDip;
         _settingsStore.Save(settings);
         e.Handled = true;
+    }
+
+
+    // ----- Ctrl+K quick launcher: search any actionable entity and trigger it -----
+
+    private void OnLauncherAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        if (ViewModel.ShowFavorites)
+            LauncherFlyout.ShowAt(LauncherButton);
+    }
+
+    private void LauncherFlyout_Opened(object sender, object e)
+    {
+        LauncherBox.Text = string.Empty;
+        LauncherBox.ItemsSource = SearchActionable(string.Empty);
+        LauncherBox.Focus(FocusState.Programmatic);
+    }
+
+    private IReadOnlyList<EntityTileViewModel> SearchActionable(string query) =>
+        ViewModel.Catalog.SearchTiles(query).Where(t => DomainCatalog.HasAction(t.Domain)).ToList();
+
+    private void LauncherBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    {
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            sender.ItemsSource = SearchActionable(sender.Text);
+    }
+
+    // Only QuerySubmitted (it also fires after a suggestion click, with ChosenSuggestion set) —
+    // handling SuggestionChosen as well would trigger the entity twice.
+    private void LauncherBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        var tile = args.ChosenSuggestion as EntityTileViewModel
+                   ?? SearchActionable(args.QueryText).FirstOrDefault();
+        if (tile is null)
+            return;
+        LauncherFlyout.Hide();
+        App.Services.GetRequiredService<IEntityActionService>().Trigger(tile.EntityId);
+    }
+
+    // ----- tile context flyout (stage-2 controls: brightness / temperature / media) -----
+
+    private void TileFlyout_Opening(object sender, object e)
+    {
+        // No controls for this domain (switch, script, sensor, ...): don't show an empty flyout.
+        if (sender is Flyout flyout && flyout.Target is FrameworkElement fe
+            && fe.DataContext is EntityTileViewModel tile
+            && !(tile.HasBrightness || tile.HasClimate || tile.HasMedia))
+            flyout.Hide();
+    }
+
+    private void BrightnessSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        // Programmatic updates (WebSocket refresh) leave the slider unfocused — only a user
+        // interaction may fire the service call, otherwise every state echo would re-send.
+        if (sender is Slider slider && slider.FocusState != FocusState.Unfocused
+            && slider.DataContext is EntityTileViewModel tile)
+            tile.SetBrightness(e.NewValue);
+    }
+
+    private void VolumeSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        if (sender is Slider slider && slider.FocusState != FocusState.Unfocused
+            && slider.DataContext is EntityTileViewModel tile)
+            tile.SetVolume(e.NewValue);
+    }
+
+    private void TempDown_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.NudgeTemperature(-0.5);
+    }
+
+    private void TempUp_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.NudgeTemperature(+0.5);
+    }
+
+    private void PlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.PlayPause();
     }
 
     // ----- diagnostics -----

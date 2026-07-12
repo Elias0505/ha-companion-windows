@@ -32,6 +32,8 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         ("automation", "Automations"),
         ("input_boolean", "Helpers"),
         ("button", "Buttons"),
+        ("sensor", "Sensors"),
+        ("binary_sensor", "Sensors"),
     };
 
     private readonly IHaConnection _connection;
@@ -180,7 +182,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
 
     private void Apply(HaEntityState state)
     {
-        if (!DomainCatalog.IsActionable(state.Domain))
+        if (!DomainCatalog.IsDisplayable(state.Domain))
             return;
 
         if (_tilesById.TryGetValue(state.EntityId, out var existing))
@@ -194,9 +196,15 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
         tile.SetSpans(cols, rows);
         _tilesById[state.EntityId] = tile;
 
-        var group = GetOrCreateGroup(state.Domain);
-        InsertTileSorted(group, tile);
-        group.Count = group.Tiles.Count;
+        // Read-only domains (sensors) stay OUT of the browse groups — a PV setup easily has
+        // hundreds of them and they would drown the start page and the quick-pick. They are
+        // still searchable (add flyout) and pinnable like any other tile.
+        if (!DomainCatalog.ReadOnly.Contains(state.Domain))
+        {
+            var group = GetOrCreateGroup(state.Domain);
+            InsertTileSorted(group, tile);
+            group.Count = group.Tiles.Count;
+        }
 
         var pinnedRank = _pinnedIds.IndexOf(tile.EntityId);
         if (pinnedRank >= 0)

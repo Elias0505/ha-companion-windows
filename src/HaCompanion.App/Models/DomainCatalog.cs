@@ -14,7 +14,19 @@ public static class DomainCatalog
         "script", "automation", "media_player", "climate", "lock", "button",
     };
 
+    /// <summary>Read-only domains: pinnable value tiles (state + unit), but no tap action.</summary>
+    public static readonly IReadOnlySet<string> ReadOnly = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "sensor", "binary_sensor",
+    };
+
     public static bool IsActionable(string domain) => Actionable.Contains(domain);
+
+    /// <summary>Domains that become tiles at all (actionable + read-only sensors).</summary>
+    public static bool IsDisplayable(string domain) => Actionable.Contains(domain) || ReadOnly.Contains(domain);
+
+    /// <summary>True when tapping a tile of this domain performs a service call.</summary>
+    public static bool HasAction(string domain) => Actionable.Contains(domain);
 
     /// <summary>A Segoe Fluent Icons glyph for the given domain (as a 1-char string).</summary>
     public static string Glyph(string domain) => char.ConvertFromUtf32(GlyphCode(domain));

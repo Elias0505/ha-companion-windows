@@ -74,6 +74,13 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
     public Task CallServiceAsync(string domain, string service, string entityId, CancellationToken ct = default) =>
         _rest.CallServiceAsync(domain, service, new { entity_id = entityId }, ct);
 
+    public Task CallServiceAsync(string domain, string service, string entityId,
+        IReadOnlyDictionary<string, object?> data, CancellationToken ct = default)
+    {
+        var payload = new Dictionary<string, object?>(data) { ["entity_id"] = entityId };
+        return _rest.CallServiceAsync(domain, service, payload, ct);
+    }
+
     public async Task<IReadOnlyList<HaDashboardInfo>> ListDashboardsAsync(CancellationToken ct = default)
     {
         var dashboards = new List<HaDashboardInfo>();

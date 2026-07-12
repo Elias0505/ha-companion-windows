@@ -38,6 +38,10 @@ public interface IHaConnection
 
     Task CallServiceAsync(string domain, string service, string entityId, CancellationToken ct = default);
 
+    /// <summary>Call a service with extra data fields (merged with entity_id), e.g. brightness_pct.</summary>
+    Task CallServiceAsync(string domain, string service, string entityId,
+        IReadOnlyDictionary<string, object?> data, CancellationToken ct = default);
+
     /// <summary>
     /// List the Lovelace dashboards (always includes the default dashboard first).
     /// Requires an active WebSocket connection.

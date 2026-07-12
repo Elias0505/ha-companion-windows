@@ -30,6 +30,43 @@
                 <Grid Margin="3"
                       AutomationProperties.Name="{Binding FriendlyName}"
                       AutomationProperties.HelpText="{Binding StateText}">
+                <Grid.ContextFlyout>
+                    <Flyout Placement="Bottom" Opening="TileFlyout_Opening">
+                        <StackPanel Width="240" Spacing="10">
+                            <StackPanel Spacing="4"
+                                        Visibility="{Binding HasBrightness, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="{Binding [Fly_Brightness], Source={StaticResource Loc}}"
+                                           FontSize="12" Opacity="0.7" />
+                                <Slider Minimum="0" Maximum="100" StepFrequency="1"
+                                        Value="{Binding BrightnessPct, Mode=OneWay}"
+                                        ValueChanged="BrightnessSlider_ValueChanged" />
+                            </StackPanel>
+                            <StackPanel Spacing="4"
+                                        Visibility="{Binding HasClimate, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="{Binding [Fly_Temp], Source={StaticResource Loc}}"
+                                           FontSize="12" Opacity="0.7" />
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="&#x2212;" Width="40" Click="TempDown_Click" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold">
+                                        <Run Text="{Binding TargetTemp}" /><Run Text="°" />
+                                    </TextBlock>
+                                    <Button Content="+" Width="40" Click="TempUp_Click" />
+                                    <TextBlock Text="{Binding CurrentTempText}" Opacity="0.6" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Spacing="4"
+                                        Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}">
+                                <Button HorizontalAlignment="Stretch" Click="PlayPause_Click"
+                                        Content="{Binding [Fly_PlayPause], Source={StaticResource Loc}}" />
+                                <TextBlock Text="{Binding [Fly_Volume], Source={StaticResource Loc}}"
+                                           FontSize="12" Opacity="0.7" />
+                                <Slider Minimum="0" Maximum="100" StepFrequency="1"
+                                        Value="{Binding VolumePct, Mode=OneWay}"
+                                        ValueChanged="VolumeSlider_ValueChanged" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Flyout>
+                </Grid.ContextFlyout>
                     <Border CornerRadius="10" Padding="10"
                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
@@ -71,6 +108,7 @@
         </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="Escape" Invoked="OnEscape" />
+            <KeyboardAccelerator Key="K" Modifiers="Control" Invoked="OnLauncherAccelerator" />
         </Grid.KeyboardAccelerators>
 
         <Grid x:Name="PanelSurface" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
@@ -98,6 +136,34 @@
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
                             Visibility="{Binding ShowFavorites, Converter={StaticResource BoolToVisibility}}">
+                    <Button x:Name="LauncherButton" Padding="8"
+                            ToolTipService.ToolTip="{Binding [Panel_SearchPh], Source={StaticResource Loc}}"
+                            AutomationProperties.Name="{Binding [Panel_SearchPh], Source={StaticResource Loc}}">
+                        <FontIcon Glyph="&#xE721;" FontSize="14" />
+                        <Button.Flyout>
+                            <Flyout x:Name="LauncherFlyout" Placement="Bottom" Opened="LauncherFlyout_Opened">
+                                <AutoSuggestBox x:Name="LauncherBox" Width="280"
+                                                PlaceholderText="{Binding [Panel_SearchPh], Source={StaticResource Loc}}"
+                                                QueryIcon="Find"
+                                                TextChanged="LauncherBox_TextChanged"
+                                                QuerySubmitted="LauncherBox_QuerySubmitted">
+                                    <AutoSuggestBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
+                                                <FontIcon Glyph="{Binding IconGlyph}" FontSize="15"
+                                                          FontFamily="{StaticResource MdiFont}" Opacity="0.8"
+                                                          VerticalAlignment="Center" />
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding StateText}" FontSize="11" Opacity="0.55" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </AutoSuggestBox.ItemTemplate>
+                                </AutoSuggestBox>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
                     <ToggleButton Padding="8" IsChecked="{Binding SortByCategory, Mode=TwoWay}"
                                   ToolTipService.ToolTip="{Binding [Tip_SortCategory], Source={StaticResource Loc}}"
                                   AutomationProperties.Name="{Binding [Tip_SortCategory], Source={StaticResource Loc}}">

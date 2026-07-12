@@ -88,7 +88,15 @@
     "Osd_Closed": "Closed",
     "Set_Autostart": "Start with Windows",
     "Tray_Reconnect": "Reconnect",
-    "Set_HaNotify": "Show Home Assistant notifications as Windows toasts"
+    "Set_HaNotify": "Show Home Assistant notifications as Windows toasts",
+    "Grp_sensor": "Sensors",
+    "Grp_binary_sensor": "Binary sensors",
+    "Fly_Brightness": "Brightness",
+    "Fly_Temp": "Target temperature",
+    "Fly_Volume": "Volume",
+    "Fly_PlayPause": "Play / Pause",
+    "Set_Tip7": "Tip: right-click a tile for more controls — brightness for lights, target temperature for climate, play/pause and volume for media players.",
+    "Panel_SearchPh": "Search & switch (Ctrl+K)"
   },
   "de": {
     "Nav_Start": "Start",
@@ -179,7 +187,15 @@
     "Osd_Closed": "Geschlossen",
     "Set_Autostart": "Mit Windows starten",
     "Tray_Reconnect": "Neu verbinden",
-    "Set_HaNotify": "Home-Assistant-Benachrichtigungen als Windows-Meldungen zeigen"
+    "Set_HaNotify": "Home-Assistant-Benachrichtigungen als Windows-Meldungen zeigen",
+    "Grp_sensor": "Sensoren",
+    "Grp_binary_sensor": "Binärsensoren",
+    "Fly_Brightness": "Helligkeit",
+    "Fly_Temp": "Zieltemperatur",
+    "Fly_Volume": "Lautstärke",
+    "Fly_PlayPause": "Wiedergabe / Pause",
+    "Set_Tip7": "Tipp: Rechtsklick auf eine Kachel für mehr Steuerung — Helligkeit bei Lichtern, Zieltemperatur bei Klima, Wiedergabe/Lautstärke bei Medien.",
+    "Panel_SearchPh": "Suchen & schalten (Strg+K)"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -270,7 +286,15 @@
     "Osd_Closed": "Cerrado",
     "Set_Autostart": "Iniciar con Windows",
     "Tray_Reconnect": "Reconectar",
-    "Set_HaNotify": "Mostrar notificaciones de Home Assistant como avisos de Windows"
+    "Set_HaNotify": "Mostrar notificaciones de Home Assistant como avisos de Windows",
+    "Grp_sensor": "Sensores",
+    "Grp_binary_sensor": "Sensores binarios",
+    "Fly_Brightness": "Brillo",
+    "Fly_Temp": "Temperatura objetivo",
+    "Fly_Volume": "Volumen",
+    "Fly_PlayPause": "Reproducir / Pausa",
+    "Set_Tip7": "Consejo: clic derecho en un mosaico para más controles: brillo, temperatura objetivo o reproducción/volumen.",
+    "Panel_SearchPh": "Buscar y accionar (Ctrl+K)"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -361,7 +385,15 @@
     "Osd_Closed": "Fermé",
     "Set_Autostart": "Démarrer avec Windows",
     "Tray_Reconnect": "Reconnecter",
-    "Set_HaNotify": "Afficher les notifications Home Assistant comme alertes Windows"
+    "Set_HaNotify": "Afficher les notifications Home Assistant comme alertes Windows",
+    "Grp_sensor": "Capteurs",
+    "Grp_binary_sensor": "Capteurs binaires",
+    "Fly_Brightness": "Luminosité",
+    "Fly_Temp": "Température cible",
+    "Fly_Volume": "Volume",
+    "Fly_PlayPause": "Lecture / Pause",
+    "Set_Tip7": "Astuce : clic droit sur une tuile pour plus de contrôles — luminosité, température cible ou lecture/volume.",
+    "Panel_SearchPh": "Rechercher et commuter (Ctrl+K)"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -452,7 +484,15 @@
     "Osd_Closed": "已关闭",
     "Set_Autostart": "随 Windows 启动",
     "Tray_Reconnect": "重新连接",
-    "Set_HaNotify": "将 Home Assistant 通知显示为 Windows 通知"
+    "Set_HaNotify": "将 Home Assistant 通知显示为 Windows 通知",
+    "Grp_sensor": "传感器",
+    "Grp_binary_sensor": "二元传感器",
+    "Fly_Brightness": "亮度",
+    "Fly_Temp": "目标温度",
+    "Fly_Volume": "音量",
+    "Fly_PlayPause": "播放 / 暂停",
+    "Set_Tip7": "提示：右键点击磁贴获取更多控制 — 灯光亮度、空调目标温度、媒体播放/音量。",
+    "Panel_SearchPh": "搜索并控制 (Ctrl+K)"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -543,6 +583,14 @@
     "Osd_Closed": "बंद किया गया",
     "Set_Autostart": "Windows के साथ शुरू करें",
     "Tray_Reconnect": "फिर से कनेक्ट करें",
-    "Set_HaNotify": "Home Assistant सूचनाएँ Windows सूचना के रूप में दिखाएँ"
+    "Set_HaNotify": "Home Assistant सूचनाएँ Windows सूचना के रूप में दिखाएँ",
+    "Grp_sensor": "सेंसर",
+    "Grp_binary_sensor": "बाइनरी सेंसर",
+    "Fly_Brightness": "चमक",
+    "Fly_Temp": "लक्ष्य तापमान",
+    "Fly_Volume": "आवाज़",
+    "Fly_PlayPause": "चलाएँ / रोकें",
+    "Set_Tip7": "सुझाव: अधिक नियंत्रण के लिए टाइल पर राइट-क्लिक करें — रोशनी की चमक, जलवायु तापमान, मीडिया प्लेबैक/वॉल्यूम।",
+    "Panel_SearchPh": "खोजें और चलाएँ (Ctrl+K)"
   }
 }

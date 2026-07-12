@@ -145,6 +145,7 @@ public partial class App : Application
         services.AddSingleton<IStartupService, StartupService>();
         services.AddSingleton<IConnectivityWatcher, ConnectivityWatcher>();
         services.AddSingleton<IShortcutStore, ShortcutStore>();
+        services.AddSingleton<IEntityActionService, EntityActionService>();
         services.AddSingleton<IShortcutManager, ShortcutManager>();
 
         // View models

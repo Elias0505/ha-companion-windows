@@ -76,6 +76,52 @@ public sealed partial class DashboardPage : Page
             await tile.ToggleCommand.ExecuteAsync(null);
     }
 
+
+    // ----- tile context flyout (stage-2 controls: brightness / temperature / media) -----
+
+    private void TileFlyout_Opening(object sender, object e)
+    {
+        // No controls for this domain (switch, script, sensor, ...): don't show an empty flyout.
+        if (sender is Flyout flyout && flyout.Target is FrameworkElement fe
+            && fe.DataContext is EntityTileViewModel tile
+            && !(tile.HasBrightness || tile.HasClimate || tile.HasMedia))
+            flyout.Hide();
+    }
+
+    private void BrightnessSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        // Programmatic updates (WebSocket refresh) leave the slider unfocused — only a user
+        // interaction may fire the service call, otherwise every state echo would re-send.
+        if (sender is Slider slider && slider.FocusState != FocusState.Unfocused
+            && slider.DataContext is EntityTileViewModel tile)
+            tile.SetBrightness(e.NewValue);
+    }
+
+    private void VolumeSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        if (sender is Slider slider && slider.FocusState != FocusState.Unfocused
+            && slider.DataContext is EntityTileViewModel tile)
+            tile.SetVolume(e.NewValue);
+    }
+
+    private void TempDown_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.NudgeTemperature(-0.5);
+    }
+
+    private void TempUp_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.NudgeTemperature(+0.5);
+    }
+
+    private void PlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.PlayPause();
+    }
+
     // ----- hand-drag tile resize (corner grip; click still cycles the presets) -----
 
     private const double TileCellWidth = 160;  // must match the VariableSizedWrapGrid ItemWidth

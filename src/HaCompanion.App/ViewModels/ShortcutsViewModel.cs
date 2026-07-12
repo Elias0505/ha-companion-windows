@@ -57,7 +57,8 @@ public sealed partial class ShortcutsViewModel : ObservableObject
         Rebuild();
     }
 
-    public IReadOnlyList<EntityTileViewModel> Search(string query) => _catalog.SearchTiles(query);
+    public IReadOnlyList<EntityTileViewModel> Search(string query) =>
+        _catalog.SearchTiles(query).Where(t => Models.DomainCatalog.HasAction(t.Domain)).ToList();
 
     partial void OnSelectedTileChanged(EntityTileViewModel? value) => OnPropertyChanged(nameof(CanAdd));
 
