@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Text.Json.Serialization;
+
 namespace HaCompanion.Core.Automations;
 
 /// <summary>One "DANN" step of a rule: an entity plus an explicit action.</summary>
 public sealed record RuleAction(string EntityId, string Action)
 {
+    [JsonIgnore]
     public string Domain => EntityId.Split('.')[0];
 
     public bool IsValid() =>
@@ -53,6 +56,7 @@ public sealed record AutomationRule(
     bool IsEnabled = true)
 {
     /// <summary>Parsed idle threshold (minutes) for idle triggers; null otherwise/invalid.</summary>
+    [JsonIgnore]
     public int? IdleMinutes =>
         WindowsTriggers.TryParse(Trigger, out var t)
         && WindowsTriggers.ParamKind(t) == TriggerParamKind.Minutes
