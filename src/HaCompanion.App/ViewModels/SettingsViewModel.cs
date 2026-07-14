@@ -23,6 +23,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IHaConnection _connection;
     private readonly IUiDispatcher _ui;
     private readonly IStartupService _startup;
+    private readonly ISensorPublisher _sensors;
     private bool _loading;
 
     [ObservableProperty]
@@ -59,6 +60,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _showHaNotifications = true;
 
+    /// <summary>Report the PC's state to HA as a mobile_app device (opt-in).</summary>
+    [ObservableProperty]
+    private bool _reportSensors;
+
+    [ObservableProperty]
+    private double _idleSensorMinutes = 5;
+
+    [ObservableProperty]
+    private string _sensorStatus = string.Empty;
+
     [ObservableProperty]
     private LanguageOption? _selectedLanguage;
 
@@ -78,7 +89,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         "Win+Ctrl+H", "Ctrl+Alt+H", "Ctrl+Shift+H", "Ctrl+Alt+Space", "Win+Ctrl+Space", "Ctrl+Alt+A",
     };
 
-    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel, IHaConnection connection, IUiDispatcher ui, IStartupService startup)
+    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel, IHaConnection connection, IUiDispatcher ui, IStartupService startup, ISensorPublisher sensors)
     {
         _settingsStore = settingsStore;
         _shell = shell;
@@ -88,6 +99,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _connection = connection;
         _ui = ui;
         _startup = startup;
+        _sensors = sensors;
+        _sensors.StatusChanged += (_, _) => _ui.Post(() => SensorStatus = _sensors.StatusText);
         Load();
         // Keep localized texts in sync when the UI language changes.
         _localization.LanguageChanged += (_, _) =>
@@ -112,6 +125,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         QuickPanelDragResize = settings.QuickPanelDragResize;
         Autostart = _startup.IsEnabled;
         ShowHaNotifications = settings.ShowHaNotifications;
+        ReportSensors = settings.ReportSensors;
+        IdleSensorMinutes = settings.IdleSensorThresholdMinutes;
+        SensorStatus = _sensors.StatusText;
         SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
                            ?? _localization.Languages[0];
         if (!HotkeyPresets.Contains(Hotkey))
@@ -224,6 +240,26 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (!_loading)
             _startup.SetEnabled(value);
+    }
+
+    partial void OnReportSensorsChanged(bool value)
+    {
+        if (_loading)
+            return;
+        // The publisher persists the toggle itself (it also owns device/webhook ids).
+        if (value)
+            _ = _sensors.EnableAsync();
+        else
+            _sensors.Disable();
+    }
+
+    partial void OnIdleSensorMinutesChanged(double value)
+    {
+        if (_loading)
+            return;
+        var settings = _settingsStore.Load();
+        settings.IdleSensorThresholdMinutes = (int)value;
+        _settingsStore.Save(settings);
     }
 
     partial void OnQuickPanelDragResizeChanged(bool value)

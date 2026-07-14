@@ -96,6 +96,9 @@ public partial class App : Application
         // Windows automation rules (WENN Windows-Ereignis -> DANN HA-Aktion).
         Services.GetRequiredService<IRulesEngine>().Initialize();
 
+        // PC sensors -> HA (mobile_app device); inert until the settings toggle is on.
+        Services.GetRequiredService<ISensorPublisher>().Initialize();
+
         // Keep an existing autostart entry pointing at the current exe (path may change on update).
         Services.GetRequiredService<IStartupService>().SelfHeal();
 
@@ -163,6 +166,7 @@ public partial class App : Application
         services.AddSingleton<IWindowsStateMonitor, WindowsStateMonitor>();
         services.AddSingleton<IRulesStore, RulesStore>();
         services.AddSingleton<IRulesEngine, RulesEngine>();
+        services.AddSingleton<ISensorPublisher, SensorPublisher>();
 
         // View models
         services.AddSingleton<EntityCatalogViewModel>();
@@ -171,6 +175,7 @@ public partial class App : Application
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<QuickPanelViewModel>();
         services.AddSingleton<ShortcutsViewModel>();
+        services.AddSingleton<AutomationsViewModel>();
 
         // Windows
         services.AddSingleton<MainWindow>();

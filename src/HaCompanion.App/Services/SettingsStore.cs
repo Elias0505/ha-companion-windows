@@ -69,6 +69,11 @@ public sealed class SettingsStore : ISettingsStore
                 QuickPanelDragResize = persisted.QuickPanelDragResize,
                 QuickPanelSortByCategory = persisted.QuickPanelSortByCategory,
                 ShowHaNotifications = persisted.ShowHaNotifications,
+                ReportSensors = persisted.ReportSensors,
+                MobileAppDeviceId = persisted.MobileAppDeviceId,
+                MobileAppWebhookId = Unprotect(persisted.WebhookIdProtected),
+                IdleSensorThresholdMinutes =
+                    persisted.IdleSensorThresholdMinutes is >= 1 and <= 720 ? persisted.IdleSensorThresholdMinutes : 5,
                 Token = Unprotect(persisted.TokenProtected),
             };
         }
@@ -98,6 +103,10 @@ public sealed class SettingsStore : ISettingsStore
             QuickPanelDragResize = settings.QuickPanelDragResize,
             QuickPanelSortByCategory = settings.QuickPanelSortByCategory,
             ShowHaNotifications = settings.ShowHaNotifications,
+            ReportSensors = settings.ReportSensors,
+            MobileAppDeviceId = settings.MobileAppDeviceId,
+            WebhookIdProtected = Protect(settings.MobileAppWebhookId),
+            IdleSensorThresholdMinutes = settings.IdleSensorThresholdMinutes,
             TokenProtected = Protect(settings.Token),
         };
 
@@ -122,6 +131,10 @@ public sealed class SettingsStore : ISettingsStore
         QuickPanelDragResize = s.QuickPanelDragResize,
         QuickPanelSortByCategory = s.QuickPanelSortByCategory,
         ShowHaNotifications = s.ShowHaNotifications,
+        ReportSensors = s.ReportSensors,
+        MobileAppDeviceId = s.MobileAppDeviceId,
+        MobileAppWebhookId = s.MobileAppWebhookId,
+        IdleSensorThresholdMinutes = s.IdleSensorThresholdMinutes,
     };
 
     private string Protect(string plain)
@@ -170,6 +183,10 @@ public sealed class SettingsStore : ISettingsStore
         public bool QuickPanelDragResize { get; set; } = true;
         public bool QuickPanelSortByCategory { get; set; }
         public bool ShowHaNotifications { get; set; } = true;
+        public bool ReportSensors { get; set; }
+        public string MobileAppDeviceId { get; set; } = string.Empty;
+        public string WebhookIdProtected { get; set; } = string.Empty;
+        public int IdleSensorThresholdMinutes { get; set; } = 5;
         public string TokenProtected { get; set; } = string.Empty;
     }
 }

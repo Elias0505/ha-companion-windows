@@ -82,6 +82,7 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
     private bool _camRead;
     private int _camAgree;
     private int _audioQuietReads;
+    private bool _audioErrorLogged;
 
     private WndProc? _newProc; // held to prevent GC of the delegate
     private IntPtr _oldProc;
@@ -153,6 +154,18 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
         RegisterPowerSettingNotification(_hwnd, in GuidConsoleDisplayState, DEVICE_NOTIFY_WINDOW_HANDLE);
         if (!WTSRegisterSessionNotification(_hwnd, NOTIFY_FOR_THIS_SESSION))
             _logger.LogWarning("WTSRegisterSessionNotification failed — lock/unlock triggers unavailable");
+
+        // Baseline: the app may start INSIDE a locked session (e.g. relaunch while away) —
+        // WTS only reports transitions, so probe the initial state once. OpenInputDesktop
+        // fails while the secure desktop (lock screen) is active.
+        if (IsWorkstationLocked())
+        {
+            lock (_gate)
+            {
+                _isLocked = true;
+                _sessionState = "locked";
+            }
+        }
 
         _timer = new Timer(OnTimerTick, null, dueTime: 1000, period: 1000);
 
@@ -444,6 +457,11 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
         bool? target;
         if (peak is null)
         {
+            if (!_audioErrorLogged && _audioProbe.LastError is { } err)
+            {
+                _logger.LogWarning(err, "Audio probe unavailable — audio triggers/sensor stay inert");
+                _audioErrorLogged = true;
+            }
             _audioQuietReads = 0;
             target = null; // probe unavailable — consumers degrade, no triggers
         }
@@ -481,6 +499,27 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
         _logger.LogInformation("Windows trigger: {Key}{Param}",
             WindowsTriggers.ToKey(trigger), param is null ? "" : $" ({param})");
         _ui.Post(() => TriggerFired?.Invoke(this, new WindowsStateEvent(trigger, param, snapshot)));
+    }
+
+    private static bool IsWorkstationLocked()
+    {
+        // WTSINFOEXW: Level(4)+pad(4) | Data: SessionId(4), SessionState(4), SessionFlags(4)
+        // SessionFlags: 0 = locked, 1 = unlocked (Win8+; the Win7 inversion is history).
+        const int WTSSessionInfoEx = 25;
+        if (!WTSQuerySessionInformationW(IntPtr.Zero, -1 /* current session */, WTSSessionInfoEx,
+                out var buffer, out var length) || buffer == IntPtr.Zero)
+            return false; // unknown — assume unlocked rather than inventing a lock
+        try
+        {
+            if (length < 20)
+                return false;
+            var flags = Marshal.ReadInt32(buffer, 16);
+            return flags == 0;
+        }
+        finally
+        {
+            WTSFreeMemory(buffer);
+        }
     }
 
     public void Dispose()
@@ -545,6 +584,13 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
 
     [DllImport("shell32.dll")]
     private static extern int SHQueryUserNotificationState(out int state);
+
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    private static extern bool WTSQuerySessionInformationW(IntPtr server, int sessionId, int infoClass,
+        out IntPtr buffer, out int bytesReturned);
+
+    [DllImport("wtsapi32.dll")]
+    private static extern void WTSFreeMemory(IntPtr memory);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr RegisterPowerSettingNotification(IntPtr hRecipient, in Guid powerSettingGuid, uint flags);

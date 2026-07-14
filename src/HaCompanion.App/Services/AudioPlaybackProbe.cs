@@ -19,6 +19,9 @@ public sealed class AudioPlaybackProbe : IDisposable
 
     private IAudioMeterInformation? _meter;
 
+    /// <summary>Last failure (for one-time diagnostics by the monitor); null after a success.</summary>
+    public Exception? LastError { get; private set; }
+
     public float? ReadPeak()
     {
         try
@@ -32,10 +35,12 @@ public sealed class AudioPlaybackProbe : IDisposable
                 _meter = (IAudioMeterInformation)meterObj;
             }
             _meter.GetPeakValue(out var peak);
+            LastError = null;
             return peak;
         }
-        catch
+        catch (Exception ex)
         {
+            LastError = ex;
             Release(); // e.g. default device changed — try a fresh resolve next tick
             return null;
         }

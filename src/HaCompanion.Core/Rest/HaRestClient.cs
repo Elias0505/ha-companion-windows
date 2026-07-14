@@ -17,6 +17,13 @@ public sealed class HaRestClient : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    // mobile_app rejects binary_sensor registrations whose optional fields are present as
+    // null (silent 200 without registering) — omit nulls on every mobile_app payload.
+    private static readonly JsonSerializerOptions JsonOptionsNoNulls = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
+
     private readonly ILogger<HaRestClient> _logger;
     private HttpClient? _http;
     private Uri? _baseUri;
@@ -82,7 +89,7 @@ public sealed class HaRestClient : IDisposable
         try
         {
             using var req = BuildRequest(HttpMethod.Post, "api/mobile_app/registrations");
-            req.Content = JsonContent.Create(request, options: JsonOptions);
+            req.Content = JsonContent.Create(request, options: JsonOptionsNoNulls);
             using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode)
             {
@@ -110,9 +117,14 @@ public sealed class HaRestClient : IDisposable
         try
         {
             using var req = BuildRequest(HttpMethod.Post, $"api/webhook/{webhookId}", authorize: false);
-            req.Content = JsonContent.Create(payload, options: JsonOptions);
+            req.Content = JsonContent.Create(payload, options: JsonOptionsNoNulls);
             using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            // mobile_app always answers with a JSON body. An UNKNOWN webhook id (deleted
+            // registration) is answered with an EMPTY 200 (anti-enumeration), not 410 —
+            // treat both as "registration gone".
             var outcome = res.StatusCode == HttpStatusCode.Gone
+                          || (res.IsSuccessStatusCode && string.IsNullOrWhiteSpace(body))
                 ? WebhookOutcome.RegistrationGone
                 : res.IsSuccessStatusCode
                     ? WebhookOutcome.Success

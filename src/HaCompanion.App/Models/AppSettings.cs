@@ -45,6 +45,19 @@ public sealed class AppSettings
     /// <summary>Show Home Assistant persistent notifications as native Windows toasts.</summary>
     public bool ShowHaNotifications { get; set; } = true;
 
+    /// <summary>Report this PC's state to HA as a mobile_app device (opt-in: the active
+    /// program and mic/cam state leave the machine).</summary>
+    public bool ReportSensors { get; set; }
+
+    /// <summary>Stable device id for the mobile_app registration (GUID, created on enable).</summary>
+    public string MobileAppDeviceId { get; set; } = string.Empty;
+
+    /// <summary>Webhook id returned by the registration (stored encrypted — it grants HA write access).</summary>
+    public string MobileAppWebhookId { get; set; } = string.Empty;
+
+    /// <summary>Minutes without input before the "is idle" sensor turns on (1–720).</summary>
+    public int IdleSensorThresholdMinutes { get; set; } = 5;
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 

@@ -106,6 +106,9 @@ public sealed partial class MainWindow : Window
                 case "shortcuts":
                     ContentFrame.Navigate(typeof(ShortcutsPage));
                     break;
+                case "automations":
+                    ContentFrame.Navigate(typeof(AutomationsPage));
+                    break;
                 case "settings":
                     ContentFrame.Navigate(typeof(SettingsPage));
                     break;

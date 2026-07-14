@@ -41,17 +41,28 @@ public class MobileAppPayloadTests
         Assert.Equal("abc123", result!.WebhookId);
     }
 
+    private static readonly JsonSerializerOptions WebNoNulls = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
+
     [Fact]
     public void Register_sensor_envelope_has_type_and_data()
     {
         var sensor = new SensorDefinition("is_locked", "Gesperrt", "binary_sensor", true, Icon: "mdi:lock");
-        var json = JsonSerializer.Serialize(new WebhookEnvelope("register_sensor", sensor), Web);
+        var json = JsonSerializer.Serialize(new WebhookEnvelope("register_sensor", sensor), WebNoNulls);
 
         Assert.Contains("\"type\":\"register_sensor\"", json);
         Assert.Contains("\"data\":{", json);
         Assert.Contains("\"unique_id\":\"is_locked\"", json);
         Assert.Contains("\"state\":true", json); // binary state is a JSON bool, not a string
         Assert.Contains("\"icon\":\"mdi:lock\"", json);
+        // HA silently drops binary_sensor registrations that carry null optionals —
+        // the wire format must OMIT them (HaRestClient serializes with WhenWritingNull).
+        Assert.DoesNotContain("device_class", json);
+        Assert.DoesNotContain("unit_of_measurement", json);
+        Assert.DoesNotContain("state_class", json);
+        Assert.DoesNotContain("null", json);
     }
 
     [Fact]
