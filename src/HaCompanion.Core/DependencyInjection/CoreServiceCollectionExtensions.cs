@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using HaCompanion.Core.MobileApp;
 using HaCompanion.Core.Rest;
 using HaCompanion.Core.Services;
 using HaCompanion.Core.WebSocket;
@@ -17,6 +18,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<HaRestClient>();
         services.AddSingleton<HaWebSocketClient>();
         services.AddSingleton<IHaConnection, HaConnection>();
+        services.AddSingleton<IMobileAppClient, MobileAppClient>();
         return services;
     }
 }

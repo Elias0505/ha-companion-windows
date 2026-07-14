@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using HaCompanion.Core.MobileApp;
 using HaCompanion.Core.Models;
 using Microsoft.Extensions.Logging;
 
@@ -73,16 +75,68 @@ public sealed class HaRestClient : IDisposable
         res.EnsureSuccessStatusCode();
     }
 
+    /// <summary>Register this machine as a mobile_app device. Null on failure (logged).</summary>
+    public async Task<MobileAppRegistrationResult?> RegisterMobileAppAsync(
+        MobileAppRegistrationRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            using var req = BuildRequest(HttpMethod.Post, "api/mobile_app/registrations");
+            req.Content = JsonContent.Create(request, options: JsonOptions);
+            using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("mobile_app registration failed: HTTP {Status}", (int)res.StatusCode);
+                return null;
+            }
+            return await res.Content
+                .ReadFromJsonAsync<MobileAppRegistrationResult>(JsonOptions, ct)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "mobile_app registration failed");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// POST api/webhook/{id} — mobile_app data channel. Deliberately WITHOUT the
+    /// Authorization header (the webhook id is the credential). Never throws;
+    /// HTTP 410 means the registration was deleted in HA (re-register).
+    /// </summary>
+    public async Task<WebhookPostResult> PostWebhookAsync(string webhookId, object payload, CancellationToken ct = default)
+    {
+        try
+        {
+            using var req = BuildRequest(HttpMethod.Post, $"api/webhook/{webhookId}", authorize: false);
+            req.Content = JsonContent.Create(payload, options: JsonOptions);
+            using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
+            var outcome = res.StatusCode == HttpStatusCode.Gone
+                ? WebhookOutcome.RegistrationGone
+                : res.IsSuccessStatusCode
+                    ? WebhookOutcome.Success
+                    : WebhookOutcome.Failed;
+            return new WebhookPostResult(outcome, (int)res.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Webhook post failed");
+            return new WebhookPostResult(WebhookOutcome.Failed, 0);
+        }
+    }
+
     private HttpClient Client =>
         _http ?? throw new InvalidOperationException("HaRestClient is not configured; call Configure() first.");
 
-    private HttpRequestMessage BuildRequest(HttpMethod method, string relativePath)
+    private HttpRequestMessage BuildRequest(HttpMethod method, string relativePath, bool authorize = true)
     {
         if (_baseUri is null)
             throw new InvalidOperationException("HaRestClient is not configured; call Configure() first.");
 
         var req = new HttpRequestMessage(method, new Uri(_baseUri, relativePath));
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+        if (authorize)
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return req;
     }
