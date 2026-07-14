@@ -13,4 +13,10 @@ public interface IQuickPanelController
 
     /// <summary>Show/resize the panel at the current width setting as a live preview (auto-hides shortly after).</summary>
     void PreviewWidth();
+
+    /// <summary>
+    /// Build the panel window and pre-load its start view (incl. the embedded dashboard)
+    /// invisibly so the first hotkey press slides in an already-rendered panel.
+    /// </summary>
+    void Prewarm();
 }

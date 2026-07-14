@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using HaCompanion.App.Controls;
@@ -50,6 +51,8 @@ public sealed partial class QuickPanelWindow : Window
 
     private const uint MONITOR_DEFAULTTOPRIMARY = 1;
     private const int MDT_EFFECTIVE_DPI = 0;
+    private const int SM_XVIRTUALSCREEN = 76;
+    private const int SM_CXVIRTUALSCREEN = 78;
     private const uint SWP_NOZORDER = 0x0004;
     private const uint SWP_NOACTIVATE = 0x0010;
     private const uint SWP_NOOWNERZORDER = 0x0200;
@@ -67,6 +70,9 @@ public sealed partial class QuickPanelWindow : Window
     private bool _windowShown;   // whether the OS window is currently shown (vs. Hide())
     private bool _inSetup;       // reentrancy guard around the message-pumping Show()/Activate()
     private bool _previewing;
+    private bool _prewarmStarted;
+    private bool _warming;       // window is shown only off-screen for a warm pass, not open
+    private Task _warmChain = Task.CompletedTask;
 
     // Slide geometry in absolute screen pixels, recomputed from the primary monitor per show.
     private int _winY, _winW, _winH, _restX, _offX;
@@ -191,6 +197,105 @@ public sealed partial class QuickPanelWindow : Window
     public void HideAnimated() => SetTarget(false);
 
     /// <summary>
+    /// Warms everything the first open would otherwise do in front of the user: loads the
+    /// XAML tree (window shown once, parked beyond every display, never activated), and — as
+    /// soon as HA reports connected — resolves the dashboard picker and pre-navigates the
+    /// configured start dashboard in the still-hidden WebView. The first Win+Ctrl+H then
+    /// slides in an already-rendered panel instead of visibly assembling it.
+    /// </summary>
+    public void Prewarm()
+    {
+        if (_prewarmStarted)
+            return;
+        _prewarmStarted = true;
+
+        // The launch-time pass below usually runs before the WebSocket is up — re-run the
+        // dashboard resolution once the connection is ready (it re-applies the start view,
+        // which triggers the pre-navigation).
+        ViewModel.Shell.PropertyChanged += OnShellConnectedWhileWarm;
+
+        _ = WarmHiddenAsync(async () =>
+        {
+            ViewModel.ApplyStartView();
+            await ViewModel.EnsureDashboardsAsync(); // no-op until connected (hook above)
+            await WarmWebIfDashboardAsync();
+        });
+    }
+
+    private async void OnShellConnectedWhileWarm(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ShellViewModel.IsConnected) || !ViewModel.Shell.IsConnected)
+            return;
+        ViewModel.Shell.PropertyChanged -= OnShellConnectedWhileWarm;
+        await WarmHiddenAsync(async () =>
+        {
+            await ViewModel.EnsureDashboardsAsync(); // re-applies the start view -> pre-navigates
+            await WarmWebIfDashboardAsync();
+        });
+    }
+
+    /// <summary>Spins up the WebView2 runtime while hidden when a dashboard view is active.</summary>
+    private async Task WarmWebIfDashboardAsync()
+    {
+        if (!ViewModel.ShowDashboard)
+            return; // favourites need no WebView; dashboard switches init it on demand
+        try
+        {
+            await EnsureWebAsync();
+            await Task.Delay(250); // let the just-issued pre-navigation take hold before re-hiding
+        }
+        catch
+        {
+            // WebView2 runtime missing — favourites still work; nothing to warm.
+        }
+    }
+
+    /// <summary>
+    /// Runs <paramref name="work"/> with the window shown but parked beyond the right edge of
+    /// the entire virtual screen: WebView2 initialization needs a shown window, and parking it
+    /// past every monitor keeps the pass invisible without stealing focus. Passes are chained
+    /// so they never overlap; the hidden state is restored afterwards unless the user opened
+    /// the panel mid-warm (SetTarget then upgrades the warm window with a full setup).
+    /// </summary>
+    private Task WarmHiddenAsync(Func<Task> work)
+    {
+        async Task Run(Task previous)
+        {
+            try { await previous; } catch { /* chain must survive a failed pass */ }
+
+            var wasShown = _windowShown;
+            if (!wasShown)
+            {
+                _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
+                ComputeGeometry();
+                MoveWindowPx(VirtualScreenRightPx() + 200, _winY, _winW, _winH);
+                _warming = true;
+                _windowShown = true;
+                AppWindow.Show(activateWindow: false);
+            }
+            try
+            {
+                await work();
+            }
+            finally
+            {
+                _warming = false;
+                if (!wasShown && !_isOpen)
+                {
+                    _windowShown = false;
+                    AppWindow.Hide();
+                }
+                Log($"warm pass done shown={_windowShown} dash={ViewModel.ShowDashboard}");
+            }
+        }
+
+        return _warmChain = Run(_warmChain);
+    }
+
+    private static int VirtualScreenRightPx() =>
+        GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+
+    /// <summary>
     /// Sets the desired open/closed state and drives the panel toward it. Safe to call at any
     /// time, from anywhere (including reentrantly), and any number of times in quick succession:
     /// the last call wins and the panel always finishes settling within one animation duration.
@@ -211,7 +316,9 @@ public sealed partial class QuickPanelWindow : Window
         // Bring the OS window up (once) before the first slide-in. Show()/Activate() pump the
         // message loop, so a queued hotkey can reenter SetTarget here — the guard makes that
         // reentrant call only update the target and return; this outer frame starts the slide.
-        if (open && !_windowShown && !_inSetup)
+        // A window that is only shown off-screen for a warm pass still needs the full setup
+        // (park at the slide edge, activate, focus), hence the _warming escape hatch.
+        if (open && (!_windowShown || _warming) && !_inSetup)
         {
             _inSetup = true;
             try
@@ -733,6 +840,9 @@ public sealed partial class QuickPanelWindow : Window
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

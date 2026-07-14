@@ -117,6 +117,12 @@ public partial class App : Application
 
         // Auto-connect if we already have stored settings.
         _ = Services.GetRequiredService<ShellViewModel>().InitializeAsync();
+
+        // Pre-warm the quick panel while nothing is visible yet: build the window and, once
+        // HA is connected, pre-navigate the start dashboard in the hidden WebView — the first
+        // Win+Ctrl+H must slide in instantly instead of visibly loading in front of the user.
+        var ui = Services.GetRequiredService<IUiDispatcher>();
+        _ = Task.Delay(1500).ContinueWith(_ => ui.Post(quickPanel.Prewarm));
     }
 
     private static IServiceProvider ConfigureServices()
