@@ -248,7 +248,7 @@
                     </Grid>
 
                     <!-- Category mode: named sections, same titles/order as the start page -->
-                    <ScrollViewer x:Name="GroupScroll" VerticalScrollBarVisibility="Auto"
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   Visibility="{Binding SortByCategory, Converter={StaticResource BoolToVisibility}}">
                         <ItemsControl ItemsSource="{Binding PinnedGroups}">
                             <ItemsControl.ItemTemplate>

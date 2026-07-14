@@ -8,7 +8,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
 
-    <ScrollViewer x:Name="PageScroll">
+    <ScrollViewer>
         <StackPanel Spacing="16" MaxWidth="580" Padding="24" HorizontalAlignment="Left">
             <TextBlock Text="{Binding [Set_Title], Source={StaticResource Loc}}" Style="{StaticResource TitleTextBlockStyle}" />
             <TextBlock TextWrapping="Wrap" Opacity="0.7"

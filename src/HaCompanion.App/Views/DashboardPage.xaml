@@ -72,7 +72,7 @@
             </Button>
         </Grid>
 
-        <ScrollViewer x:Name="PageScroll" Grid.Row="1">
+        <ScrollViewer Grid.Row="1">
             <StackPanel Spacing="24">
                 <TextBlock Text="{Binding [Start_Empty], Source={StaticResource Loc}}"
                            Opacity="0.6" TextWrapping="Wrap"

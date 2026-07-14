@@ -18,7 +18,6 @@ public sealed partial class DashboardPage : Page
         ViewModel = App.Services.GetRequiredService<DashboardViewModel>();
         InitializeComponent();
         DataContext = ViewModel;
-        SmoothScroll.Attach(PageScroll);
         UpdateEditIcon();
         // Size changes made in the quick panel must re-flow this grid too (shared tiles).
         ViewModel.Catalog.TileSizeChanged += (_, tile) => PinnedGrid.RefreshSpans(tile);
