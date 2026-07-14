@@ -15,6 +15,17 @@ public interface IEntityActionService
 {
     /// <summary>Resolve + fire the entity's action and show the OSD toast (UI thread only).</summary>
     void Trigger(string entityId);
+
+    /// <summary>
+    /// Fire an explicit rule action ("turn_on"/"turn_off"/"toggle"/"run") instead of the
+    /// state-dependent default. <paramref name="osdTitle"/> overrides the toast title
+    /// (e.g. the rule's trigger label); <paramref name="showOsd"/> false skips the toast
+    /// (multi-action rules show one summary toast, suspend/shutdown rules none).
+    /// </summary>
+    void Trigger(string entityId, string action, string? osdTitle = null, bool showOsd = true);
+
+    /// <summary>Show a bare OSD toast (rule summary like "3 Aktionen"). UI thread only.</summary>
+    void ShowToast(string title, string subtitle);
 }
 
 /// <inheritdoc cref="IEntityActionService"/>
@@ -57,24 +68,68 @@ public sealed class EntityActionService : IEntityActionService
         var domain = entityId.Split('.')[0];
         var (serviceDomain, service) = DomainCatalog.ResolveAction(domain, known && state!.IsOn);
 
-        _ = RunAsync(serviceDomain, service, entityId);
-
         // Predict the resulting state for toggles ("turned on/off"); scripts/scenes/buttons
         // just show "triggered". The prediction is corrected live once HA reports back.
-        var subtitle = _localization["Osd_Done"];
-        var accent = true;
         var predictedKey = known ? StateKey(domain, !state!.IsOn) : null;
-        if (predictedKey is not null)
+        var accent = predictedKey is null || !state!.IsOn;
+        Execute(entityId, serviceDomain, service, predictedKey, accent, titleOverride: null, showOsd: true);
+    }
+
+    public void Trigger(string entityId, string action, string? osdTitle = null, bool showOsd = true)
+    {
+        var domain = entityId.Split('.')[0];
+        (string, string) call;
+        try
         {
-            subtitle = _localization[predictedKey];
-            accent = !state!.IsOn;
+            call = HaCompanion.Core.Automations.AutomationActions.Resolve(domain, action);
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Rule action rejected for {EntityId}", entityId);
+            return;
+        }
+
+        // Explicit actions predict directly from the action; toggle falls back to the
+        // current state like the default path. Live WS correction applies to all of them.
+        var known = _connection.Entities.TryGetValue(entityId, out var state);
+        var (predictedKey, accent) = action switch
+        {
+            HaCompanion.Core.Automations.AutomationActions.TurnOn => (StateKey(domain, true), true),
+            HaCompanion.Core.Automations.AutomationActions.TurnOff => (StateKey(domain, false), false),
+            HaCompanion.Core.Automations.AutomationActions.Toggle when known =>
+                (StateKey(domain, !state!.IsOn), !state!.IsOn),
+            _ => ((string?)null, true),
+        };
+        Execute(entityId, call.Item1, call.Item2, predictedKey, accent, osdTitle, showOsd);
+    }
+
+    public void ShowToast(string title, string subtitle)
+    {
+        _lastEntityId = null; // a summary toast must not be live-corrected by any entity
+        _ui.Post(() =>
+        {
+            _osd ??= new ShortcutOsdWindow();
+            _osd.ShowToast("\uE945" /* LightningBolt */, title, subtitle, accent: true);
+        });
+    }
+
+    /// <summary>Shared tail: fire the service call and (optionally) show the predicted toast.</summary>
+    private void Execute(string entityId, string serviceDomain, string service,
+        string? predictedKey, bool accent, string? titleOverride, bool showOsd)
+    {
+        _ = RunAsync(serviceDomain, service, entityId);
+        if (!showOsd)
+            return;
+
+        var known = _connection.Entities.TryGetValue(entityId, out var state);
+        var domain = entityId.Split('.')[0];
+        var subtitle = predictedKey is null ? _localization["Osd_Done"] : _localization[predictedKey];
 
         _lastEntityId = entityId;
         _lastTriggerMs = Environment.TickCount64;
 
         var glyph = known ? _icons.Resolve(state!) : _icons.DomainGlyph(domain);
-        var title = known ? state!.FriendlyName : entityId;
+        var title = titleOverride ?? (known ? state!.FriendlyName : entityId);
         _ui.Post(() =>
         {
             _osd ??= new ShortcutOsdWindow();

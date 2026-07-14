@@ -89,6 +89,13 @@ public partial class App : Application
         // Entity shortcuts: register the stored hotkey->entity bindings (needs the hooked window).
         Services.GetRequiredService<IShortcutManager>().Initialize();
 
+        // Windows-state monitor: second WndProc subclass on the main window — must come
+        // AFTER hotkeys.Initialize and neither hook is ever removed (chains compose).
+        Services.GetRequiredService<IWindowsStateMonitor>().Initialize(MainWindow);
+
+        // Windows automation rules (WENN Windows-Ereignis -> DANN HA-Aktion).
+        Services.GetRequiredService<IRulesEngine>().Initialize();
+
         // Keep an existing autostart entry pointing at the current exe (path may change on update).
         Services.GetRequiredService<IStartupService>().SelfHeal();
 
@@ -153,6 +160,9 @@ public partial class App : Application
         services.AddSingleton<IShortcutStore, ShortcutStore>();
         services.AddSingleton<IEntityActionService, EntityActionService>();
         services.AddSingleton<IShortcutManager, ShortcutManager>();
+        services.AddSingleton<IWindowsStateMonitor, WindowsStateMonitor>();
+        services.AddSingleton<IRulesStore, RulesStore>();
+        services.AddSingleton<IRulesEngine, RulesEngine>();
 
         // View models
         services.AddSingleton<EntityCatalogViewModel>();
