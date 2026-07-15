@@ -130,8 +130,9 @@ public sealed class ConfigBackupService : IConfigBackupService
                     if (imported.TryGetPropertyValue(key, out var val))
                         current[key] = val?.DeepClone();
                 WriteAtomic(settingsPath, current.ToJsonString(Indented));
-                // Drop the in-memory cache so the next Load() re-reads the imported values.
-                _settings.Save(_settings.Load());
+                // Drop the store's cache so the next Load() re-reads the just-written file.
+                // (Save(Load()) would re-serialize the STALE cache over the imported values.)
+                _settings.Invalidate();
             }
 
             return true;

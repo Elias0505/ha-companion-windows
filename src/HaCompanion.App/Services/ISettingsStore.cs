@@ -9,4 +9,8 @@ public interface ISettingsStore
     AppSettings Load();
 
     void Save(AppSettings settings);
+
+    /// <summary>Drop the in-memory cache so the next <see cref="Load"/> re-reads settings.json
+    /// from disk. Use after the file was written directly (e.g. config import).</summary>
+    void Invalidate();
 }

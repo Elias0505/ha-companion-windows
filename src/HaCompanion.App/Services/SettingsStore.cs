@@ -91,6 +91,12 @@ public sealed class SettingsStore : ISettingsStore
         }
     }
 
+    public void Invalidate()
+    {
+        lock (_sync)
+            _cache = null;
+    }
+
     public void Save(AppSettings settings)
     {
         lock (_sync)

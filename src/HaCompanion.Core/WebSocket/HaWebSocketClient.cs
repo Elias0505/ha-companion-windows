@@ -34,6 +34,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private int _notificationSubId; // id of the persistent_notification/subscribe command
     private int _pushSubId;         // id of the mobile_app push channel subscription (0 = none)
     private string? _pushWebhookId;
+    private readonly object _pushGate = new(); // serializes the subscribe claim (connect vs EnablePushChannel)
 
     public HaConnectionStatus Status { get; private set; } = HaConnectionStatus.Disconnected;
 
@@ -79,12 +80,25 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     {
         _pushWebhookId = string.IsNullOrWhiteSpace(webhookId) ? null : webhookId;
         var socket = _activeSocket;
-        // Subscribe only if this connection has no live subscription yet — the connect
-        // handler already subscribes when a webhook id was known at connect time, so an
-        // unconditional subscribe here would double up and deliver every toast twice.
-        if (socket is not null && _pushWebhookId is not null && _pushSubId == 0)
-            _ = SubscribePushAsync(socket, CancellationToken.None);
+        if (socket is null || _pushWebhookId is null)
+            return;
+        // Claim the (single) subscription for this connection atomically — the connect handler
+        // claims it too, and without this both could subscribe and deliver every toast twice.
+        var id = ClaimPushSub();
+        if (id != 0)
+            _ = SendSubscribeAsync(socket, id, CancellationToken.None);
     }
+
+    /// <summary>Assign this connection's push-sub id if none is live yet; 0 means already claimed.</summary>
+    private int ClaimPushSub()
+    {
+        lock (_pushGate)
+            return ClaimPushSubLocked();
+    }
+
+    /// <summary>Caller must hold <see cref="_pushGate"/>.</summary>
+    private int ClaimPushSubLocked() =>
+        _pushWebhookId is not null && _pushSubId == 0 ? _pushSubId = NextId() : 0;
 
     /// <summary>Acknowledge a pushed notification (the channel is subscribed with support_confirm).</summary>
     public async Task ConfirmPushAsync(string confirmId, CancellationToken ct = default)
@@ -101,14 +115,13 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }, JsonOptions), ct).ConfigureAwait(false);
     }
 
-    private async Task SubscribePushAsync(ClientWebSocket socket, CancellationToken ct)
+    private async Task SendSubscribeAsync(ClientWebSocket socket, int id, CancellationToken ct)
     {
         try
         {
-            _pushSubId = NextId();
             await SendRawAsync(socket, JsonSerializer.Serialize(new
             {
-                id = _pushSubId,
+                id,
                 type = "mobile_app/push_notification_channel",
                 webhook_id = _pushWebhookId,
                 support_confirm = true,
@@ -289,10 +302,17 @@ public sealed class HaWebSocketClient : IAsyncDisposable
                 type = "persistent_notification/subscribe",
             }, JsonOptions), ct).ConfigureAwait(false);
 
-            // mobile_app push channel (notify.mobile_app_<device> deliveries + PC commands)
-            _pushSubId = 0;
-            if (_pushWebhookId is not null)
-                await SubscribePushAsync(socket, ct).ConfigureAwait(false);
+            // mobile_app push channel (notify.mobile_app_<device> deliveries + PC commands).
+            // Reset first (the previous connection's subscription is dead), then claim a fresh
+            // id atomically so a concurrent EnablePushChannel can't subscribe a second time.
+            int pushId;
+            lock (_pushGate)
+            {
+                _pushSubId = 0;
+                pushId = ClaimPushSubLocked();
+            }
+            if (pushId != 0)
+                await SendSubscribeAsync(socket, pushId, ct).ConfigureAwait(false);
 
             // receive loop
             while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open)

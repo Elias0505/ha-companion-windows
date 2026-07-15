@@ -47,7 +47,7 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
     private Timer? _heartbeat;
     private CancellationTokenSource? _pending; // coalescing window for event pushes
     private long _registerBackoffUntil;
-    private bool _registering;
+    private int _registering; // 0/1, claimed atomically via Interlocked
     private bool _audioSensorRegistered; // audio value arrives ~6s after start (hysteresis)
     private bool _pushChannelReady;      // update_registration + channel subscribe, once per session
 
@@ -134,8 +134,10 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
     {
         if (!_settings.Load().ReportSensors)
             return;
-        _pending?.Cancel();
+        var previous = _pending;
         var cts = _pending = new CancellationTokenSource();
+        previous?.Cancel();
+        previous?.Dispose();
         _ = Task.Delay(CoalesceMs, cts.Token).ContinueWith(t =>
         {
             if (!t.IsCanceled)
@@ -147,12 +149,14 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
 
     private async Task<bool> EnsureRegisteredAndPushAsync()
     {
-        if (_registering || Environment.TickCount64 < _registerBackoffUntil)
-            return false;
-        if (_connection.Status != HaConnectionStatus.Connected)
+        if (Environment.TickCount64 < _registerBackoffUntil
+            || _connection.Status != HaConnectionStatus.Connected)
             return false; // retried on the next StatusChanged -> Connected
 
-        _registering = true;
+        // Atomic claim: the heartbeat timer, StatusChanged and EnableAsync can all reach here
+        // concurrently — a plain check-then-set could register the device twice.
+        if (Interlocked.Exchange(ref _registering, 1) == 1)
+            return false;
         try
         {
             // Two attempts: a stored-but-dead webhook id costs one round (gone -> cleared),
@@ -212,7 +216,7 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
         }
         finally
         {
-            _registering = false;
+            Interlocked.Exchange(ref _registering, 0);
         }
     }
 

@@ -34,6 +34,9 @@ public sealed class NotifyRulesEngine : INotifyRulesEngine
 
     private readonly Dictionary<string, HaEntityState> _lastStates = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _cooldown = new(StringComparer.Ordinal);
+    // EntityUpdated is NOT single-threaded: on a reconnect-while-connected the old WS receive
+    // loop and RefreshStatesAsync can both raise it, so the maps below must be lock-guarded.
+    private readonly object _gate = new();
     private IReadOnlyList<NotificationRule> _rules = Array.Empty<NotificationRule>();
 
     public NotifyRulesEngine(INotifyRulesStore store, IHaConnection connection,
@@ -58,36 +61,55 @@ public sealed class NotifyRulesEngine : INotifyRulesEngine
     {
         try
         {
-            // Track ONLY entities a rule watches — the full state stream is thousands strong.
-            var watched = false;
-            foreach (var rule in _rules)
+            var toShow = default((string Title, string Body)?);
+            lock (_gate)
             {
-                if (!string.Equals(rule.EntityId, newState.EntityId, StringComparison.Ordinal))
-                    continue;
-                watched = true;
+                // Track ONLY entities a rule watches — the full state stream is thousands strong.
+                var watched = false;
+                foreach (var rule in _rules)
+                {
+                    if (!string.Equals(rule.EntityId, newState.EntityId, StringComparison.Ordinal))
+                        continue;
+                    watched = true;
 
-                _lastStates.TryGetValue(newState.EntityId, out var oldState);
-                if (!NotificationRuleMatcher.ShouldNotify(rule, oldState, newState))
-                    continue;
+                    _lastStates.TryGetValue(newState.EntityId, out var oldState);
+                    if (!NotificationRuleMatcher.ShouldNotify(rule, oldState, newState))
+                        continue;
 
-                var now = Environment.TickCount64;
-                var cooldownKey = $"{newState.EntityId}|{newState.State}";
-                if (_cooldown.TryGetValue(cooldownKey, out var last) && now - last < CooldownMs)
-                    continue;
-                _cooldown[cooldownKey] = now;
+                    var now = Environment.TickCount64;
+                    var cooldownKey = $"{newState.EntityId}|{newState.State}";
+                    if (_cooldown.TryGetValue(cooldownKey, out var last) && now - last < CooldownMs)
+                        continue;
+                    _cooldown[cooldownKey] = now;
+                    PruneCooldown(now);
 
-                _notifications.Show(newState.FriendlyName, StateText(newState));
-                _logger.LogInformation("Notify rule fired: {Entity} -> {State}", newState.EntityId, newState.State);
+                    toShow = (newState.FriendlyName, StateText(newState));
+                    _logger.LogInformation("Notify rule fired: {Entity} -> {State}", newState.EntityId, newState.State);
+                }
+                if (watched)
+                    _lastStates[newState.EntityId] = newState;
+                else if (_lastStates.Count > 0)
+                    _lastStates.Remove(newState.EntityId); // rule was deleted — stop tracking
             }
-            if (watched)
-                _lastStates[newState.EntityId] = newState;
-            else if (_lastStates.Count > 0)
-                _lastStates.Remove(newState.EntityId); // rule was deleted — stop tracking
+
+            // Show outside the lock (the toast path can marshal to the UI thread).
+            if (toShow is { } t)
+                _notifications.Show(t.Title, t.Body);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Notify rule handling failed");
         }
+    }
+
+    /// <summary>Keep _cooldown bounded: an "any_change" rule on a numeric sensor would add one
+    /// key per distinct value forever. Expired entries (older than the window) are dead weight.</summary>
+    private void PruneCooldown(long now)
+    {
+        if (_cooldown.Count <= 64)
+            return;
+        foreach (var key in _cooldown.Where(kv => now - kv.Value >= CooldownMs).Select(kv => kv.Key).ToList())
+            _cooldown.Remove(key);
     }
 
     /// <summary>"Ein"/"Aus"/"Offen"/"Geschlossen" for binary-ish states, raw value otherwise.</summary>
