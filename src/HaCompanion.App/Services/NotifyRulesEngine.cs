@@ -22,7 +22,9 @@ public interface INotifyRulesEngine
 /// <inheritdoc cref="INotifyRulesEngine"/>
 public sealed class NotifyRulesEngine : INotifyRulesEngine
 {
-    private const int CooldownMs = 5000; // per entity — a flapping sensor must not spam toasts
+    // Anti-flap window, keyed per entity+state: a deliberate on->off pair notifies immediately
+    // (different states), only the SAME transition repeated within the window is debounced.
+    private const int CooldownMs = 3000;
 
     private readonly INotifyRulesStore _store;
     private readonly IHaConnection _connection;
@@ -69,9 +71,10 @@ public sealed class NotifyRulesEngine : INotifyRulesEngine
                     continue;
 
                 var now = Environment.TickCount64;
-                if (_cooldown.TryGetValue(newState.EntityId, out var last) && now - last < CooldownMs)
+                var cooldownKey = $"{newState.EntityId}|{newState.State}";
+                if (_cooldown.TryGetValue(cooldownKey, out var last) && now - last < CooldownMs)
                     continue;
-                _cooldown[newState.EntityId] = now;
+                _cooldown[cooldownKey] = now;
 
                 _notifications.Show(newState.FriendlyName, StateText(newState));
                 _logger.LogInformation("Notify rule fired: {Entity} -> {State}", newState.EntityId, newState.State);
