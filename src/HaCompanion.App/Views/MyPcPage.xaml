@@ -16,7 +16,7 @@
     </Page.Resources>
 
     <ScrollViewer>
-        <StackPanel Spacing="16" MaxWidth="700" Padding="24" HorizontalAlignment="Left">
+        <StackPanel Spacing="16" MaxWidth="1400" Padding="24" HorizontalAlignment="Stretch">
             <TextBlock Text="{Binding [Nav_MyPc], Source={StaticResource Loc}}"
                        Style="{StaticResource TitleTextBlockStyle}" />
 
