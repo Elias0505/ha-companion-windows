@@ -79,7 +79,10 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     {
         _pushWebhookId = string.IsNullOrWhiteSpace(webhookId) ? null : webhookId;
         var socket = _activeSocket;
-        if (socket is not null && _pushWebhookId is not null)
+        // Subscribe only if this connection has no live subscription yet — the connect
+        // handler already subscribes when a webhook id was known at connect time, so an
+        // unconditional subscribe here would double up and deliver every toast twice.
+        if (socket is not null && _pushWebhookId is not null && _pushSubId == 0)
             _ = SubscribePushAsync(socket, CancellationToken.None);
     }
 
@@ -309,6 +312,28 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     {
         var root = doc.RootElement;
         var type = root.TryGetProperty("type", out var typeEl) ? typeEl.GetString() : null;
+
+        // Surface the push-channel subscribe outcome (sent fire-and-forget, so no pending TCS):
+        // HA answers success=false when the registration lacks push_websocket_channel in app_data.
+        if (type == "result"
+            && root.TryGetProperty("id", out var pushIdEl)
+            && pushIdEl.TryGetInt32(out var pushResultId)
+            && _pushSubId != 0 && pushResultId == _pushSubId)
+        {
+            var ok = root.TryGetProperty("success", out var ps) && ps.GetBoolean();
+            if (ok)
+            {
+                _logger.LogInformation("Push notification channel subscribed");
+            }
+            else
+            {
+                var msg = root.TryGetProperty("error", out var e) && e.TryGetProperty("message", out var m)
+                    ? m.GetString() : "unknown";
+                _logger.LogWarning("Push channel subscribe rejected: {Message}", msg);
+                _pushSubId = 0; // don't route events to a dead subscription
+            }
+            return;
+        }
 
         if (type == "result"
             && root.TryGetProperty("id", out var idEl)

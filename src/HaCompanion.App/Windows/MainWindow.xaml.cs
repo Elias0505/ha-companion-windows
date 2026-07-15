@@ -109,6 +109,9 @@ public sealed partial class MainWindow : Window
                 case "automations":
                     ContentFrame.Navigate(typeof(AutomationsPage));
                     break;
+                case "mypc":
+                    ContentFrame.Navigate(typeof(MyPcPage));
+                    break;
                 case "settings":
                     ContentFrame.Navigate(typeof(SettingsPage));
                     break;

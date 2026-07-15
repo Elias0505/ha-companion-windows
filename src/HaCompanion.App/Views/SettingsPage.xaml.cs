@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.IO;
 using HaCompanion.App.Controls;
+using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using global::Windows.Storage;
+using global::Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace HaCompanion.App.Views;
 
@@ -28,6 +33,63 @@ public sealed partial class SettingsPage : Page
         ViewModel.Token = TokenBox.Password;
 
     public bool IsNotBusy(bool isBusy) => !isBusy;
+
+    // --- Config backup: export/import the whole config as one portable JSON ---
+
+    private LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
+
+    private IntPtr WindowHandle => WindowNative.GetWindowHandle(App.MainWindow);
+
+    private async void Export_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var picker = new FileSavePicker { SuggestedFileName = "ha-companion-config" };
+            picker.FileTypeChoices.Add("JSON", new List<string> { ".json" });
+            InitializeWithWindow.Initialize(picker, WindowHandle);
+
+            var file = await picker.PickSaveFileAsync();
+            if (file is null)
+                return;
+            var json = App.Services.GetRequiredService<IConfigBackupService>().Export();
+            await FileIO.WriteTextAsync(file, json);
+            BackupStatus.Text = string.Format(Loc["Backup_Exported"], file.Name);
+        }
+        catch (Exception ex)
+        {
+            BackupStatus.Text = Loc["Backup_Failed"];
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+    }
+
+    private async void Import_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var picker = new FileOpenPicker();
+            picker.FileTypeFilter.Add(".json");
+            InitializeWithWindow.Initialize(picker, WindowHandle);
+
+            var file = await picker.PickSingleFileAsync();
+            if (file is null)
+                return;
+            var json = await FileIO.ReadTextAsync(file);
+            var ok = App.Services.GetRequiredService<IConfigBackupService>().Import(json);
+            // Re-apply everything that reads from the stores at runtime.
+            if (ok)
+            {
+                App.Services.GetRequiredService<IShortcutManager>().Reload();
+                App.Services.GetRequiredService<IRulesEngine>().Reload();
+                App.Services.GetRequiredService<INotifyRulesEngine>().Reload();
+            }
+            BackupStatus.Text = Loc[ok ? "Backup_Imported" : "Backup_Invalid"];
+        }
+        catch (Exception ex)
+        {
+            BackupStatus.Text = Loc["Backup_Failed"];
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+    }
 
     // --- Custom hotkey capture: let the user press any Ctrl/Alt/Shift(+Win)+key combo ---
 

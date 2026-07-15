@@ -176,6 +176,7 @@ public partial class App : Application
         services.AddSingleton<IPushNotificationReceiver, PushNotificationReceiver>();
         services.AddSingleton<INotifyRulesStore, NotifyRulesStore>();
         services.AddSingleton<INotifyRulesEngine, NotifyRulesEngine>();
+        services.AddSingleton<IConfigBackupService, ConfigBackupService>();
 
         // View models
         services.AddSingleton<EntityCatalogViewModel>();
@@ -185,6 +186,7 @@ public partial class App : Application
         services.AddSingleton<QuickPanelViewModel>();
         services.AddSingleton<ShortcutsViewModel>();
         services.AddSingleton<AutomationsViewModel>();
+        services.AddSingleton<MyPcViewModel>();
 
         // Windows
         services.AddSingleton<MainWindow>();

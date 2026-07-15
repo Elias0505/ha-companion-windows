@@ -100,6 +100,17 @@
 
             <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" TextWrapping="Wrap" Opacity="0.9" />
 
+            <!-- Backup: export/import the whole config as one portable JSON (no secrets) -->
+            <TextBlock Text="{Binding [Backup_Title], Source={StaticResource Loc}}"
+                       Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0" />
+            <TextBlock Text="{Binding [Backup_Hint], Source={StaticResource Loc}}"
+                       Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="{Binding [Backup_Export], Source={StaticResource Loc}}" Click="Export_Click" />
+                <Button Content="{Binding [Backup_Import], Source={StaticResource Loc}}" Click="Import_Click" />
+            </StackPanel>
+            <TextBlock x:Name="BackupStatus" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+
             <TextBlock Text="{x:Bind ViewModel.AppVersion}" FontSize="12" Opacity="0.45" Margin="0,8,0,0" />
         </StackPanel>
     </ScrollViewer>
