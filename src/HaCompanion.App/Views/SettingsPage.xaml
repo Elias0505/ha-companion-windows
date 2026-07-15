@@ -8,110 +8,162 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
 
-    <ScrollViewer>
-        <StackPanel Spacing="16" MaxWidth="580" Padding="24" HorizontalAlignment="Left">
-            <TextBlock Text="{Binding [Set_Title], Source={StaticResource Loc}}" Style="{StaticResource TitleTextBlockStyle}" />
-            <TextBlock TextWrapping="Wrap" Opacity="0.7"
-                       Text="{Binding [Set_Intro], Source={StaticResource Loc}}" />
+    <Page.Resources>
+        <!-- Grouped setting cards: scannable, and side-by-side on a wide window. -->
+        <Style x:Key="SettingsCard" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+        <Style x:Key="CardHeader" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+    </Page.Resources>
 
-            <TextBox Header="{Binding [Set_BaseUrl], Source={StaticResource Loc}}"
-                     PlaceholderText="https://homeassistant.local:8123"
-                     Text="{x:Bind ViewModel.BaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+    <ScrollViewer SizeChanged="Content_SizeChanged">
+        <Grid x:Name="Root" Padding="24" HorizontalAlignment="Center" MaxWidth="1040"
+              RowSpacing="16" ColumnSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-            <PasswordBox x:Name="TokenBox"
-                         Header="{Binding [Set_Token], Source={StaticResource Loc}}"
-                         PasswordChanged="TokenBox_PasswordChanged" />
-
-            <ToggleSwitch Header="{Binding [Set_IgnoreCert], Source={StaticResource Loc}}"
-                          IsOn="{x:Bind ViewModel.IgnoreCertificateErrors, Mode=TwoWay}" />
-
-            <ComboBox Header="{Binding [Set_Language], Source={StaticResource Loc}}"
-                      HorizontalAlignment="Stretch"
-                      DisplayMemberPath="DisplayName"
-                      ItemsSource="{x:Bind ViewModel.Languages}"
-                      SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}" />
-
-            <ToggleSwitch Header="{Binding [Set_AutoHide], Source={StaticResource Loc}}"
-                          IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
-
-            <ComboBox Header="{Binding [Set_StartView], Source={StaticResource Loc}}"
-                      HorizontalAlignment="Stretch"
-                      DisplayMemberPath="Label"
-                      ItemsSource="{x:Bind ViewModel.StartViewOptions}"
-                      SelectedItem="{x:Bind ViewModel.SelectedStartView, Mode=TwoWay}" />
-
-            <Slider Header="{Binding [Set_Width], Source={StaticResource Loc}}"
-                    Minimum="320" Maximum="900" StepFrequency="20" TickFrequency="0"
-                    HorizontalAlignment="Stretch"
-                    Value="{x:Bind ViewModel.QuickPanelWidth, Mode=TwoWay}" />
-
-            <ToggleSwitch Header="{Binding [Set_DragResize], Source={StaticResource Loc}}"
-                          IsOn="{x:Bind ViewModel.QuickPanelDragResize, Mode=TwoWay}" />
-
-            <ToggleSwitch Header="{Binding [Set_Autostart], Source={StaticResource Loc}}"
-                          IsOn="{x:Bind ViewModel.Autostart, Mode=TwoWay}" />
-
-            <ToggleSwitch Header="{Binding [Set_HaNotify], Source={StaticResource Loc}}"
-                          IsOn="{x:Bind ViewModel.ShowHaNotifications, Mode=TwoWay}" />
-
-            <!-- PC sensors -> Home Assistant (mobile_app device) -->
-            <TextBlock Text="{Binding [Set_SensorsTitle], Source={StaticResource Loc}}"
-                       Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0" />
-            <ToggleSwitch Header="{Binding [Set_Sensors], Source={StaticResource Loc}}"
-                          IsOn="{x:Bind ViewModel.ReportSensors, Mode=TwoWay}" />
-            <TextBlock Text="{Binding [Set_SensorsHint], Source={StaticResource Loc}}"
-                       Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
-            <NumberBox Header="{Binding [Set_SensorsIdle], Source={StaticResource Loc}}"
-                       Value="{x:Bind ViewModel.IdleSensorMinutes, Mode=TwoWay}"
-                       Minimum="1" Maximum="720" SpinButtonPlacementMode="Compact"
-                       HorizontalAlignment="Left" Width="220" />
-            <TextBlock Text="{x:Bind ViewModel.SensorStatus, Mode=OneWay}"
-                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
-
-            <ComboBox Header="{Binding [Set_Hotkey], Source={StaticResource Loc}}"
-                      HorizontalAlignment="Stretch"
-                      ItemsSource="{x:Bind ViewModel.HotkeyPresets}"
-                      SelectedItem="{x:Bind ViewModel.Hotkey, Mode=TwoWay}" />
-            <Button x:Name="RecordHotkeyButton"
-                    Content="{Binding [Set_RecordHotkey], Source={StaticResource Loc}}"
-                    HorizontalAlignment="Left"
-                    Click="RecordHotkeyButton_Click"
-                    KeyDown="RecordHotkeyButton_KeyDown"
-                    LostFocus="RecordHotkeyButton_LostFocus" />
-            <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                       Text="{x:Bind ViewModel.HotkeyStatus, Mode=OneWay}" />
-
-            <Expander Header="{Binding [Set_Tips], Source={StaticResource Loc}}" HorizontalAlignment="Stretch">
-                <StackPanel Spacing="8" Padding="4,4,4,8">
-                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip1], Source={StaticResource Loc}}" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip2], Source={StaticResource Loc}}" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip3], Source={StaticResource Loc}}" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip4], Source={StaticResource Loc}}" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip5], Source={StaticResource Loc}}" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip6], Source={StaticResource Loc}}" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip7], Source={StaticResource Loc}}" />
-                </StackPanel>
-            </Expander>
-
-            <Button Content="{Binding [Set_Connect], Source={StaticResource Loc}}"
-                    Style="{StaticResource AccentButtonStyle}"
-                    IsEnabled="{x:Bind IsNotBusy(ViewModel.IsBusy), Mode=OneWay}"
-                    Command="{x:Bind ViewModel.SaveAndConnectCommand}" />
-
-            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" TextWrapping="Wrap" Opacity="0.9" />
-
-            <!-- Backup: export/import the whole config as one portable JSON (no secrets) -->
-            <TextBlock Text="{Binding [Backup_Title], Source={StaticResource Loc}}"
-                       Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0" />
-            <TextBlock Text="{Binding [Backup_Hint], Source={StaticResource Loc}}"
-                       Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="{Binding [Backup_Export], Source={StaticResource Loc}}" Click="Export_Click" />
-                <Button Content="{Binding [Backup_Import], Source={StaticResource Loc}}" Click="Import_Click" />
+            <!-- Title (spans both columns) -->
+            <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Spacing="4">
+                <TextBlock Text="{Binding [Set_Title], Source={StaticResource Loc}}" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock TextWrapping="Wrap" Opacity="0.7" Text="{Binding [Set_Intro], Source={StaticResource Loc}}" />
             </StackPanel>
-            <TextBlock x:Name="BackupStatus" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
 
-            <TextBlock Text="{x:Bind ViewModel.AppVersion}" FontSize="12" Opacity="0.45" Margin="0,8,0,0" />
-        </StackPanel>
+            <!-- ===== left column ===== -->
+            <StackPanel x:Name="LeftCol" Grid.Row="1" Grid.Column="0" Spacing="16" VerticalAlignment="Top">
+
+                <!-- Verbindung -->
+                <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding [Set_SecConnection], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
+                        <TextBox Header="{Binding [Set_BaseUrl], Source={StaticResource Loc}}"
+                                 PlaceholderText="https://homeassistant.local:8123"
+                                 Text="{x:Bind ViewModel.BaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <PasswordBox x:Name="TokenBox"
+                                     Header="{Binding [Set_Token], Source={StaticResource Loc}}"
+                                     PasswordChanged="TokenBox_PasswordChanged" />
+                        <ToggleSwitch Header="{Binding [Set_IgnoreCert], Source={StaticResource Loc}}"
+                                      IsOn="{x:Bind ViewModel.IgnoreCertificateErrors, Mode=TwoWay}" />
+                        <Button Content="{Binding [Set_Connect], Source={StaticResource Loc}}"
+                                Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"
+                                IsEnabled="{x:Bind IsNotBusy(ViewModel.IsBusy), Mode=OneWay}"
+                                Command="{x:Bind ViewModel.SaveAndConnectCommand}" />
+                        <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" TextWrapping="Wrap" Opacity="0.9" FontSize="13" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Schnellzugriff -->
+                <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding [Set_SecPanel], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
+                        <ComboBox Header="{Binding [Set_StartView], Source={StaticResource Loc}}"
+                                  HorizontalAlignment="Stretch" DisplayMemberPath="Label"
+                                  ItemsSource="{x:Bind ViewModel.StartViewOptions}"
+                                  SelectedItem="{x:Bind ViewModel.SelectedStartView, Mode=TwoWay}" />
+                        <Slider Header="{Binding [Set_Width], Source={StaticResource Loc}}"
+                                Minimum="320" Maximum="900" StepFrequency="20" TickFrequency="0"
+                                HorizontalAlignment="Stretch"
+                                Value="{x:Bind ViewModel.QuickPanelWidth, Mode=TwoWay}" />
+                        <ToggleSwitch Header="{Binding [Set_AutoHide], Source={StaticResource Loc}}"
+                                      IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
+                        <ToggleSwitch Header="{Binding [Set_DragResize], Source={StaticResource Loc}}"
+                                      IsOn="{x:Bind ViewModel.QuickPanelDragResize, Mode=TwoWay}" />
+                        <ComboBox Header="{Binding [Set_Hotkey], Source={StaticResource Loc}}"
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{x:Bind ViewModel.HotkeyPresets}"
+                                  SelectedItem="{x:Bind ViewModel.Hotkey, Mode=TwoWay}" />
+                        <Button x:Name="RecordHotkeyButton"
+                                Content="{Binding [Set_RecordHotkey], Source={StaticResource Loc}}"
+                                HorizontalAlignment="Left"
+                                Click="RecordHotkeyButton_Click"
+                                KeyDown="RecordHotkeyButton_KeyDown"
+                                LostFocus="RecordHotkeyButton_LostFocus" />
+                        <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                                   Text="{x:Bind ViewModel.HotkeyStatus, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Tipps -->
+                <Expander Header="{Binding [Set_Tips], Source={StaticResource Loc}}" HorizontalAlignment="Stretch">
+                    <StackPanel Spacing="8" Padding="4,4,4,8">
+                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip1], Source={StaticResource Loc}}" />
+                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip2], Source={StaticResource Loc}}" />
+                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip3], Source={StaticResource Loc}}" />
+                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip4], Source={StaticResource Loc}}" />
+                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip5], Source={StaticResource Loc}}" />
+                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip6], Source={StaticResource Loc}}" />
+                        <TextBlock TextWrapping="Wrap" Opacity="0.85" Text="{Binding [Set_Tip7], Source={StaticResource Loc}}" />
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+
+            <!-- ===== right column ===== -->
+            <StackPanel x:Name="RightCol" Grid.Row="1" Grid.Column="1" Spacing="16" VerticalAlignment="Top">
+
+                <!-- Allgemein -->
+                <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding [Set_SecGeneral], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
+                        <ComboBox Header="{Binding [Set_Language], Source={StaticResource Loc}}"
+                                  HorizontalAlignment="Stretch" DisplayMemberPath="DisplayName"
+                                  ItemsSource="{x:Bind ViewModel.Languages}"
+                                  SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}" />
+                        <ToggleSwitch Header="{Binding [Set_Autostart], Source={StaticResource Loc}}"
+                                      IsOn="{x:Bind ViewModel.Autostart, Mode=TwoWay}" />
+                        <ToggleSwitch Header="{Binding [Set_HaNotify], Source={StaticResource Loc}}"
+                                      IsOn="{x:Bind ViewModel.ShowHaNotifications, Mode=TwoWay}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- PC-Sensoren -->
+                <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding [Set_SensorsTitle], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
+                        <ToggleSwitch Header="{Binding [Set_Sensors], Source={StaticResource Loc}}"
+                                      IsOn="{x:Bind ViewModel.ReportSensors, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding [Set_SensorsHint], Source={StaticResource Loc}}"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                        <NumberBox Header="{Binding [Set_SensorsIdle], Source={StaticResource Loc}}"
+                                   Value="{x:Bind ViewModel.IdleSensorMinutes, Mode=TwoWay}"
+                                   Minimum="1" Maximum="720" SpinButtonPlacementMode="Compact"
+                                   HorizontalAlignment="Left" Width="220" />
+                        <TextBlock Text="{x:Bind ViewModel.SensorStatus, Mode=OneWay}"
+                                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Sicherung -->
+                <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding [Backup_Title], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
+                        <TextBlock Text="{Binding [Backup_Hint], Source={StaticResource Loc}}"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="{Binding [Backup_Export], Source={StaticResource Loc}}" Click="Export_Click" />
+                            <Button Content="{Binding [Backup_Import], Source={StaticResource Loc}}" Click="Import_Click" />
+                        </StackPanel>
+                        <TextBlock x:Name="BackupStatus" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Version (spans, bottom) -->
+            <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Text="{x:Bind ViewModel.AppVersion}"
+                       FontSize="12" Opacity="0.45" Margin="0,4,0,0" />
+        </Grid>
     </ScrollViewer>
 </Page>

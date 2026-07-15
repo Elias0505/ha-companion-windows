@@ -210,7 +210,10 @@
     "Backup_Imported": "Import successful — reconnect if needed.",
     "Backup_Invalid": "Not a valid HA Companion backup.",
     "Backup_Failed": "Operation failed.",
-    "Rx_Command": "Command"
+    "Rx_Command": "Command",
+    "Set_SecConnection": "Connection",
+    "Set_SecPanel": "Quick panel",
+    "Set_SecGeneral": "General"
   },
   "de": {
     "Nav_Start": "Start",
@@ -423,7 +426,10 @@
     "Backup_Imported": "Import erfolgreich — ggf. neu verbinden.",
     "Backup_Invalid": "Keine gültige HA-Companion-Sicherung.",
     "Backup_Failed": "Vorgang fehlgeschlagen.",
-    "Rx_Command": "Befehl"
+    "Rx_Command": "Befehl",
+    "Set_SecConnection": "Verbindung",
+    "Set_SecPanel": "Schnellzugriff",
+    "Set_SecGeneral": "Allgemein"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -636,7 +642,10 @@
     "Backup_Imported": "Importación correcta — reconecta si es necesario.",
     "Backup_Invalid": "No es una copia válida de HA Companion.",
     "Backup_Failed": "Operación fallida.",
-    "Rx_Command": "Comando"
+    "Rx_Command": "Comando",
+    "Set_SecConnection": "Conexión",
+    "Set_SecPanel": "Panel rápido",
+    "Set_SecGeneral": "General"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -849,7 +858,10 @@
     "Backup_Imported": "Import réussi — reconnectez-vous si nécessaire.",
     "Backup_Invalid": "Sauvegarde HA Companion non valide.",
     "Backup_Failed": "Échec de l'opération.",
-    "Rx_Command": "Commande"
+    "Rx_Command": "Commande",
+    "Set_SecConnection": "Connexion",
+    "Set_SecPanel": "Panneau rapide",
+    "Set_SecGeneral": "Général"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1062,7 +1074,10 @@
     "Backup_Imported": "导入成功 — 如有需要请重新连接。",
     "Backup_Invalid": "不是有效的 HA Companion 备份。",
     "Backup_Failed": "操作失败。",
-    "Rx_Command": "命令"
+    "Rx_Command": "命令",
+    "Set_SecConnection": "连接",
+    "Set_SecPanel": "快捷面板",
+    "Set_SecGeneral": "常规"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1275,6 +1290,9 @@
     "Backup_Imported": "आयात सफल — ज़रूरत हो तो फिर कनेक्ट करें।",
     "Backup_Invalid": "मान्य HA Companion बैकअप नहीं।",
     "Backup_Failed": "कार्रवाई विफल।",
-    "Rx_Command": "कमांड"
+    "Rx_Command": "कमांड",
+    "Set_SecConnection": "कनेक्शन",
+    "Set_SecPanel": "क्विक पैनल",
+    "Set_SecGeneral": "सामान्य"
   }
 }

@@ -34,6 +34,40 @@ public sealed partial class SettingsPage : Page
 
     public bool IsNotBusy(bool isBusy) => !isBusy;
 
+    private bool _twoColumn = true;
+
+    // Reflow the settings cards: two columns side by side when there's room (fullscreen /
+    // wide window), a single stacked column otherwise. Driven by the real content width
+    // because the XAML VisualStateManager's attached-Grid setters proved unreliable here.
+    private void Content_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var wide = e.NewSize.Width >= 1080;
+        if (wide == _twoColumn)
+            return;
+        _twoColumn = wide;
+        if (wide)
+        {
+            // side by side: each column spans one grid column
+            Grid.SetColumnSpan(LeftCol, 1);
+            Grid.SetRow(RightCol, 1);
+            Grid.SetColumn(RightCol, 1);
+            Grid.SetColumnSpan(RightCol, 1);
+            Root.MaxWidth = 1040;
+            Root.HorizontalAlignment = HorizontalAlignment.Center;
+        }
+        else
+        {
+            // stacked: both columns span the full width (the grid keeps two columns,
+            // so without the span each card would sit at half width)
+            Grid.SetColumnSpan(LeftCol, 2);
+            Grid.SetRow(RightCol, 2);
+            Grid.SetColumn(RightCol, 0);
+            Grid.SetColumnSpan(RightCol, 2);
+            Root.MaxWidth = 640;
+            Root.HorizontalAlignment = HorizontalAlignment.Left;
+        }
+    }
+
     // --- Config backup: export/import the whole config as one portable JSON ---
 
     private LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
