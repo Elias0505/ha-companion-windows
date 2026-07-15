@@ -10,6 +10,7 @@ public sealed class NotificationService : INotificationService
 {
     private readonly ILogger<NotificationService> _logger;
     private bool _available;
+    private int _toastSeq; // unique tag per toast so Windows shows each as its own banner
 
     public NotificationService(ILogger<NotificationService> logger) => _logger = logger;
 
@@ -46,6 +47,9 @@ public sealed class NotificationService : INotificationService
                 .AddText(title)
                 .AddText(message)
                 .BuildNotification();
+            // A unique tag stops Windows from collapsing consecutive toasts that share a title
+            // (e.g. a light's "on" then "off") into a single silently-updated notification.
+            toast.Tag = $"hac-{Interlocked.Increment(ref _toastSeq)}";
             AppNotificationManager.Default.Show(toast);
             _logger.LogInformation("Toast shown: {Title}", title);
         }
@@ -66,7 +70,9 @@ public sealed class NotificationService : INotificationService
                 .AddText(message);
             foreach (var (action, label) in actions.Take(5)) // Windows caps toast buttons at 5
                 builder.AddButton(new AppNotificationButton(label).AddArgument("action", action));
-            AppNotificationManager.Default.Show(builder.BuildNotification());
+            var toast = builder.BuildNotification();
+            toast.Tag = $"hac-{Interlocked.Increment(ref _toastSeq)}";
+            AppNotificationManager.Default.Show(toast);
             _logger.LogInformation("Toast with {Count} action(s) shown: {Title}", actions.Count, title);
         }
         catch (Exception ex)
