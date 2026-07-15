@@ -99,6 +99,11 @@ public partial class App : Application
         // PC sensors -> HA (mobile_app device); inert until the settings toggle is on.
         Services.GetRequiredService<ISensorPublisher>().Initialize();
 
+        // HA -> PC: pushed notifications (toasts with actions) + PC commands, and the
+        // local "benachrichtige mich wenn ..." rules over the live entity stream.
+        Services.GetRequiredService<IPushNotificationReceiver>().Initialize();
+        Services.GetRequiredService<INotifyRulesEngine>().Initialize();
+
         // Keep an existing autostart entry pointing at the current exe (path may change on update).
         Services.GetRequiredService<IStartupService>().SelfHeal();
 
@@ -167,6 +172,10 @@ public partial class App : Application
         services.AddSingleton<IRulesStore, RulesStore>();
         services.AddSingleton<IRulesEngine, RulesEngine>();
         services.AddSingleton<ISensorPublisher, SensorPublisher>();
+        services.AddSingleton<IPcCommandExecutor, PcCommandExecutor>();
+        services.AddSingleton<IPushNotificationReceiver, PushNotificationReceiver>();
+        services.AddSingleton<INotifyRulesStore, NotifyRulesStore>();
+        services.AddSingleton<INotifyRulesEngine, NotifyRulesEngine>();
 
         // View models
         services.AddSingleton<EntityCatalogViewModel>();

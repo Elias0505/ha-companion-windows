@@ -8,4 +8,10 @@ public interface INotificationService
     void Initialize();
 
     void Show(string title, string message);
+
+    /// <summary>Toast with clickable buttons; button clicks raise <see cref="ActionInvoked"/>.</summary>
+    void ShowWithActions(string title, string message, IReadOnlyList<(string Action, string Title)> actions);
+
+    /// <summary>Raised with the action id when the user clicks a toast button.</summary>
+    event EventHandler<string>? ActionInvoked;
 }

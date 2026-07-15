@@ -74,6 +74,13 @@ public sealed class SettingsStore : ISettingsStore
                 MobileAppWebhookId = Unprotect(persisted.WebhookIdProtected),
                 IdleSensorThresholdMinutes =
                     persisted.IdleSensorThresholdMinutes is >= 1 and <= 720 ? persisted.IdleSensorThresholdMinutes : 5,
+                AllowCmdLock = persisted.AllowCmdLock,
+                AllowCmdMonitorOff = persisted.AllowCmdMonitorOff,
+                AllowCmdVolume = persisted.AllowCmdVolume,
+                AllowCmdSleep = persisted.AllowCmdSleep,
+                AllowCmdShutdown = persisted.AllowCmdShutdown,
+                AllowCmdLaunch = persisted.AllowCmdLaunch,
+                LaunchWhitelist = persisted.LaunchWhitelist ?? new List<string>(),
                 Token = Unprotect(persisted.TokenProtected),
             };
         }
@@ -107,6 +114,13 @@ public sealed class SettingsStore : ISettingsStore
             MobileAppDeviceId = settings.MobileAppDeviceId,
             WebhookIdProtected = Protect(settings.MobileAppWebhookId),
             IdleSensorThresholdMinutes = settings.IdleSensorThresholdMinutes,
+            AllowCmdLock = settings.AllowCmdLock,
+            AllowCmdMonitorOff = settings.AllowCmdMonitorOff,
+            AllowCmdVolume = settings.AllowCmdVolume,
+            AllowCmdSleep = settings.AllowCmdSleep,
+            AllowCmdShutdown = settings.AllowCmdShutdown,
+            AllowCmdLaunch = settings.AllowCmdLaunch,
+            LaunchWhitelist = settings.LaunchWhitelist.ToList(),
             TokenProtected = Protect(settings.Token),
         };
 
@@ -135,6 +149,13 @@ public sealed class SettingsStore : ISettingsStore
         MobileAppDeviceId = s.MobileAppDeviceId,
         MobileAppWebhookId = s.MobileAppWebhookId,
         IdleSensorThresholdMinutes = s.IdleSensorThresholdMinutes,
+        AllowCmdLock = s.AllowCmdLock,
+        AllowCmdMonitorOff = s.AllowCmdMonitorOff,
+        AllowCmdVolume = s.AllowCmdVolume,
+        AllowCmdSleep = s.AllowCmdSleep,
+        AllowCmdShutdown = s.AllowCmdShutdown,
+        AllowCmdLaunch = s.AllowCmdLaunch,
+        LaunchWhitelist = s.LaunchWhitelist.ToList(),
     };
 
     private string Protect(string plain)
@@ -187,6 +208,13 @@ public sealed class SettingsStore : ISettingsStore
         public string MobileAppDeviceId { get; set; } = string.Empty;
         public string WebhookIdProtected { get; set; } = string.Empty;
         public int IdleSensorThresholdMinutes { get; set; } = 5;
+        public bool AllowCmdLock { get; set; } = true;
+        public bool AllowCmdMonitorOff { get; set; } = true;
+        public bool AllowCmdVolume { get; set; } = true;
+        public bool AllowCmdSleep { get; set; }
+        public bool AllowCmdShutdown { get; set; }
+        public bool AllowCmdLaunch { get; set; }
+        public List<string>? LaunchWhitelist { get; set; }
         public string TokenProtected { get; set; } = string.Empty;
     }
 }

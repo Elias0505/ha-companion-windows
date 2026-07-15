@@ -49,6 +49,7 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
     private long _registerBackoffUntil;
     private bool _registering;
     private bool _audioSensorRegistered; // audio value arrives ~6s after start (hysteresis)
+    private bool _pushChannelReady;      // update_registration + channel subscribe, once per session
 
     public string StatusText { get; private set; } = "";
 
@@ -169,18 +170,8 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                         settings.MobileAppDeviceId = Guid.NewGuid().ToString("N");
                         _settings.Save(settings);
                     }
-                    var request = new MobileAppRegistrationRequest(
-                        settings.MobileAppDeviceId,
-                        "hacompanion.windows",
-                        "HA Companion",
-                        typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0",
-                        Environment.MachineName,
-                        "HA Companion",
-                        "Windows PC",
-                        "Windows",
-                        Environment.OSVersion.Version.ToString(),
-                        SupportsEncryption: false);
-                    var result = await _client.RegisterAsync(request).ConfigureAwait(false);
+                    var result = await _client.RegisterAsync(BuildRegistrationRequest(settings.MobileAppDeviceId))
+                        .ConfigureAwait(false);
                     if (result is null || string.IsNullOrEmpty(result.WebhookId))
                     {
                         _registerBackoffUntil = Environment.TickCount64 + RegisterBackoffMs;
@@ -201,6 +192,18 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                     continue;
                 }
                 _audioSensorRegistered = BuildValues().AudioPlaying is not null;
+
+                // Push channel (HA -> PC notifications/commands): older registrations lack
+                // app_data — upgrading once per session is idempotent and cheap. Then
+                // subscribe the websocket channel so notify.mobile_app_<device> arrives here.
+                if (!_pushChannelReady)
+                {
+                    _pushChannelReady = true;
+                    var webhookId = _settings.Load().MobileAppWebhookId;
+                    await _client.UpdateRegistrationAsync(webhookId,
+                        BuildRegistrationRequest(_settings.Load().MobileAppDeviceId)).ConfigureAwait(false);
+                    _connection.EnablePushChannel(webhookId);
+                }
 
                 await PushCoreAsync().ConfigureAwait(false);
                 return true;
@@ -275,6 +278,19 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
         _settings.Save(settings);
         _audioSensorRegistered = false;
     }
+
+    private static MobileAppRegistrationRequest BuildRegistrationRequest(string deviceId) => new(
+        deviceId,
+        "hacompanion.windows",
+        "HA Companion",
+        typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0",
+        Environment.MachineName,
+        "HA Companion",
+        "Windows PC",
+        "Windows",
+        Environment.OSVersion.Version.ToString(),
+        SupportsEncryption: false,
+        AppData: MobileAppRegistrationRequest.WebsocketPushAppData);
 
     private WindowsSensorValues BuildValues()
     {

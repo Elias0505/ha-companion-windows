@@ -58,6 +58,24 @@ public sealed class AppSettings
     /// <summary>Minutes without input before the "is idle" sensor turns on (1–720).</summary>
     public int IdleSensorThresholdMinutes { get; set; } = 5;
 
+    // --- PC commands HA may send via notify.mobile_app_<device> (per-command opt-in;
+    //     the critical ones stay off until the user flips them) ---
+
+    public bool AllowCmdLock { get; set; } = true;
+
+    public bool AllowCmdMonitorOff { get; set; } = true;
+
+    public bool AllowCmdVolume { get; set; } = true;
+
+    public bool AllowCmdSleep { get; set; }
+
+    public bool AllowCmdShutdown { get; set; }
+
+    public bool AllowCmdLaunch { get; set; }
+
+    /// <summary>Only these executables may be started by command_launch (full paths).</summary>
+    public List<string> LaunchWhitelist { get; set; } = new();
+
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);
 
