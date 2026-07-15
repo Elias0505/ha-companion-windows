@@ -32,6 +32,8 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private bool _ignoreCertErrors;
     private int _msgId;
     private int _notificationSubId; // id of the persistent_notification/subscribe command
+    private int _pushSubId;         // id of the mobile_app push channel subscription (0 = none)
+    private string? _pushWebhookId;
 
     public HaConnectionStatus Status { get; private set; } = HaConnectionStatus.Disconnected;
 
@@ -40,6 +42,10 @@ public sealed class HaWebSocketClient : IAsyncDisposable
 
     /// <summary>Raised when Home Assistant ADDS a persistent notification.</summary>
     public event EventHandler<HaNotification>? NotificationReceived;
+
+    /// <summary>Raised for every notification pushed over the mobile_app websocket channel
+    /// (raw event payload; parse with PushMessageParser).</summary>
+    public event EventHandler<JsonElement>? PushNotificationReceived;
 
     public HaWebSocketClient(ILogger<HaWebSocketClient> logger) => _logger = logger;
 
@@ -63,6 +69,52 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     {
         try { _backoffSkip?.Cancel(); }
         catch (ObjectDisposedException) { /* raced with the wait ending — fine */ }
+    }
+
+    /// <summary>
+    /// Subscribe the mobile_app push notification channel for this webhook id — on every
+    /// (re)connect, and immediately when already connected. Pass null/empty to disable.
+    /// </summary>
+    public void EnablePushChannel(string? webhookId)
+    {
+        _pushWebhookId = string.IsNullOrWhiteSpace(webhookId) ? null : webhookId;
+        var socket = _activeSocket;
+        if (socket is not null && _pushWebhookId is not null)
+            _ = SubscribePushAsync(socket, CancellationToken.None);
+    }
+
+    /// <summary>Acknowledge a pushed notification (the channel is subscribed with support_confirm).</summary>
+    public async Task ConfirmPushAsync(string confirmId, CancellationToken ct = default)
+    {
+        var socket = _activeSocket;
+        if (socket is null || _pushWebhookId is null)
+            return;
+        await SendRawAsync(socket, JsonSerializer.Serialize(new
+        {
+            id = NextId(),
+            type = "mobile_app/push_notification_confirm",
+            webhook_id = _pushWebhookId,
+            confirm_id = confirmId,
+        }, JsonOptions), ct).ConfigureAwait(false);
+    }
+
+    private async Task SubscribePushAsync(ClientWebSocket socket, CancellationToken ct)
+    {
+        try
+        {
+            _pushSubId = NextId();
+            await SendRawAsync(socket, JsonSerializer.Serialize(new
+            {
+                id = _pushSubId,
+                type = "mobile_app/push_notification_channel",
+                webhook_id = _pushWebhookId,
+                support_confirm = true,
+            }, JsonOptions), ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not subscribe the push notification channel");
+        }
     }
 
     public void Stop()
@@ -234,6 +286,11 @@ public sealed class HaWebSocketClient : IAsyncDisposable
                 type = "persistent_notification/subscribe",
             }, JsonOptions), ct).ConfigureAwait(false);
 
+            // mobile_app push channel (notify.mobile_app_<device> deliveries + PC commands)
+            _pushSubId = 0;
+            if (_pushWebhookId is not null)
+                await SubscribePushAsync(socket, ct).ConfigureAwait(false);
+
             // receive loop
             while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open)
             {
@@ -277,9 +334,11 @@ public sealed class HaWebSocketClient : IAsyncDisposable
 
         if (type == "event")
         {
-            if (root.TryGetProperty("id", out var evId) && evId.TryGetInt32(out var eid)
-                && eid == _notificationSubId)
+            var eid = root.TryGetProperty("id", out var evId) && evId.TryGetInt32(out var parsed) ? parsed : -1;
+            if (eid == _notificationSubId)
                 DispatchNotification(root);
+            else if (_pushSubId != 0 && eid == _pushSubId)
+                DispatchPush(root);
             else
                 DispatchStateChanged(root);
         }
@@ -312,6 +371,19 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not parse persistent notification payload");
+        }
+    }
+
+    private void DispatchPush(JsonElement root)
+    {
+        try
+        {
+            if (root.TryGetProperty("event", out var ev) && ev.ValueKind == JsonValueKind.Object)
+                PushNotificationReceived?.Invoke(this, ev.Clone());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not dispatch push notification payload");
         }
     }
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Collections.Concurrent;
+using System.Text.Json;
 using HaCompanion.Core.Configuration;
 using HaCompanion.Core.Models;
 using HaCompanion.Core.Rest;
@@ -24,6 +25,7 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         _ws.StatusChanged += OnWebSocketStatusChanged;
         _ws.StateChanged += OnWebSocketStateChanged;
         _ws.NotificationReceived += (_, n) => NotificationReceived?.Invoke(this, n);
+        _ws.PushNotificationReceived += (_, payload) => PushNotificationReceived?.Invoke(this, payload);
     }
 
     public HaConnectionStatus Status => _ws.Status;
@@ -35,6 +37,16 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
     public event EventHandler<HaEntityState>? EntityUpdated;
 
     public event EventHandler<HaNotification>? NotificationReceived;
+
+    public event EventHandler<JsonElement>? PushNotificationReceived;
+
+    public void EnablePushChannel(string? webhookId) => _ws.EnablePushChannel(webhookId);
+
+    public Task ConfirmPushAsync(string confirmId, CancellationToken ct = default) =>
+        _ws.ConfirmPushAsync(confirmId, ct);
+
+    public Task<bool> FireEventAsync(string eventType, object? data = null, CancellationToken ct = default) =>
+        _rest.FireEventAsync(eventType, data, ct);
 
     public async Task<bool> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default)
     {

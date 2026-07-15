@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Text.Json;
 using HaCompanion.Core.Configuration;
 using HaCompanion.Core.Models;
 
@@ -22,6 +23,18 @@ public interface IHaConnection
 
     /// <summary>Raised when Home Assistant adds a persistent notification.</summary>
     event EventHandler<HaNotification>? NotificationReceived;
+
+    /// <summary>Raised for every mobile_app websocket push (raw payload — PushMessageParser).</summary>
+    event EventHandler<JsonElement>? PushNotificationReceived;
+
+    /// <summary>Subscribe the mobile_app push channel (now and on every reconnect).</summary>
+    void EnablePushChannel(string? webhookId);
+
+    /// <summary>Acknowledge a pushed notification carrying a confirm id.</summary>
+    Task ConfirmPushAsync(string confirmId, CancellationToken ct = default);
+
+    /// <summary>Fire a custom event on the HA event bus (notification action callbacks).</summary>
+    Task<bool> FireEventAsync(string eventType, object? data = null, CancellationToken ct = default);
 
     /// <summary>Validate credentials, load the initial snapshot and start the live feed.</summary>
     Task<bool> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default);

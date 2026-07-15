@@ -82,6 +82,25 @@ public sealed class HaRestClient : IDisposable
         res.EnsureSuccessStatusCode();
     }
 
+    /// <summary>Fire a custom event on the HA event bus (notification action callbacks).</summary>
+    public async Task<bool> FireEventAsync(string eventType, object? data = null, CancellationToken ct = default)
+    {
+        try
+        {
+            using var req = BuildRequest(HttpMethod.Post, $"api/events/{eventType}");
+            req.Content = JsonContent.Create(data ?? new { }, options: JsonOptionsNoNulls);
+            using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode)
+                _logger.LogWarning("Fire event {Event} failed: HTTP {Status}", eventType, (int)res.StatusCode);
+            return res.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Fire event {Event} failed", eventType);
+            return false;
+        }
+    }
+
     /// <summary>Register this machine as a mobile_app device. Null on failure (logged).</summary>
     public async Task<MobileAppRegistrationResult?> RegisterMobileAppAsync(
         MobileAppRegistrationRequest request, CancellationToken ct = default)

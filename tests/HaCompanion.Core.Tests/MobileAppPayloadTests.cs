@@ -66,6 +66,30 @@ public class MobileAppPayloadTests
     }
 
     [Fact]
+    public void Registration_with_app_data_serializes_the_push_flag()
+    {
+        var req = new MobileAppRegistrationRequest(
+            "deadbeef", "hacompanion.windows", "HA Companion", "0.9.0",
+            "ELIAS-PC", "Custom", "Desktop", "Windows", "11", false,
+            MobileAppRegistrationRequest.WebsocketPushAppData);
+        var json = JsonSerializer.Serialize(req, Web);
+        Assert.Contains("\"app_data\":{\"push_websocket_channel\":true}", json);
+    }
+
+    [Fact]
+    public void Update_registration_envelope_has_the_right_shape()
+    {
+        var req = new MobileAppRegistrationRequest(
+            "deadbeef", "hacompanion.windows", "HA Companion", "0.9.0",
+            "ELIAS-PC", "Custom", "Desktop", "Windows", "11", false,
+            MobileAppRegistrationRequest.WebsocketPushAppData);
+        var json = JsonSerializer.Serialize(new WebhookEnvelope("update_registration", req), Web);
+        Assert.Contains("\"type\":\"update_registration\"", json);
+        Assert.Contains("\"data\":{", json);
+        Assert.Contains("\"push_websocket_channel\":true", json);
+    }
+
+    [Fact]
     public void Update_states_envelope_wraps_an_array()
     {
         var states = new[]

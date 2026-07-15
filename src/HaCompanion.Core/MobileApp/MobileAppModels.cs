@@ -7,7 +7,9 @@ namespace HaCompanion.Core.MobileApp;
 // would produce camelCase — every payload property carries an explicit [JsonPropertyName]
 // (pinned by MobileAppPayloadTests).
 
-/// <summary>POST api/mobile_app/registrations — registers this PC as a device in HA.</summary>
+/// <summary>POST api/mobile_app/registrations — registers this PC as a device in HA.
+/// app_data {"push_websocket_channel": true} makes HA create notify.mobile_app_&lt;device&gt;
+/// and deliver its calls over the websocket push channel.</summary>
 public sealed record MobileAppRegistrationRequest(
     [property: JsonPropertyName("device_id")] string DeviceId,
     [property: JsonPropertyName("app_id")] string AppId,
@@ -18,7 +20,12 @@ public sealed record MobileAppRegistrationRequest(
     [property: JsonPropertyName("model")] string Model,
     [property: JsonPropertyName("os_name")] string OsName,
     [property: JsonPropertyName("os_version")] string OsVersion,
-    [property: JsonPropertyName("supports_encryption")] bool SupportsEncryption);
+    [property: JsonPropertyName("supports_encryption")] bool SupportsEncryption,
+    [property: JsonPropertyName("app_data")] IReadOnlyDictionary<string, object>? AppData = null)
+{
+    public static IReadOnlyDictionary<string, object> WebsocketPushAppData { get; } =
+        new Dictionary<string, object> { ["push_websocket_channel"] = true };
+}
 
 public sealed record MobileAppRegistrationResult(
     [property: JsonPropertyName("webhook_id")] string WebhookId);
