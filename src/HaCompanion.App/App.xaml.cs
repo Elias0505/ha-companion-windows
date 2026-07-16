@@ -177,6 +177,7 @@ public partial class App : Application
         services.AddSingleton<INotifyRulesStore, NotifyRulesStore>();
         services.AddSingleton<INotifyRulesEngine, NotifyRulesEngine>();
         services.AddSingleton<IConfigBackupService, ConfigBackupService>();
+        services.AddSingleton<IDiagnosticsService, DiagnosticsService>();
 
         // View models
         services.AddSingleton<EntityCatalogViewModel>();

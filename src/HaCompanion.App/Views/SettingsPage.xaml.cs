@@ -125,6 +125,47 @@ public sealed partial class SettingsPage : Page
         }
     }
 
+    // --- Diagnostics: redacted report export + open-log-folder ---
+
+    private async void DiagExport_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var picker = new FileSavePicker
+            {
+                SuggestedFileName = "ha-companion-diagnostics-" + DateTime.Now.ToString("yyyy-MM-dd"),
+            };
+            picker.FileTypeChoices.Add("Text", new List<string> { ".txt" });
+            InitializeWithWindow.Initialize(picker, WindowHandle);
+
+            var file = await picker.PickSaveFileAsync();
+            if (file is null)
+                return;
+            var report = App.Services.GetRequiredService<IDiagnosticsService>().BuildReport();
+            await FileIO.WriteTextAsync(file, report);
+            DiagStatus.Text = string.Format(Loc["Diag_Saved"], file.Name);
+        }
+        catch (Exception ex)
+        {
+            DiagStatus.Text = Loc["Diag_Failed"];
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+    }
+
+    private void DiagOpenLogs_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var folder = App.Services.GetRequiredService<IDiagnosticsService>().LogFolderPath;
+            System.Diagnostics.Process.Start("explorer.exe", folder);
+        }
+        catch (Exception ex)
+        {
+            DiagStatus.Text = Loc["Diag_Failed"];
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+    }
+
     // --- Custom hotkey capture: let the user press any Ctrl/Alt/Shift(+Win)+key combo ---
 
     private void RecordHotkeyButton_Click(object sender, RoutedEventArgs e)

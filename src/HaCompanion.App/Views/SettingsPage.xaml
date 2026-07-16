@@ -159,6 +159,20 @@
                         <TextBlock x:Name="BackupStatus" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
+
+                <!-- Diagnose -->
+                <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding [Diag_Title], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
+                        <TextBlock Text="{Binding [Diag_Hint], Source={StaticResource Loc}}"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="{Binding [Diag_Export], Source={StaticResource Loc}}" Click="DiagExport_Click" />
+                            <Button Content="{Binding [Diag_OpenLogs], Source={StaticResource Loc}}" Click="DiagOpenLogs_Click" />
+                        </StackPanel>
+                        <TextBlock x:Name="DiagStatus" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
 
             <!-- Version (spans, bottom) -->

@@ -227,7 +227,13 @@
     "Repair_TlsText": "Home Assistant's TLS certificate is not trusted. If you use self-signed HTTPS, enable 'Ignore certificate errors' in Settings.",
     "Repair_Open": "Open settings",
     "Osd_Failed": "Action failed",
-    "Tile_ActionFailed": "Action failed"
+    "Tile_ActionFailed": "Action failed",
+    "Diag_Title": "Diagnostics",
+    "Diag_Hint": "Creates a report for bug reports: version, system, connection status, redacted settings and the last log lines. WITHOUT token/webhook.",
+    "Diag_Export": "Export report",
+    "Diag_OpenLogs": "Open log folder",
+    "Diag_Saved": "Saved: {0}",
+    "Diag_Failed": "Diagnostics export failed."
   },
   "de": {
     "Nav_Start": "Start",
@@ -457,7 +463,13 @@
     "Repair_TlsText": "Das TLS-Zertifikat von Home Assistant ist nicht vertrauenswürdig. Bei selbstsigniertem HTTPS aktiviere in den Einstellungen „Zertifikatsfehler ignorieren“.",
     "Repair_Open": "Einstellungen öffnen",
     "Osd_Failed": "Aktion fehlgeschlagen",
-    "Tile_ActionFailed": "Aktion fehlgeschlagen"
+    "Tile_ActionFailed": "Aktion fehlgeschlagen",
+    "Diag_Title": "Diagnose",
+    "Diag_Hint": "Erstellt einen Bericht für Fehlermeldungen: Version, System, Verbindungsstatus, redigierte Einstellungen und die letzten Log-Zeilen. OHNE Token/Webhook.",
+    "Diag_Export": "Bericht exportieren",
+    "Diag_OpenLogs": "Log-Ordner öffnen",
+    "Diag_Saved": "Gespeichert: {0}",
+    "Diag_Failed": "Diagnose-Export fehlgeschlagen."
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -687,7 +699,13 @@
     "Repair_TlsText": "El certificado TLS de Home Assistant no es de confianza. Si usas HTTPS autofirmado, activa «Ignorar errores de certificado» en Ajustes.",
     "Repair_Open": "Abrir ajustes",
     "Osd_Failed": "La acción falló",
-    "Tile_ActionFailed": "La acción falló"
+    "Tile_ActionFailed": "La acción falló",
+    "Diag_Title": "Diagnóstico",
+    "Diag_Hint": "Crea un informe para reportar errores: versión, sistema, estado de conexión, ajustes censurados y las últimas líneas del registro. SIN token/webhook.",
+    "Diag_Export": "Exportar informe",
+    "Diag_OpenLogs": "Abrir carpeta de registros",
+    "Diag_Saved": "Guardado: {0}",
+    "Diag_Failed": "Error al exportar el diagnóstico."
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -917,7 +935,13 @@
     "Repair_TlsText": "Le certificat TLS de Home Assistant n'est pas approuvé. Si vous utilisez un HTTPS auto-signé, activez « Ignorer les erreurs de certificat » dans les paramètres.",
     "Repair_Open": "Ouvrir les paramètres",
     "Osd_Failed": "Échec de l'action",
-    "Tile_ActionFailed": "Échec de l'action"
+    "Tile_ActionFailed": "Échec de l'action",
+    "Diag_Title": "Diagnostic",
+    "Diag_Hint": "Crée un rapport pour signaler des bugs : version, système, état de connexion, paramètres expurgés et dernières lignes du journal. SANS jeton/webhook.",
+    "Diag_Export": "Exporter le rapport",
+    "Diag_OpenLogs": "Ouvrir le dossier des journaux",
+    "Diag_Saved": "Enregistré : {0}",
+    "Diag_Failed": "Échec de l'export du diagnostic."
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1147,7 +1171,13 @@
     "Repair_TlsText": "Home Assistant 的 TLS 证书不受信任。如使用自签名 HTTPS，请在设置中启用“忽略证书错误”。",
     "Repair_Open": "打开设置",
     "Osd_Failed": "操作失败",
-    "Tile_ActionFailed": "操作失败"
+    "Tile_ActionFailed": "操作失败",
+    "Diag_Title": "诊断",
+    "Diag_Hint": "生成用于报告问题的报告：版本、系统、连接状态、脱敏后的设置和最近的日志。不含令牌/webhook。",
+    "Diag_Export": "导出报告",
+    "Diag_OpenLogs": "打开日志文件夹",
+    "Diag_Saved": "已保存：{0}",
+    "Diag_Failed": "诊断导出失败。"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1377,6 +1407,12 @@
     "Repair_TlsText": "Home Assistant का TLS प्रमाणपत्र विश्वसनीय नहीं है। यदि आप स्व-हस्ताक्षरित HTTPS उपयोग करते हैं, तो सेटिंग्स में 'प्रमाणपत्र त्रुटियां अनदेखा करें' सक्षम करें।",
     "Repair_Open": "सेटिंग्स खोलें",
     "Osd_Failed": "कार्रवाई विफल",
-    "Tile_ActionFailed": "कार्रवाई विफल"
+    "Tile_ActionFailed": "कार्रवाई विफल",
+    "Diag_Title": "निदान",
+    "Diag_Hint": "बग रिपोर्ट के लिए रिपोर्ट बनाता है: संस्करण, सिस्टम, कनेक्शन स्थिति, संपादित सेटिंग्स और अंतिम लॉग पंक्तियां। टोकन/वेबहुक के बिना।",
+    "Diag_Export": "रिपोर्ट निर्यात करें",
+    "Diag_OpenLogs": "लॉग फ़ोल्डर खोलें",
+    "Diag_Saved": "सहेजा गया: {0}",
+    "Diag_Failed": "निदान निर्यात विफल।"
   }
 }
