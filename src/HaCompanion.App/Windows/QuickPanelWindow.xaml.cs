@@ -363,7 +363,7 @@ public sealed partial class QuickPanelWindow : Window
         _animStartMs = Environment.TickCount64;
         if (!_timerBoosted)
         {
-            TimeBeginPeriod(1); // request 1 ms timer cadence for a smooth slide
+            _ = TimeBeginPeriod(1); // request 1 ms timer cadence for a smooth slide
             _timerBoosted = true; // paired with TimeEndPeriod when the slide completes
         }
         _animTimer.Stop();
@@ -386,7 +386,7 @@ public sealed partial class QuickPanelWindow : Window
         _animTimer.Stop();
         if (_timerBoosted)
         {
-            TimeEndPeriod(1);
+            _ = TimeEndPeriod(1);
             _timerBoosted = false;
         }
         MovePx(_animToX);
@@ -404,13 +404,13 @@ public sealed partial class QuickPanelWindow : Window
         // Paint the 1 px Win11 window outline in the panel's own dark colour so it can never
         // read as a thin white "selected" frame; keep crisp (non-rounded) corners.
         var borderColor = 0x00202020; // COLORREF 0x00BBGGRR ≈ dark panel base
-        DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
+        _ = DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
         var doNotRound = 1;
-        DwmSetWindowAttribute(_hwnd, 33, ref doNotRound, sizeof(int));
+        _ = DwmSetWindowAttribute(_hwnd, 33, ref doNotRound, sizeof(int));
     }
 
     private void MoveWindowPx(int x, int y, int w, int h) =>
-        SetWindowPos(_hwnd, IntPtr.Zero, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        _ = SetWindowPos(_hwnd, IntPtr.Zero, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
 
     private void MovePx(int x) => MoveWindowPx(x, _winY, _winW, _winH);
 
@@ -660,7 +660,7 @@ public sealed partial class QuickPanelWindow : Window
     {
         if (sender is not UIElement grip)
             return;
-        GetCursorPos(out var pt);
+        _ = GetCursorPos(out var pt);
         _dragStartCursorX = pt.X;
         _dragStartWidthPx = _winW;
         _dragMoveCount = 0;
@@ -674,7 +674,7 @@ public sealed partial class QuickPanelWindow : Window
         if (!_dragResizing)
             return;
         _dragMoveCount++;
-        GetCursorPos(out var pt);
+        _ = GetCursorPos(out var pt);
         // Screen-space delta keeps the drag stable even though the grabbed edge moves under it.
         // Dragging the left grip leftwards (negative delta) widens the panel.
         var widthPx = _dragStartWidthPx - (pt.X - _dragStartCursorX);
@@ -737,7 +737,7 @@ public sealed partial class QuickPanelWindow : Window
     private void LauncherBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
         var tile = args.ChosenSuggestion as EntityTileViewModel
-                   ?? SearchActionable(args.QueryText).FirstOrDefault();
+                   ?? (SearchActionable(args.QueryText) is { Count: > 0 } results ? results[0] : null);
         if (tile is null)
             return;
         LauncherFlyout.Hide();
@@ -746,6 +746,7 @@ public sealed partial class QuickPanelWindow : Window
 
     // ----- tile context flyout (stage-2 controls: brightness / temperature / media) -----
 
+#pragma warning disable CA1822
     private void TileFlyout_Opening(object sender, object e)
     {
         // No controls for this domain (switch, script, sensor, ...): don't show an empty flyout.
@@ -754,6 +755,7 @@ public sealed partial class QuickPanelWindow : Window
             && !(tile.HasBrightness || tile.HasClimate || tile.HasMedia))
             flyout.Hide();
     }
+#pragma warning restore CA1822
 
     private void BrightnessSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {

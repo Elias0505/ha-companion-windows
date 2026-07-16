@@ -70,7 +70,7 @@ public sealed class HotkeyService : IHotkeyService
     {
         if (IsRegistered)
         {
-            UnregisterHotKey(_hwnd, HOTKEY_ID);
+            _ = UnregisterHotKey(_hwnd, HOTKEY_ID);
             IsRegistered = false;
         }
     }
@@ -93,7 +93,7 @@ public sealed class HotkeyService : IHotkeyService
     public void ClearActions()
     {
         foreach (var id in _actionsByHotkeyId.Keys)
-            UnregisterHotKey(_hwnd, id);
+            _ = UnregisterHotKey(_hwnd, id);
         _actionsByHotkeyId.Clear();
     }
 
@@ -108,9 +108,10 @@ public sealed class HotkeyService : IHotkeyService
             // whole process down. Log and carry on; the next press gets a fresh attempt.
             try
             {
-                if ((int)wParam == HOTKEY_ID)
+                var hotkeyId = unchecked((int)wParam.ToInt64());
+                if (hotkeyId == HOTKEY_ID)
                     HotkeyPressed?.Invoke(this, EventArgs.Empty);
-                else if (_actionsByHotkeyId.TryGetValue((int)wParam, out var actionKey))
+                else if (_actionsByHotkeyId.TryGetValue(hotkeyId, out var actionKey))
                     ActionPressed?.Invoke(this, actionKey);
             }
             catch (Exception ex)

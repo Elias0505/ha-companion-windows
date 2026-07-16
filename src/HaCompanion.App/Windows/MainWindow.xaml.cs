@@ -69,7 +69,7 @@ public sealed partial class MainWindow : Window
 
         // Force the native title bar (incl. the min/max/close caption buttons) into dark mode.
         var useDark = 1;
-        DwmSetWindowAttribute(WindowNative.GetWindowHandle(this), 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref useDark, sizeof(int));
+        _ = DwmSetWindowAttribute(WindowNative.GetWindowHandle(this), 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref useDark, sizeof(int));
 
         if (AppWindowTitleBar.IsCustomizationSupported())
         {
@@ -157,7 +157,9 @@ public sealed partial class MainWindow : Window
     }
 
     // Dismiss hides the banner for THIS incident; the tray icon keeps showing offline.
+#pragma warning disable CA1822
     private void RepairBar_CloseClick(InfoBar sender, object args) => sender.IsOpen = false;
+#pragma warning restore CA1822
 
     private void RepairOpenSettings_Click(object sender, RoutedEventArgs e)
     {

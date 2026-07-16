@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Text.Json;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.Core.MobileApp;
@@ -11,7 +12,7 @@ namespace HaCompanion.App.Services;
 /// <summary>One received notification/command for the "Mein PC" history list.</summary>
 public sealed record ReceivedItem(DateTimeOffset At, string Title, string Message, bool IsCommand)
 {
-    public string TimeText => At.ToLocalTime().ToString("HH:mm");
+    public string TimeText => At.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture);
 }
 
 /// <summary>

@@ -265,8 +265,10 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         SetStatus(HaConnectionStatus.Connecting);
 
         using var socket = new ClientWebSocket();
+#pragma warning disable CA5359 // deliberate user opt-in: "ignore certificate errors" for self-signed HTTPS
         if (_ignoreCertErrors)
             socket.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+#pragma warning restore CA5359
 
         await socket.ConnectAsync(_uri, ct).ConfigureAwait(false);
 

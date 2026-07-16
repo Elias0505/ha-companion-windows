@@ -31,7 +31,7 @@ public enum TriggerParamKind
 public static class WindowsTriggers
 {
     /// <summary>Stable UI/persistence order.</summary>
-    public static IReadOnlyList<WindowsTrigger> All { get; } = (WindowsTrigger[])Enum.GetValues(typeof(WindowsTrigger));
+    public static IReadOnlyList<WindowsTrigger> All { get; } = Enum.GetValues<WindowsTrigger>();
 
     public static string ToKey(WindowsTrigger trigger) => trigger switch
     {

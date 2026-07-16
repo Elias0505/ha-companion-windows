@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using System.IO;
 using System.Text;
 using HaCompanion.Core.Diagnostics;
@@ -47,7 +48,7 @@ public sealed class DiagnosticsService : IDiagnosticsService
         var sb = new StringBuilder();
 
         sb.AppendLine("HA Companion diagnostics report");
-        sb.AppendLine("Generated: " + DateTimeOffset.Now.ToString("o"));
+        sb.AppendLine("Generated: " + DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture));
         sb.AppendLine("Note: the access token and webhook id are redacted. Review the base URL");
         sb.AppendLine("before sharing if you consider it sensitive.");
         sb.AppendLine();
@@ -91,7 +92,7 @@ public sealed class DiagnosticsService : IDiagnosticsService
 
     private void AppendLog(StringBuilder sb, string fileName)
     {
-        sb.AppendLine($"[{fileName} — last {TailBytes / 1024} KB]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[{fileName} — last {TailBytes / 1024} KB]");
         var tail = DiagnosticsRedactor.TailFile(Path.Combine(LogFolderPath, fileName), TailBytes);
         sb.AppendLine(string.IsNullOrEmpty(tail) ? "(empty)" : tail);
         sb.AppendLine();

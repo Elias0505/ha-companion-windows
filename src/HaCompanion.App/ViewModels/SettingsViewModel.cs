@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Infrastructure;
@@ -289,8 +290,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     /// <summary>App version shown at the bottom of the settings page.</summary>
+#pragma warning disable CA1822
     public string AppVersion =>
         "HA Companion " + (typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "?");
+#pragma warning restore CA1822
 
     /// <summary>Localized prompt shown while the user is recording a custom hotkey.</summary>
     public string RecordPrompt => _localization["Set_RecordPrompt"];
@@ -299,7 +302,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public void RefreshHotkeyStatusPublic() => RefreshHotkeyStatus();
 
     private void RefreshHotkeyStatus() =>
-        HotkeyStatus = string.Format(
+        HotkeyStatus = string.Format(CultureInfo.CurrentCulture,
             _localization[_hotkeys.IsRegistered ? "Set_HotkeyActive" : "Set_HotkeyFailed"], Hotkey);
 
     [RelayCommand]
@@ -335,6 +338,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private string FormatCheck(ConnectionCheckResult result) =>
         result.Status == ConnectionCheckStatus.HttpError
-            ? string.Format(_localization[result.I18nKey], result.HttpStatusCode)
+            ? string.Format(CultureInfo.CurrentCulture, _localization[result.I18nKey], result.HttpStatusCode)
             : _localization[result.I18nKey];
 }

@@ -54,9 +54,9 @@ public sealed partial class ShortcutOsdWindow : Window
 
         // Rounded Win11 corners + a dark outline so the toast reads as a native flyout.
         var round = 2; // DWMWCP_ROUND
-        DwmSetWindowAttribute(_hwnd, 33, ref round, sizeof(int));
+        _ = DwmSetWindowAttribute(_hwnd, 33, ref round, sizeof(int));
         var borderColor = 0x00202020;
-        DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
+        _ = DwmSetWindowAttribute(_hwnd, 34, ref borderColor, sizeof(int));
 
         _animTimer = DispatcherQueue.CreateTimer();
         _animTimer.Interval = TimeSpan.FromMilliseconds(6);
@@ -135,7 +135,7 @@ public sealed partial class ShortcutOsdWindow : Window
         _animStartMs = Environment.TickCount64;
         if (!_timerBoosted)
         {
-            TimeBeginPeriod(1);
+            _ = TimeBeginPeriod(1);
             _timerBoosted = true;
         }
         _animTimer.Stop();
@@ -154,7 +154,7 @@ public sealed partial class ShortcutOsdWindow : Window
         _animTimer.Stop();
         if (_timerBoosted)
         {
-            TimeEndPeriod(1);
+            _ = TimeEndPeriod(1);
             _timerBoosted = false;
         }
         if (!_isOpen)
@@ -165,7 +165,7 @@ public sealed partial class ShortcutOsdWindow : Window
     }
 
     private void MoveWindowPx(int x, int y, int w, int h) =>
-        SetWindowPos(_hwnd, IntPtr.Zero, x, y, w, h,
+        _ = SetWindowPos(_hwnd, IntPtr.Zero, x, y, w, h,
             0x0004 /* NOZORDER */ | 0x0010 /* NOACTIVATE */ | 0x0200 /* NOOWNERZORDER */);
 
     [StructLayout(LayoutKind.Sequential)]

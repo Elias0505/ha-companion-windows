@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.Core.Automations;
 using HaCompanion.Core.Models;
@@ -108,13 +109,13 @@ public sealed class RulesEngine : IRulesEngine
             foreach (var threshold in edges.Started)
             {
                 _activeIdleThresholds.Add(threshold);
-                Handle(WindowsTrigger.IdleStart, threshold.ToString());
+                Handle(WindowsTrigger.IdleStart, threshold.ToString(CultureInfo.InvariantCulture));
             }
             if (edges.Ended)
             {
                 // idle_end rules are threshold-scoped too: "wieder aktiv nach >= X min"
                 foreach (var threshold in _activeIdleThresholds)
-                    Handle(WindowsTrigger.IdleEnd, threshold.ToString());
+                    Handle(WindowsTrigger.IdleEnd, threshold.ToString(CultureInfo.InvariantCulture));
                 _activeIdleThresholds.Clear();
             }
         }
@@ -185,7 +186,7 @@ public sealed class RulesEngine : IRulesEngine
         {
             _ = RunManyAsync(rule);
             if (showOsd)
-                _actions.ShowToast(title, string.Format(_localization["Osd_NActions"], rule.Actions.Count));
+                _actions.ShowToast(title, string.Format(CultureInfo.CurrentCulture, _localization["Osd_NActions"], rule.Actions.Count));
         }
         RuleFired?.Invoke(this, EventArgs.Empty);
     }

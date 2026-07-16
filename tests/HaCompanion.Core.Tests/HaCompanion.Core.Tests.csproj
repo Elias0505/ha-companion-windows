@@ -3,7 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
+    <!-- Snake_case test names are the house style; CA1861 (cache constant arrays) is
+         meaningless in test methods that run once; CA1515 (make internal) breaks xunit. -->
+    <NoWarn>$(NoWarn);CA1707;CA1515;CA1861</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

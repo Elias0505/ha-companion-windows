@@ -79,6 +79,7 @@ public sealed partial class DashboardPage : Page
 
     // ----- tile context flyout (stage-2 controls: brightness / temperature / media) -----
 
+#pragma warning disable CA1822
     private void TileFlyout_Opening(object sender, object e)
     {
         // No controls for this domain (switch, script, sensor, ...): don't show an empty flyout.
@@ -87,6 +88,7 @@ public sealed partial class DashboardPage : Page
             && !(tile.HasBrightness || tile.HasClimate || tile.HasMedia))
             flyout.Hide();
     }
+#pragma warning restore CA1822
 
     private void BrightnessSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {

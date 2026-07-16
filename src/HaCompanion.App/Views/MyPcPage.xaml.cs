@@ -50,7 +50,7 @@ public sealed partial class MyPcPage : Page
         var tile = args.ChosenSuggestion as EntityTileViewModel
                    ?? ViewModel.Search(args.QueryText).FirstOrDefault(t =>
                        string.Equals(t.FriendlyName, args.QueryText, StringComparison.OrdinalIgnoreCase))
-                   ?? ViewModel.Search(args.QueryText).FirstOrDefault();
+                   ?? (ViewModel.Search(args.QueryText) is { Count: > 0 } results ? results[0] : null);
         if (tile is not null)
         {
             ViewModel.AssignEntity(tile);

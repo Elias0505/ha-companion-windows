@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using System.Runtime.InteropServices;
 using HaCompanion.Core.MobileApp;
 using Microsoft.Extensions.Logging;
@@ -59,12 +60,12 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             switch (command)
             {
                 case PcCommand.Lock:
-                    LockWorkStation();
+                    _ = LockWorkStation();
                     break;
 
                 case PcCommand.Sleep:
                     // suspend (not hibernate), honor wake events
-                    SetSuspendState(false, false, false);
+                    _ = SetSuspendState(false, false, false);
                     break;
 
                 case PcCommand.Shutdown:
@@ -80,11 +81,11 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
                     break;
 
                 case PcCommand.MonitorOff:
-                    SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, (IntPtr)2);
+                    _ = SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, (IntPtr)2);
                     break;
 
                 case PcCommand.Volume:
-                    if (!int.TryParse(param, out var level))
+                    if (!int.TryParse(param, CultureInfo.InvariantCulture, out var level))
                     {
                         _logger.LogWarning("command_volume without a numeric data.level");
                         return false;

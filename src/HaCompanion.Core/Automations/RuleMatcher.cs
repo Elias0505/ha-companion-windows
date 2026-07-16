@@ -4,13 +4,16 @@ namespace HaCompanion.Core.Automations;
 /// <summary>Matches fired Windows triggers against rules (enable state is the engine's job).</summary>
 public static class RuleMatcher
 {
+    private static readonly System.Buffers.SearchValues<char> PathSeparators =
+        System.Buffers.SearchValues.Create(['\\', '/']);
+
     /// <summary>"C:\...\POWERPNT.EXE" → "powerpnt" (lowercase, no directory, no extension).</summary>
     public static string NormalizeProcessName(string nameOrPath)
     {
         if (string.IsNullOrWhiteSpace(nameOrPath))
             return string.Empty;
         var name = nameOrPath.Trim();
-        var cut = name.LastIndexOfAny(new[] { '\\', '/' });
+        var cut = name.AsSpan().LastIndexOfAny(PathSeparators);
         if (cut >= 0)
             name = name[(cut + 1)..];
         if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))

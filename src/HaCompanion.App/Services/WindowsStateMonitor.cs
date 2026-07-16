@@ -151,7 +151,7 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
         _hwnd = WindowNative.GetWindowHandle(window);
         _newProc = HandleMessage;
         _oldProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_newProc));
-        RegisterPowerSettingNotification(_hwnd, in GuidConsoleDisplayState, DEVICE_NOTIFY_WINDOW_HANDLE);
+        _ = RegisterPowerSettingNotification(_hwnd, in GuidConsoleDisplayState, DEVICE_NOTIFY_WINDOW_HANDLE);
         if (!WTSRegisterSessionNotification(_hwnd, NOTIFY_FOR_THIS_SESSION))
             _logger.LogWarning("WTSRegisterSessionNotification failed — lock/unlock triggers unavailable");
 
@@ -185,10 +185,10 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
             switch (msg)
             {
                 case WM_WTSSESSION_CHANGE:
-                    OnSessionChange((int)wParam);
+                    OnSessionChange(unchecked((int)wParam.ToInt64())); // codes fit in the low bits
                     break;
                 case WM_POWERBROADCAST:
-                    OnPowerBroadcast((int)wParam, lParam);
+                    OnPowerBroadcast(unchecked((int)wParam.ToInt64()), lParam);
                     break;
                 case WM_ENDSESSION when wParam != IntPtr.Zero:
                     Fire(WindowsTrigger.Shutdown, ((long)lParam & ENDSESSION_LOGOFF) != 0 ? "logoff" : "shutdown");
@@ -312,7 +312,7 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
         string? name = null;
         if (hwnd != IntPtr.Zero)
         {
-            GetWindowThreadProcessId(hwnd, out var pid);
+            _ = GetWindowThreadProcessId(hwnd, out var pid);
             if (pid != 0 && pid != _ownPid)
                 name = ProcessNameOf(pid);
         }
@@ -389,12 +389,12 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
         var hwnd = GetForegroundWindow();
         if (hwnd == IntPtr.Zero)
             return false;
-        GetWindowThreadProcessId(hwnd, out var pid);
+        _ = GetWindowThreadProcessId(hwnd, out var pid);
         if (pid == _ownPid)
             return false;
-        var cls = new System.Text.StringBuilder(64);
-        _ = GetClassNameW(hwnd, cls, cls.Capacity);
-        if (cls.ToString() is "Progman" or "WorkerW")
+        var cls = new char[64];
+        var clsLen = GetClassNameW(hwnd, cls, cls.Length);
+        if (new string(cls, 0, clsLen) is "Progman" or "WorkerW")
             return false; // the desktop itself covers the monitor caption-less
         if (!GetWindowRect(hwnd, out var rect))
             return false;
@@ -568,7 +568,7 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetClassNameW(IntPtr hWnd, System.Text.StringBuilder name, int maxCount);
+    private static extern int GetClassNameW(IntPtr hWnd, char[] name, int maxCount);
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);

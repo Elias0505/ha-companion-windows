@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Input;
 using Windows.System;
@@ -68,9 +69,9 @@ public static class HotkeyCapture
         if (key >= VirtualKey.A && key <= VirtualKey.Z)
             return key.ToString();
         if (key >= VirtualKey.Number0 && key <= VirtualKey.Number9)
-            return ((int)(key - VirtualKey.Number0)).ToString();
+            return ((int)(key - VirtualKey.Number0)).ToString(CultureInfo.InvariantCulture);
         if (key >= VirtualKey.NumberPad0 && key <= VirtualKey.NumberPad9)
-            return ((int)(key - VirtualKey.NumberPad0)).ToString();
+            return ((int)(key - VirtualKey.NumberPad0)).ToString(CultureInfo.InvariantCulture);
         if (key == VirtualKey.Space)
             return "Space";
         if (key >= VirtualKey.F1 && key <= VirtualKey.F12)

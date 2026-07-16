@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Infrastructure;
@@ -273,7 +274,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
             return null;
         var param = SelectedTrigger.ParamKind switch
         {
-            TriggerParamKind.Minutes => ((int)MinutesParam).ToString(),
+            TriggerParamKind.Minutes => ((int)MinutesParam).ToString(CultureInfo.InvariantCulture),
             TriggerParamKind.ProcessName => RuleMatcher.NormalizeProcessName(ProcessParam),
             _ => null,
         };
@@ -399,7 +400,8 @@ public sealed partial class AutomationsViewModel : ObservableObject
             var at = _engine.LastFiredAt(item.Rule);
             item.LastFiredText = at is null
                 ? ""
-                : string.Format(_loc["Au_LastFired"], at.Value.ToLocalTime().ToString("HH:mm"));
+                : string.Format(CultureInfo.CurrentCulture, _loc["Au_LastFired"],
+                    at.Value.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture));
         }
     }
 

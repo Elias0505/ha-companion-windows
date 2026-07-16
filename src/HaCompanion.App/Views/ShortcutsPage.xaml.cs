@@ -28,7 +28,7 @@ public sealed partial class ShortcutsPage : Page
         UpdateRecordLabel();
     }
 
-    private LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
+    private static LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
 
     private void UpdateRecordLabel() =>
         RecordButton.Content = _recording
@@ -62,7 +62,7 @@ public sealed partial class ShortcutsPage : Page
     {
         // Enter without clicking a suggestion: take the chosen item or the best match.
         var tile = args.ChosenSuggestion as EntityTileViewModel
-                   ?? ViewModel.Search(args.QueryText).FirstOrDefault();
+                   ?? (ViewModel.Search(args.QueryText) is { Count: > 0 } results ? results[0] : null);
         if (tile is not null)
         {
             ViewModel.SelectedTile = tile;

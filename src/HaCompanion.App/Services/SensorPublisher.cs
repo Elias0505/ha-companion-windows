@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using HaCompanion.Core.Automations;
 using HaCompanion.Core.MobileApp;
 using HaCompanion.Core.Models;
@@ -276,7 +277,8 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
             switch (result.Outcome)
             {
                 case WebhookOutcome.Success:
-                    SetStatus(string.Format(_loc["Set_SensorsSent"], DateTime.Now.ToString("HH:mm:ss")));
+                    SetStatus(string.Format(CultureInfo.CurrentCulture, _loc["Set_SensorsSent"],
+                        DateTime.Now.ToString("HH:mm:ss", CultureInfo.CurrentCulture)));
                     break;
                 case WebhookOutcome.RegistrationGone:
                     MarkGone();

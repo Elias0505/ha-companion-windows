@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using HaCompanion.App.Services;
@@ -85,7 +86,7 @@ public sealed partial class HaDashboardsPage : Page
         }
         catch (Exception ex)
         {
-            ShowInfo(string.Format(loc["Dash_EmbedFailed"], ex.Message), InfoBarSeverity.Error);
+            ShowInfo(string.Format(CultureInfo.CurrentCulture, loc["Dash_EmbedFailed"], ex.Message), InfoBarSeverity.Error);
             return;
         }
 

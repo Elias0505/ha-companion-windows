@@ -82,7 +82,9 @@ public sealed partial class MyPcViewModel : ObservableObject
     private string _launchWhitelistText = "";
 
     /// <summary>notify.mobile_app_&lt;slug&gt; — shown in the mini docs so users can copy it.</summary>
+#pragma warning disable CA1822
     public string NotifyServiceName => "notify.mobile_app_" + Slugify(Environment.MachineName);
+#pragma warning restore CA1822
 
     public bool ShowHttpWarning =>
         _settings.Load().BaseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase);

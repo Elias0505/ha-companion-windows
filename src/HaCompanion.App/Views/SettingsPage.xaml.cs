@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using System.IO;
 using HaCompanion.App.Controls;
 using HaCompanion.App.Services;
@@ -32,7 +33,9 @@ public sealed partial class SettingsPage : Page
     private void TokenBox_PasswordChanged(object sender, RoutedEventArgs e) =>
         ViewModel.Token = TokenBox.Password;
 
+#pragma warning disable CA1822 // x:Bind function — the generated binding code calls it on the instance
     public bool IsNotBusy(bool isBusy) => !isBusy;
+#pragma warning restore CA1822
 
     private bool _twoColumn = true;
 
@@ -70,9 +73,9 @@ public sealed partial class SettingsPage : Page
 
     // --- Config backup: export/import the whole config as one portable JSON ---
 
-    private LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
+    private static LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
 
-    private IntPtr WindowHandle => WindowNative.GetWindowHandle(App.MainWindow);
+    private static IntPtr WindowHandle => WindowNative.GetWindowHandle(App.MainWindow);
 
     private async void Export_Click(object sender, RoutedEventArgs e)
     {
@@ -87,7 +90,7 @@ public sealed partial class SettingsPage : Page
                 return;
             var json = App.Services.GetRequiredService<IConfigBackupService>().Export();
             await FileIO.WriteTextAsync(file, json);
-            BackupStatus.Text = string.Format(Loc["Backup_Exported"], file.Name);
+            BackupStatus.Text = string.Format(CultureInfo.CurrentCulture, Loc["Backup_Exported"], file.Name);
         }
         catch (Exception ex)
         {
@@ -133,7 +136,7 @@ public sealed partial class SettingsPage : Page
         {
             var picker = new FileSavePicker
             {
-                SuggestedFileName = "ha-companion-diagnostics-" + DateTime.Now.ToString("yyyy-MM-dd"),
+                SuggestedFileName = "ha-companion-diagnostics-" + DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             };
             picker.FileTypeChoices.Add("Text", new List<string> { ".txt" });
             InitializeWithWindow.Initialize(picker, WindowHandle);
@@ -143,7 +146,7 @@ public sealed partial class SettingsPage : Page
                 return;
             var report = App.Services.GetRequiredService<IDiagnosticsService>().BuildReport();
             await FileIO.WriteTextAsync(file, report);
-            DiagStatus.Text = string.Format(Loc["Diag_Saved"], file.Name);
+            DiagStatus.Text = string.Format(CultureInfo.CurrentCulture, Loc["Diag_Saved"], file.Name);
         }
         catch (Exception ex)
         {

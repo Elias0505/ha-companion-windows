@@ -54,8 +54,8 @@ public partial class App : Application
             var existing = FindWindowW(null, "HA Companion");
             if (existing != IntPtr.Zero)
             {
-                ShowWindow(existing, 9 /* SW_RESTORE */);
-                SetForegroundWindow(existing);
+                _ = ShowWindow(existing, 9 /* SW_RESTORE */);
+                _ = SetForegroundWindow(existing);
             }
             Environment.Exit(0); // nothing is initialized yet — safe to leave abruptly
         }
@@ -140,7 +140,7 @@ public partial class App : Application
         _ = Task.Delay(1500).ContinueWith(_ => ui.Post(quickPanel.Prewarm));
     }
 
-    private static IServiceProvider ConfigureServices()
+    private static ServiceProvider ConfigureServices()
     {
         var services = new ServiceCollection();
 

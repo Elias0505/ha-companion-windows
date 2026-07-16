@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -49,7 +50,8 @@ public sealed class TileLayoutStore : ITileLayoutStore
             foreach (var (id, text) in layout.Spans)
             {
                 var parts = text.Split('x');
-                if (parts.Length == 2 && int.TryParse(parts[0], out var c) && int.TryParse(parts[1], out var r))
+                if (parts.Length == 2 && int.TryParse(parts[0], CultureInfo.InvariantCulture, out var c)
+                    && int.TryParse(parts[1], CultureInfo.InvariantCulture, out var r))
                     result[id] = (c, r);
             }
         }

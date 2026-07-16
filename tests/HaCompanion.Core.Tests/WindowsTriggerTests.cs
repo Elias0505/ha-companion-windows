@@ -21,7 +21,7 @@ public class WindowsTriggerTests
     [Fact]
     public void All_contains_every_enum_member_exactly_once()
     {
-        var enumMembers = (WindowsTrigger[])Enum.GetValues(typeof(WindowsTrigger));
+        var enumMembers = Enum.GetValues<WindowsTrigger>();
         Assert.Equal(enumMembers.Length, WindowsTriggers.All.Count);
         Assert.Equal(enumMembers.Length, WindowsTriggers.All.Distinct().Count());
     }
