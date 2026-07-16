@@ -219,7 +219,8 @@
     "Set_ErrDns": "Host not found — check the base URL.",
     "Set_ErrTimeout": "Home Assistant did not respond (timeout) — is it running? Check port and firewall.",
     "Set_ErrNetwork": "Network error — Home Assistant is unreachable.",
-    "Set_ErrHttp": "The server answered with HTTP error {0}."
+    "Set_ErrHttp": "The server answered with HTTP error {0}.",
+    "St_TlsError": "Certificate error"
   },
   "de": {
     "Nav_Start": "Start",
@@ -441,7 +442,8 @@
     "Set_ErrDns": "Server nicht gefunden — Basis-URL prüfen.",
     "Set_ErrTimeout": "Home Assistant antwortet nicht (Zeitüberschreitung) — läuft HA? Port und Firewall prüfen.",
     "Set_ErrNetwork": "Netzwerkfehler — Home Assistant ist nicht erreichbar.",
-    "Set_ErrHttp": "Der Server antwortete mit HTTP-Fehler {0}."
+    "Set_ErrHttp": "Der Server antwortete mit HTTP-Fehler {0}.",
+    "St_TlsError": "Zertifikatsfehler"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -663,7 +665,8 @@
     "Set_ErrDns": "Servidor no encontrado — comprueba la URL base.",
     "Set_ErrTimeout": "Home Assistant no responde (tiempo agotado) — ¿está en marcha? Comprueba puerto y cortafuegos.",
     "Set_ErrNetwork": "Error de red — Home Assistant no es accesible.",
-    "Set_ErrHttp": "El servidor respondió con el error HTTP {0}."
+    "Set_ErrHttp": "El servidor respondió con el error HTTP {0}.",
+    "St_TlsError": "Error de certificado"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -885,7 +888,8 @@
     "Set_ErrDns": "Hôte introuvable — vérifiez l'URL de base.",
     "Set_ErrTimeout": "Home Assistant ne répond pas (délai dépassé) — est-il lancé ? Vérifiez le port et le pare-feu.",
     "Set_ErrNetwork": "Erreur réseau — Home Assistant est injoignable.",
-    "Set_ErrHttp": "Le serveur a répondu avec l'erreur HTTP {0}."
+    "Set_ErrHttp": "Le serveur a répondu avec l'erreur HTTP {0}.",
+    "St_TlsError": "Erreur de certificat"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1107,7 +1111,8 @@
     "Set_ErrDns": "找不到主机 — 请检查基础 URL。",
     "Set_ErrTimeout": "Home Assistant 未响应（超时）— 它在运行吗？请检查端口和防火墙。",
     "Set_ErrNetwork": "网络错误 — 无法连接 Home Assistant。",
-    "Set_ErrHttp": "服务器返回 HTTP 错误 {0}。"
+    "Set_ErrHttp": "服务器返回 HTTP 错误 {0}。",
+    "St_TlsError": "证书错误"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1329,6 +1334,7 @@
     "Set_ErrDns": "होस्ट नहीं मिला — बेस URL जांचें।",
     "Set_ErrTimeout": "Home Assistant ने जवाब नहीं दिया (टाइमआउट) — क्या यह चल रहा है? पोर्ट और फ़ायरवॉल जांचें।",
     "Set_ErrNetwork": "नेटवर्क त्रुटि — Home Assistant तक नहीं पहुंचा जा सकता।",
-    "Set_ErrHttp": "सर्वर ने HTTP त्रुटि {0} के साथ जवाब दिया।"
+    "Set_ErrHttp": "सर्वर ने HTTP त्रुटि {0} के साथ जवाब दिया।",
+    "St_TlsError": "प्रमाणपत्र त्रुटि"
   }
 }

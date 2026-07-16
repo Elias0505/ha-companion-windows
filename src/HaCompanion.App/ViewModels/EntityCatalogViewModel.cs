@@ -91,7 +91,26 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
 
         Pinned.CollectionChanged += OnPinnedCollectionChanged;
         _connection.EntityUpdated += OnEntityUpdated;
+        _connection.StatusChanged += OnConnectionStatusChanged;
         _localization.LanguageChanged += (_, _) => _ui.Post(RefreshGroupHeaders);
+    }
+
+    private bool _connectionLost;
+
+    // This catalog owns every tile instance shown anywhere (dashboard, quick panel,
+    // pickers) — one hook here greys ALL tiles out when the connection itself is gone,
+    // instead of leaving frozen last-known values on screen.
+    private void OnConnectionStatusChanged(object? sender, HaConnectionStatus status)
+    {
+        var lost = status != HaConnectionStatus.Connected;
+        if (lost == _connectionLost)
+            return;
+        _connectionLost = lost;
+        _ui.Post(() =>
+        {
+            foreach (var tile in _tilesById.Values)
+                tile.SetConnectionLost(lost);
+        });
     }
 
     private void RefreshGroupHeaders()

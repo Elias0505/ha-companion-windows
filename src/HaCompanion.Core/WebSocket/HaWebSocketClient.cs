@@ -4,6 +4,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using HaCompanion.Core.Models;
+using HaCompanion.Core.Rest;
 using Microsoft.Extensions.Logging;
 
 namespace HaCompanion.Core.WebSocket;
@@ -25,6 +26,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private CancellationTokenSource? _cts;
     private CancellationTokenSource? _backoffSkip; // cancelled by PokeReconnect() to end a wait early
     private bool _sessionReachedConnected;
+    private readonly OutageLogGate _outageGate = new();
     private Task? _supervisor;
     private ClientWebSocket? _activeSocket;
     private Uri _uri = null!;
@@ -199,7 +201,16 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Home Assistant WebSocket session ended; will reconnect");
+                // A certificate problem doesn't heal itself — classify and stop retrying,
+                // exactly like an auth failure (the UI turns it into an actionable hint).
+                if (Status != HaConnectionStatus.AuthFailed
+                    && HaRestClient.ClassifyException(ex) == ConnectionCheckStatus.TlsError)
+                    SetStatus(HaConnectionStatus.TlsError);
+
+                if (_outageGate.OnFailure())
+                    _logger.LogWarning(ex, "Home Assistant connection lost");
+                else
+                    _logger.LogDebug(ex, "Reconnect attempt failed");
             }
             finally
             {
@@ -212,8 +223,8 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             if (ct.IsCancellationRequested)
                 break;
 
-            // Auth failures don't heal themselves — stop retrying and surface the state.
-            if (Status == HaConnectionStatus.AuthFailed)
+            // Auth/TLS failures don't heal themselves — stop retrying and surface the state.
+            if (Status is HaConnectionStatus.AuthFailed or HaConnectionStatus.TlsError)
                 break;
 
             // A session that actually reached Connected earns a fresh backoff — real drops end
@@ -245,7 +256,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             }
         }
 
-        if (Status != HaConnectionStatus.AuthFailed)
+        if (Status is not HaConnectionStatus.AuthFailed and not HaConnectionStatus.TlsError)
             SetStatus(HaConnectionStatus.Disconnected);
     }
 
@@ -285,6 +296,8 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         {
             SetStatus(HaConnectionStatus.Connected);
             _sessionReachedConnected = true;
+            if (_outageGate.OnRestored())
+                _logger.LogInformation("Home Assistant connection restored");
 
             // subscribe to state changes
             await SendRawAsync(socket, JsonSerializer.Serialize(new

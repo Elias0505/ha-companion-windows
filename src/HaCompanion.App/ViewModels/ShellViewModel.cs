@@ -70,6 +70,7 @@ public sealed partial class ShellViewModel : ObservableObject
             HaConnectionStatus.AuthFailed => _localization["St_AuthFailed"],
             HaConnectionStatus.Connected => _localization["St_Connected"],
             HaConnectionStatus.Reconnecting => _localization["St_Reconnecting"],
+            HaConnectionStatus.TlsError => _localization["St_TlsError"],
             _ => status.ToString(),
         };
     }

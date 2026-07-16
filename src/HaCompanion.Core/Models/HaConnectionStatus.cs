@@ -12,4 +12,6 @@ public enum HaConnectionStatus
     AuthFailed,
     Connected,
     Reconnecting,
+    /// <summary>TLS handshake failed (e.g. self-signed certificate) — does not heal itself.</summary>
+    TlsError,
 }

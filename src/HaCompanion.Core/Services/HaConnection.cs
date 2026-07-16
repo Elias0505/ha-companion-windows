@@ -78,6 +78,7 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         }
 
         await RefreshStatesAsync(ct).ConfigureAwait(false);
+        _snapshotIsFresh = true; // skip the redundant re-fetch on the imminent Connected event
         _ws.Start(settings.WebSocketUri, settings.Token, settings.IgnoreCertificateErrors);
         return check;
     }
@@ -210,8 +211,34 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         return true;
     }
 
-    private void OnWebSocketStatusChanged(object? sender, HaConnectionStatus status) =>
+    private volatile bool _snapshotIsFresh;
+
+    private void OnWebSocketStatusChanged(object? sender, HaConnectionStatus status)
+    {
+        // After a WS-internal reconnect the snapshot is stale (state_changed events were
+        // missed during the outage) — reload it so the UI shows CURRENT values, not the
+        // last ones seen before the drop. The initial ConnectAsync already loaded fresh.
+        if (status == HaConnectionStatus.Connected)
+        {
+            if (_snapshotIsFresh)
+                _snapshotIsFresh = false;
+            else
+                _ = RefreshAfterReconnectAsync();
+        }
         StatusChanged?.Invoke(this, status);
+    }
+
+    private async Task RefreshAfterReconnectAsync()
+    {
+        try
+        {
+            await RefreshStatesAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "State refresh after reconnect failed");
+        }
+    }
 
     private void OnWebSocketStateChanged(object? sender, HaEntityState state)
     {

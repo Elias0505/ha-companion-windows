@@ -78,8 +78,24 @@ public partial class EntityTileViewModel : ObservableObject
         FriendlyName = state.FriendlyName;
         StateText = FormatState(state);
         IsOn = state.IsOn;
-        IsUnavailable = state.IsUnavailable;
+        IsUnavailable = _connectionLost || state.IsUnavailable;
         UpdateControlValues(state);
+    }
+
+    private bool _connectionLost;
+
+    /// <summary>
+    /// The connection to Home Assistant itself dropped (or came back): frozen last-known
+    /// values would be a lie, so the tile greys out like an unavailable entity. On restore
+    /// everything re-derives from the (freshly reloaded) state.
+    /// </summary>
+    public void SetConnectionLost(bool lost)
+    {
+        if (_connectionLost == lost)
+            return;
+        _connectionLost = lost;
+        IsUnavailable = lost || _state.IsUnavailable;
+        StateText = FormatState(_state);
     }
 
     // ----- stage-2 controls (context flyout: brightness / target temperature / media) -----
@@ -172,6 +188,8 @@ public partial class EntityTileViewModel : ObservableObject
 
     private async Task CallAsync(string domain, string service, Dictionary<string, object?>? data)
     {
+        if (IsUnavailable)
+            return; // no point firing a doomed service call
         try
         {
             if (data is null)
@@ -200,6 +218,8 @@ public partial class EntityTileViewModel : ObservableObject
     {
         if (!DomainCatalog.HasAction(Domain))
             return; // read-only tile (sensor): tapping shows, never calls a service
+        if (IsUnavailable)
+            return; // entity gone or connection lost — the call could not succeed
 
         var (domain, service) = DomainCatalog.ResolveAction(Domain, IsOn);
         try
@@ -214,7 +234,7 @@ public partial class EntityTileViewModel : ObservableObject
 
     private string FormatState(HaEntityState state)
     {
-        if (state.IsUnavailable)
+        if (_connectionLost || state.IsUnavailable)
             return _localization["State_Unavailable"];
         var unit = state.GetAttributeString("unit_of_measurement");
         if (unit is not null)
