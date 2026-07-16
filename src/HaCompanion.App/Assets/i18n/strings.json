@@ -225,7 +225,9 @@
     "Repair_AuthText": "Your access token is invalid or expired. Create a new long-lived access token in your Home Assistant profile and enter it in Settings.",
     "Repair_TlsTitle": "Certificate error",
     "Repair_TlsText": "Home Assistant's TLS certificate is not trusted. If you use self-signed HTTPS, enable 'Ignore certificate errors' in Settings.",
-    "Repair_Open": "Open settings"
+    "Repair_Open": "Open settings",
+    "Osd_Failed": "Action failed",
+    "Tile_ActionFailed": "Action failed"
   },
   "de": {
     "Nav_Start": "Start",
@@ -453,7 +455,9 @@
     "Repair_AuthText": "Dein Zugriffstoken ist ungültig oder abgelaufen. Erstelle in deinem Home-Assistant-Profil einen neuen langlebigen Zugriffstoken und trage ihn in den Einstellungen ein.",
     "Repair_TlsTitle": "Zertifikatsfehler",
     "Repair_TlsText": "Das TLS-Zertifikat von Home Assistant ist nicht vertrauenswürdig. Bei selbstsigniertem HTTPS aktiviere in den Einstellungen „Zertifikatsfehler ignorieren“.",
-    "Repair_Open": "Einstellungen öffnen"
+    "Repair_Open": "Einstellungen öffnen",
+    "Osd_Failed": "Aktion fehlgeschlagen",
+    "Tile_ActionFailed": "Aktion fehlgeschlagen"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -681,7 +685,9 @@
     "Repair_AuthText": "Tu token de acceso no es válido o ha caducado. Crea un nuevo token de acceso de larga duración en tu perfil de Home Assistant e introdúcelo en Ajustes.",
     "Repair_TlsTitle": "Error de certificado",
     "Repair_TlsText": "El certificado TLS de Home Assistant no es de confianza. Si usas HTTPS autofirmado, activa «Ignorar errores de certificado» en Ajustes.",
-    "Repair_Open": "Abrir ajustes"
+    "Repair_Open": "Abrir ajustes",
+    "Osd_Failed": "La acción falló",
+    "Tile_ActionFailed": "La acción falló"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -909,7 +915,9 @@
     "Repair_AuthText": "Votre jeton d'accès est invalide ou expiré. Créez un nouveau jeton d'accès longue durée dans votre profil Home Assistant et saisissez-le dans les paramètres.",
     "Repair_TlsTitle": "Erreur de certificat",
     "Repair_TlsText": "Le certificat TLS de Home Assistant n'est pas approuvé. Si vous utilisez un HTTPS auto-signé, activez « Ignorer les erreurs de certificat » dans les paramètres.",
-    "Repair_Open": "Ouvrir les paramètres"
+    "Repair_Open": "Ouvrir les paramètres",
+    "Osd_Failed": "Échec de l'action",
+    "Tile_ActionFailed": "Échec de l'action"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1137,7 +1145,9 @@
     "Repair_AuthText": "你的访问令牌无效或已过期。请在 Home Assistant 个人资料中创建新的长期访问令牌，并在设置中填写。",
     "Repair_TlsTitle": "证书错误",
     "Repair_TlsText": "Home Assistant 的 TLS 证书不受信任。如使用自签名 HTTPS，请在设置中启用“忽略证书错误”。",
-    "Repair_Open": "打开设置"
+    "Repair_Open": "打开设置",
+    "Osd_Failed": "操作失败",
+    "Tile_ActionFailed": "操作失败"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1365,6 +1375,8 @@
     "Repair_AuthText": "आपका एक्सेस टोकन अमान्य या समाप्त हो गया है। अपनी Home Assistant प्रोफ़ाइल में नया दीर्घकालिक एक्सेस टोकन बनाएं और उसे सेटिंग्स में दर्ज करें।",
     "Repair_TlsTitle": "प्रमाणपत्र त्रुटि",
     "Repair_TlsText": "Home Assistant का TLS प्रमाणपत्र विश्वसनीय नहीं है। यदि आप स्व-हस्ताक्षरित HTTPS उपयोग करते हैं, तो सेटिंग्स में 'प्रमाणपत्र त्रुटियां अनदेखा करें' सक्षम करें।",
-    "Repair_Open": "सेटिंग्स खोलें"
+    "Repair_Open": "सेटिंग्स खोलें",
+    "Osd_Failed": "कार्रवाई विफल",
+    "Tile_ActionFailed": "कार्रवाई विफल"
   }
 }

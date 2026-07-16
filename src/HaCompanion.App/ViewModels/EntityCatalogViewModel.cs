@@ -214,7 +214,7 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
             return;
         }
 
-        var tile = new EntityTileViewModel(_connection, _icons, _localization, state);
+        var tile = new EntityTileViewModel(_connection, _icons, _localization, _ui, state);
         var (cols, rows) = _spansById.GetValueOrDefault(state.EntityId, (1, 1));
         tile.SetSpans(cols, rows);
         _tilesById[state.EntityId] = tile;

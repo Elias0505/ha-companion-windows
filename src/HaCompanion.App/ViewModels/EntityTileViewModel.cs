@@ -13,6 +13,7 @@ public partial class EntityTileViewModel : ObservableObject
     private readonly IHaConnection _connection;
     private readonly MdiIconProvider _icons;
     private readonly LocalizationService _localization;
+    private readonly Infrastructure.IUiDispatcher _ui;
     private HaEntityState _state;
 
     public string EntityId { get; }
@@ -54,11 +55,13 @@ public partial class EntityTileViewModel : ObservableObject
         RowSpan = Math.Clamp(rowSpan, 1, 3);
     }
 
-    public EntityTileViewModel(IHaConnection connection, MdiIconProvider icons, LocalizationService localization, HaEntityState state)
+    public EntityTileViewModel(IHaConnection connection, MdiIconProvider icons, LocalizationService localization,
+        Infrastructure.IUiDispatcher ui, HaEntityState state)
     {
         _connection = connection;
         _icons = icons;
         _localization = localization;
+        _ui = ui;
         _state = state;
         EntityId = state.EntityId;
         Domain = state.Domain;
@@ -199,8 +202,29 @@ public partial class EntityTileViewModel : ObservableObject
         }
         catch
         {
-            // Best-effort: the real state arrives via the WebSocket feed.
+            FlashActionFailed();
         }
+    }
+
+    private int _failFlashVersion;
+
+    /// <summary>
+    /// A rejected service call must not fail silently: show "action failed" on the tile
+    /// briefly, then re-derive from the real state (same trailing-version pattern as the
+    /// slider debounce — a newer flash or state update wins).
+    /// </summary>
+    private void FlashActionFailed()
+    {
+        var version = Interlocked.Increment(ref _failFlashVersion);
+        // Callers may be off the UI thread (slider debounce runs on the pool) — bound
+        // properties must only change on the UI thread.
+        _ui.Post(() => StateText = _localization["Tile_ActionFailed"]);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2500).ConfigureAwait(false);
+            if (version == _failFlashVersion)
+                _ui.Post(() => StateText = FormatState(_state));
+        });
     }
 
     /// <summary>Localized category (domain group) name, e.g. "Lights" — shown in the add-tile search.</summary>
@@ -228,7 +252,7 @@ public partial class EntityTileViewModel : ObservableObject
         }
         catch
         {
-            // Best-effort: the real state will arrive via the WebSocket feed.
+            FlashActionFailed();
         }
     }
 

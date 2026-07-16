@@ -117,23 +117,40 @@ public sealed class EntityActionService : IEntityActionService
     private void Execute(string entityId, string serviceDomain, string service,
         string? predictedKey, bool accent, string? titleOverride, bool showOsd)
     {
-        _ = RunAsync(serviceDomain, service, entityId);
+        var known = _connection.Entities.TryGetValue(entityId, out var state);
+        var domain = entityId.Split('.')[0];
+        var glyph = known ? _icons.Resolve(state!) : _icons.DomainGlyph(domain);
+        var title = titleOverride ?? (known ? state!.FriendlyName : entityId);
+
+        // The optimistic toast stays (snappiness), but a failed call must not keep lying:
+        // the failure handler replaces it — and runs even when the optimistic toast was
+        // suppressed, because a silently-failing rule action is worse than an extra toast.
+        var call = RunAsync(serviceDomain, service, entityId);
+        _ = ShowFailureAsync(call, glyph, title);
         if (!showOsd)
             return;
 
-        var known = _connection.Entities.TryGetValue(entityId, out var state);
-        var domain = entityId.Split('.')[0];
         var subtitle = predictedKey is null ? _localization["Osd_Done"] : _localization[predictedKey];
 
         _lastEntityId = entityId;
         _lastTriggerMs = Environment.TickCount64;
 
-        var glyph = known ? _icons.Resolve(state!) : _icons.DomainGlyph(domain);
-        var title = titleOverride ?? (known ? state!.FriendlyName : entityId);
         _ui.Post(() =>
         {
             _osd ??= new ShortcutOsdWindow();
             _osd.ShowToast(glyph, title, subtitle, accent);
+        });
+    }
+
+    private async Task ShowFailureAsync(Task<bool> call, string glyph, string title)
+    {
+        if (await call)
+            return;
+        _lastEntityId = null; // a late state_changed must not "correct" the failure toast
+        _ui.Post(() =>
+        {
+            _osd ??= new ShortcutOsdWindow();
+            _osd.ShowToast(glyph, title, _localization["Osd_Failed"], accent: false);
         });
     }
 
@@ -161,15 +178,17 @@ public sealed class EntityActionService : IEntityActionService
         _ui.Post(() => _osd?.UpdateState(subtitle, accent));
     }
 
-    private async Task RunAsync(string domain, string service, string entityId)
+    private async Task<bool> RunAsync(string domain, string service, string entityId)
     {
         try
         {
             await _connection.CallServiceAsync(domain, service, entityId);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Entity action for {EntityId} failed", entityId);
+            return false;
         }
     }
 }
