@@ -45,8 +45,15 @@ public sealed partial class MainWindow : Window
         {
             if (e.PropertyName is nameof(ShellViewModel.IsConnected) or nameof(ShellViewModel.StatusText))
                 UpdateTrayStatus();
+            if (e.PropertyName is nameof(ShellViewModel.IsRepairVisible)
+                or nameof(ShellViewModel.RepairTitle) or nameof(ShellViewModel.RepairMessage))
+                UpdateRepairBar();
         };
-        DispatcherQueue.TryEnqueue(UpdateTrayStatus);
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            UpdateTrayStatus();
+            UpdateRepairBar();
+        });
 
         Title = "HA Companion";
         SystemBackdrop = new MicaBackdrop();
@@ -139,6 +146,29 @@ public sealed partial class MainWindow : Window
         catch
         {
             // status display is best-effort — never let it disturb the window
+        }
+    }
+
+    private void UpdateRepairBar()
+    {
+        RepairBar.Title = _shell.RepairTitle;
+        RepairBar.Message = _shell.RepairMessage;
+        RepairBar.IsOpen = _shell.IsRepairVisible;
+    }
+
+    // Dismiss hides the banner for THIS incident; the tray icon keeps showing offline.
+    private void RepairBar_CloseClick(InfoBar sender, object args) => sender.IsOpen = false;
+
+    private void RepairOpenSettings_Click(object sender, RoutedEventArgs e)
+    {
+        ShowFromTray();
+        foreach (var mi in Nav.MenuItems)
+        {
+            if (mi is NavigationViewItem { Tag: "settings" } item)
+            {
+                Nav.SelectedItem = item; // Nav_SelectionChanged does the navigation
+                break;
+            }
         }
     }
 

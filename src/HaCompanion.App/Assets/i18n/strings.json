@@ -220,7 +220,12 @@
     "Set_ErrTimeout": "Home Assistant did not respond (timeout) — is it running? Check port and firewall.",
     "Set_ErrNetwork": "Network error — Home Assistant is unreachable.",
     "Set_ErrHttp": "The server answered with HTTP error {0}.",
-    "St_TlsError": "Certificate error"
+    "St_TlsError": "Certificate error",
+    "Repair_AuthTitle": "Sign-in failed",
+    "Repair_AuthText": "Your access token is invalid or expired. Create a new long-lived access token in your Home Assistant profile and enter it in Settings.",
+    "Repair_TlsTitle": "Certificate error",
+    "Repair_TlsText": "Home Assistant's TLS certificate is not trusted. If you use self-signed HTTPS, enable 'Ignore certificate errors' in Settings.",
+    "Repair_Open": "Open settings"
   },
   "de": {
     "Nav_Start": "Start",
@@ -443,7 +448,12 @@
     "Set_ErrTimeout": "Home Assistant antwortet nicht (Zeitüberschreitung) — läuft HA? Port und Firewall prüfen.",
     "Set_ErrNetwork": "Netzwerkfehler — Home Assistant ist nicht erreichbar.",
     "Set_ErrHttp": "Der Server antwortete mit HTTP-Fehler {0}.",
-    "St_TlsError": "Zertifikatsfehler"
+    "St_TlsError": "Zertifikatsfehler",
+    "Repair_AuthTitle": "Anmeldung fehlgeschlagen",
+    "Repair_AuthText": "Dein Zugriffstoken ist ungültig oder abgelaufen. Erstelle in deinem Home-Assistant-Profil einen neuen langlebigen Zugriffstoken und trage ihn in den Einstellungen ein.",
+    "Repair_TlsTitle": "Zertifikatsfehler",
+    "Repair_TlsText": "Das TLS-Zertifikat von Home Assistant ist nicht vertrauenswürdig. Bei selbstsigniertem HTTPS aktiviere in den Einstellungen „Zertifikatsfehler ignorieren“.",
+    "Repair_Open": "Einstellungen öffnen"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -666,7 +676,12 @@
     "Set_ErrTimeout": "Home Assistant no responde (tiempo agotado) — ¿está en marcha? Comprueba puerto y cortafuegos.",
     "Set_ErrNetwork": "Error de red — Home Assistant no es accesible.",
     "Set_ErrHttp": "El servidor respondió con el error HTTP {0}.",
-    "St_TlsError": "Error de certificado"
+    "St_TlsError": "Error de certificado",
+    "Repair_AuthTitle": "Error de inicio de sesión",
+    "Repair_AuthText": "Tu token de acceso no es válido o ha caducado. Crea un nuevo token de acceso de larga duración en tu perfil de Home Assistant e introdúcelo en Ajustes.",
+    "Repair_TlsTitle": "Error de certificado",
+    "Repair_TlsText": "El certificado TLS de Home Assistant no es de confianza. Si usas HTTPS autofirmado, activa «Ignorar errores de certificado» en Ajustes.",
+    "Repair_Open": "Abrir ajustes"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -889,7 +904,12 @@
     "Set_ErrTimeout": "Home Assistant ne répond pas (délai dépassé) — est-il lancé ? Vérifiez le port et le pare-feu.",
     "Set_ErrNetwork": "Erreur réseau — Home Assistant est injoignable.",
     "Set_ErrHttp": "Le serveur a répondu avec l'erreur HTTP {0}.",
-    "St_TlsError": "Erreur de certificat"
+    "St_TlsError": "Erreur de certificat",
+    "Repair_AuthTitle": "Échec de connexion",
+    "Repair_AuthText": "Votre jeton d'accès est invalide ou expiré. Créez un nouveau jeton d'accès longue durée dans votre profil Home Assistant et saisissez-le dans les paramètres.",
+    "Repair_TlsTitle": "Erreur de certificat",
+    "Repair_TlsText": "Le certificat TLS de Home Assistant n'est pas approuvé. Si vous utilisez un HTTPS auto-signé, activez « Ignorer les erreurs de certificat » dans les paramètres.",
+    "Repair_Open": "Ouvrir les paramètres"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1112,7 +1132,12 @@
     "Set_ErrTimeout": "Home Assistant 未响应（超时）— 它在运行吗？请检查端口和防火墙。",
     "Set_ErrNetwork": "网络错误 — 无法连接 Home Assistant。",
     "Set_ErrHttp": "服务器返回 HTTP 错误 {0}。",
-    "St_TlsError": "证书错误"
+    "St_TlsError": "证书错误",
+    "Repair_AuthTitle": "登录失败",
+    "Repair_AuthText": "你的访问令牌无效或已过期。请在 Home Assistant 个人资料中创建新的长期访问令牌，并在设置中填写。",
+    "Repair_TlsTitle": "证书错误",
+    "Repair_TlsText": "Home Assistant 的 TLS 证书不受信任。如使用自签名 HTTPS，请在设置中启用“忽略证书错误”。",
+    "Repair_Open": "打开设置"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1335,6 +1360,11 @@
     "Set_ErrTimeout": "Home Assistant ने जवाब नहीं दिया (टाइमआउट) — क्या यह चल रहा है? पोर्ट और फ़ायरवॉल जांचें।",
     "Set_ErrNetwork": "नेटवर्क त्रुटि — Home Assistant तक नहीं पहुंचा जा सकता।",
     "Set_ErrHttp": "सर्वर ने HTTP त्रुटि {0} के साथ जवाब दिया।",
-    "St_TlsError": "प्रमाणपत्र त्रुटि"
+    "St_TlsError": "प्रमाणपत्र त्रुटि",
+    "Repair_AuthTitle": "साइन-इन विफल",
+    "Repair_AuthText": "आपका एक्सेस टोकन अमान्य या समाप्त हो गया है। अपनी Home Assistant प्रोफ़ाइल में नया दीर्घकालिक एक्सेस टोकन बनाएं और उसे सेटिंग्स में दर्ज करें।",
+    "Repair_TlsTitle": "प्रमाणपत्र त्रुटि",
+    "Repair_TlsText": "Home Assistant का TLS प्रमाणपत्र विश्वसनीय नहीं है। यदि आप स्व-हस्ताक्षरित HTTPS उपयोग करते हैं, तो सेटिंग्स में 'प्रमाणपत्र त्रुटियां अनदेखा करें' सक्षम करें।",
+    "Repair_Open": "सेटिंग्स खोलें"
   }
 }

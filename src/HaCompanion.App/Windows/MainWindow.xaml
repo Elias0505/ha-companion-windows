@@ -9,7 +9,22 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Repair banner: only for terminal, user-fixable failures (token/certificate). -->
+        <InfoBar x:Name="RepairBar" Grid.Row="0" Severity="Warning" IsOpen="False"
+                 Margin="8,8,8,0" CloseButtonClick="RepairBar_CloseClick">
+            <InfoBar.ActionButton>
+                <Button Content="{Binding [Repair_Open], Source={StaticResource Loc}}"
+                        Click="RepairOpenSettings_Click" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
         <NavigationView x:Name="Nav"
+                        Grid.Row="1"
                         PaneDisplayMode="Left"
                         IsBackButtonVisible="Collapsed"
                         IsSettingsVisible="False"
