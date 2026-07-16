@@ -67,4 +67,39 @@ public class WindowsSensorCatalogTests
         Assert.Equal("measurement", defs.Single(d => d.UniqueId == "idle_minutes").StateClass);
         Assert.Equal("timestamp", defs.Single(d => d.UniqueId == "last_start").DeviceClass);
     }
+
+    [Theory]
+    [InlineData("idle_minutes", "duration", "diagnostic")]
+    [InlineData("audio_playing", "sound", null)]
+    [InlineData("last_start", "timestamp", "diagnostic")]
+    [InlineData("session_state", null, "diagnostic")]
+    [InlineData("active_program", null, null)]
+    public void Device_classes_and_entity_categories(string id, string? deviceClass, string? category)
+    {
+        var defs = WindowsSensorCatalog.BuildDefinitions(new Dictionary<string, string>(), Values());
+        var def = defs.Single(d => d.UniqueId == id);
+        Assert.Equal(deviceClass, def.DeviceClass);
+        Assert.Equal(category, def.EntityCategory);
+    }
+
+    [Fact]
+    public void Is_locked_deliberately_has_no_device_class()
+    {
+        // HA's "lock" binary class means on = UNLOCKED — adopting it would invert the UI
+        // meaning; inverting our state instead would break existing user automations.
+        var defs = WindowsSensorCatalog.BuildDefinitions(new Dictionary<string, string>(), Values());
+        Assert.Null(defs.Single(d => d.UniqueId == "is_locked").DeviceClass);
+    }
+
+    [Fact]
+    public void Disabled_flag_is_always_explicit_on_every_definition()
+    {
+        // Omitting the flag would leave previously disabled entities disabled forever —
+        // HA only changes disabled_by when the field is present in the registration.
+        var enabled = WindowsSensorCatalog.BuildDefinitions(new Dictionary<string, string>(), Values());
+        Assert.All(enabled, d => Assert.False(d.Disabled));
+
+        var disabled = WindowsSensorCatalog.BuildDefinitions(new Dictionary<string, string>(), Values(), disabled: true);
+        Assert.All(disabled, d => Assert.True(d.Disabled));
+    }
 }

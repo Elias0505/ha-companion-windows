@@ -24,30 +24,50 @@ public static class WindowsSensorCatalog
     public const string Sensor = "sensor";
     public const string BinarySensor = "binary_sensor";
 
-    /// <summary>All sensors with their current state (audio omitted when unavailable).</summary>
+    /// <summary>Registry-metadata category for supporting/diagnostic sensors.</summary>
+    private const string Diagnostic = "diagnostic";
+
+    /// <summary>
+    /// All sensors with their current state (audio omitted when unavailable).
+    /// <paramref name="disabled"/> re-registers every sensor as disabled — used when the
+    /// user turns reporting off, so HA hides the entities instead of leaving them stale.
+    /// The flag is ALWAYS sent explicitly: omitting it would leave a previously disabled
+    /// entity disabled forever (HA only changes disabled_by when the field is present),
+    /// while an explicit false only lifts integration-disabled — a user-disabled entity
+    /// in HA stays respected.
+    /// </summary>
     public static IReadOnlyList<SensorDefinition> BuildDefinitions(
-        IReadOnlyDictionary<string, string> names, WindowsSensorValues v)
+        IReadOnlyDictionary<string, string> names, WindowsSensorValues v, bool disabled = false)
     {
         string Name(string uniqueId) => names.TryGetValue(uniqueId, out var n) ? n : uniqueId;
+        bool? dis = disabled;
 
         var list = new List<SensorDefinition>
         {
-            new("is_locked", Name("is_locked"), BinarySensor, v.IsLocked, Icon: "mdi:lock"),
-            new("session_state", Name("session_state"), Sensor, v.SessionState, Icon: "mdi:account"),
-            new("is_idle", Name("is_idle"), BinarySensor, v.IsIdle, Icon: "mdi:sleep"),
+            // is_locked deliberately has NO device_class: HA's "lock" binary class means
+            // on = UNLOCKED — adopting it would invert the meaning in the HA UI, and
+            // inverting our state instead would break every existing user automation.
+            new("is_locked", Name("is_locked"), BinarySensor, v.IsLocked, Icon: "mdi:lock", Disabled: dis),
+            new("session_state", Name("session_state"), Sensor, v.SessionState, Icon: "mdi:account",
+                EntityCategory: Diagnostic, Disabled: dis),
+            new("is_idle", Name("is_idle"), BinarySensor, v.IsIdle, Icon: "mdi:sleep", Disabled: dis),
             new("idle_minutes", Name("idle_minutes"), Sensor, v.IdleMinutes, Icon: "mdi:timer-sand",
-                UnitOfMeasurement: "min", StateClass: "measurement"),
-            new("active_program", Name("active_program"), Sensor, v.ForegroundProcess ?? "", Icon: "mdi:application"),
-            new("fullscreen", Name("fullscreen"), BinarySensor, v.IsFullscreen, Icon: "mdi:fullscreen"),
-            new("microphone_in_use", Name("microphone_in_use"), BinarySensor, v.MicInUse, Icon: "mdi:microphone"),
-            new("camera_in_use", Name("camera_in_use"), BinarySensor, v.CamInUse, Icon: "mdi:webcam"),
-            new("display_on", Name("display_on"), BinarySensor, v.DisplayOn, Icon: "mdi:monitor"),
+                DeviceClass: "duration", UnitOfMeasurement: "min", StateClass: "measurement",
+                EntityCategory: Diagnostic, Disabled: dis),
+            new("active_program", Name("active_program"), Sensor, v.ForegroundProcess ?? "", Icon: "mdi:application",
+                Disabled: dis),
+            new("fullscreen", Name("fullscreen"), BinarySensor, v.IsFullscreen, Icon: "mdi:fullscreen", Disabled: dis),
+            new("microphone_in_use", Name("microphone_in_use"), BinarySensor, v.MicInUse, Icon: "mdi:microphone",
+                Disabled: dis),
+            new("camera_in_use", Name("camera_in_use"), BinarySensor, v.CamInUse, Icon: "mdi:webcam", Disabled: dis),
+            new("display_on", Name("display_on"), BinarySensor, v.DisplayOn, Icon: "mdi:monitor", Disabled: dis),
             new("last_start", Name("last_start"), Sensor, v.LastStart.ToString("o"), Icon: "mdi:clock-start",
-                DeviceClass: "timestamp"),
+                DeviceClass: "timestamp", EntityCategory: Diagnostic, Disabled: dis),
         };
         if (v.AudioPlaying is not null)
             list.Insert(9, new SensorDefinition(
-                "audio_playing", Name("audio_playing"), BinarySensor, v.AudioPlaying, Icon: "mdi:volume-high"));
+                "audio_playing", Name("audio_playing"), BinarySensor, v.AudioPlaying, Icon: "mdi:volume-high",
+                DeviceClass: "sound", Disabled: dis));
         return list;
     }
 

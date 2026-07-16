@@ -104,6 +104,27 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
         settings.ReportSensors = false;
         _settings.Save(settings);
         SetStatus("");
+        // Best-effort: hide the entities in HA instead of leaving them stale forever
+        // (stale-devices analog). Re-enabling registers them back as enabled.
+        _ = DisableRemoteAsync();
+    }
+
+    private async Task DisableRemoteAsync()
+    {
+        try
+        {
+            var settings = _settings.Load();
+            if (string.IsNullOrEmpty(settings.MobileAppWebhookId)
+                || _connection.Status != HaConnectionStatus.Connected)
+                return;
+            await _client.RegisterSensorsAsync(
+                settings.MobileAppWebhookId, BuildDefinitions(disabled: true)).ConfigureAwait(false);
+            _logger.LogInformation("PC sensors disabled in Home Assistant (reporting turned off)");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not disable the PC sensors in Home Assistant");
+        }
     }
 
     // ----- event intake -----
@@ -307,7 +328,7 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
             s.DisplayOn, s.AudioPlaying, s.AppStartedAt);
     }
 
-    private IReadOnlyList<SensorDefinition> BuildDefinitions()
+    private IReadOnlyList<SensorDefinition> BuildDefinitions(bool disabled = false)
     {
         var names = new Dictionary<string, string>();
         foreach (var id in new[]
@@ -317,7 +338,7 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                      "audio_playing", "last_start",
                  })
             names[id] = _loc["Sensor_" + id];
-        return WindowsSensorCatalog.BuildDefinitions(names, BuildValues());
+        return WindowsSensorCatalog.BuildDefinitions(names, BuildValues(), disabled);
     }
 
     private void SetStatus(string text)

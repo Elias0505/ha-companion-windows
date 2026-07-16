@@ -30,7 +30,9 @@ public sealed record MobileAppRegistrationRequest(
 public sealed record MobileAppRegistrationResult(
     [property: JsonPropertyName("webhook_id")] string WebhookId);
 
-/// <summary>One sensor as registered via the webhook ("register_sensor").</summary>
+/// <summary>One sensor as registered via the webhook ("register_sensor").
+/// Nulls are omitted from the payload (JsonOptionsNoNulls), so the optional metadata
+/// keeps existing registrations byte-identical unless explicitly set.</summary>
 public sealed record SensorDefinition(
     [property: JsonPropertyName("unique_id")] string UniqueId,
     [property: JsonPropertyName("name")] string Name,
@@ -39,7 +41,9 @@ public sealed record SensorDefinition(
     [property: JsonPropertyName("icon")] string? Icon = null,
     [property: JsonPropertyName("device_class")] string? DeviceClass = null,
     [property: JsonPropertyName("unit_of_measurement")] string? UnitOfMeasurement = null,
-    [property: JsonPropertyName("state_class")] string? StateClass = null);
+    [property: JsonPropertyName("state_class")] string? StateClass = null,
+    [property: JsonPropertyName("entity_category")] string? EntityCategory = null,
+    [property: JsonPropertyName("disabled")] bool? Disabled = null);
 
 /// <summary>One state update as sent via "update_sensor_states".</summary>
 public sealed record SensorState(

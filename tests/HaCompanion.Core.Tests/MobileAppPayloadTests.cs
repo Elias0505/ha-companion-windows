@@ -62,7 +62,22 @@ public class MobileAppPayloadTests
         Assert.DoesNotContain("device_class", json);
         Assert.DoesNotContain("unit_of_measurement", json);
         Assert.DoesNotContain("state_class", json);
+        Assert.DoesNotContain("entity_category", json);
+        Assert.DoesNotContain("disabled", json);
         Assert.DoesNotContain("null", json);
+    }
+
+    [Fact]
+    public void Register_sensor_serializes_entity_category_and_disabled_when_set()
+    {
+        var sensor = new SensorDefinition("idle_minutes", "Leerlauf", "sensor", 5,
+            Icon: "mdi:timer-sand", DeviceClass: "duration", UnitOfMeasurement: "min",
+            StateClass: "measurement", EntityCategory: "diagnostic", Disabled: true);
+        var json = JsonSerializer.Serialize(new WebhookEnvelope("register_sensor", sensor), WebNoNulls);
+
+        Assert.Contains("\"device_class\":\"duration\"", json);
+        Assert.Contains("\"entity_category\":\"diagnostic\"", json);
+        Assert.Contains("\"disabled\":true", json);
     }
 
     [Fact]
