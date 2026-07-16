@@ -15,13 +15,15 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
     private readonly HaRestClient _rest;
     private readonly HaWebSocketClient _ws;
     private readonly ILogger<HaConnection> _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly ConcurrentDictionary<string, HaEntityState> _entities = new(StringComparer.Ordinal);
 
-    public HaConnection(HaRestClient rest, HaWebSocketClient ws, ILogger<HaConnection> logger)
+    public HaConnection(HaRestClient rest, HaWebSocketClient ws, ILogger<HaConnection> logger, ILoggerFactory loggerFactory)
     {
         _rest = rest;
         _ws = ws;
         _logger = logger;
+        _loggerFactory = loggerFactory;
         _ws.StatusChanged += OnWebSocketStatusChanged;
         _ws.StateChanged += OnWebSocketStateChanged;
         _ws.NotificationReceived += (_, n) => NotificationReceived?.Invoke(this, n);
@@ -48,22 +50,36 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
     public Task<bool> FireEventAsync(string eventType, object? data = null, CancellationToken ct = default) =>
         _rest.FireEventAsync(eventType, data, ct);
 
-    public async Task<bool> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default)
+    public async Task<ConnectionCheckResult> CheckAsync(HaConnectionSettings settings, CancellationToken ct = default)
+    {
+        if (!settings.IsValid)
+            throw new ArgumentException("Connection settings are incomplete (base URL and token required).", nameof(settings));
+
+        // Throwaway probe client: validating CANDIDATE settings must not reconfigure the
+        // live session's REST client (a failed probe would otherwise break it).
+        using var probe = new HaRestClient(_loggerFactory.CreateLogger<HaRestClient>());
+        probe.Configure(settings.BaseUri, settings.Token, settings.IgnoreCertificateErrors);
+        return await probe.CheckAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<ConnectionCheckResult> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default)
     {
         if (!settings.IsValid)
             throw new ArgumentException("Connection settings are incomplete (base URL and token required).", nameof(settings));
 
         _rest.Configure(settings.BaseUri, settings.Token, settings.IgnoreCertificateErrors);
 
-        if (!await _rest.ValidateAsync(ct).ConfigureAwait(false))
+        var check = await _rest.CheckAsync(ct).ConfigureAwait(false);
+        if (!check.IsOk)
         {
-            _logger.LogWarning("Home Assistant REST validation failed for {BaseUrl}", settings.BaseUrl);
-            return false;
+            _logger.LogWarning("Home Assistant REST validation failed for {BaseUrl}: {Reason}",
+                settings.BaseUrl, check.Status);
+            return check;
         }
 
         await RefreshStatesAsync(ct).ConfigureAwait(false);
         _ws.Start(settings.WebSocketUri, settings.Token, settings.IgnoreCertificateErrors);
-        return true;
+        return check;
     }
 
     public void Disconnect() => _ws.Stop();

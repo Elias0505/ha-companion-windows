@@ -213,7 +213,13 @@
     "Rx_Command": "Command",
     "Set_SecConnection": "Connection",
     "Set_SecPanel": "Quick panel",
-    "Set_SecGeneral": "General"
+    "Set_SecGeneral": "General",
+    "Set_ErrAuth": "Access denied — the token was rejected. Create a new long-lived access token in your HA profile.",
+    "Set_ErrTls": "Certificate error — for self-signed HTTPS enable 'Ignore certificate errors' below.",
+    "Set_ErrDns": "Host not found — check the base URL.",
+    "Set_ErrTimeout": "Home Assistant did not respond (timeout) — is it running? Check port and firewall.",
+    "Set_ErrNetwork": "Network error — Home Assistant is unreachable.",
+    "Set_ErrHttp": "The server answered with HTTP error {0}."
   },
   "de": {
     "Nav_Start": "Start",
@@ -429,7 +435,13 @@
     "Rx_Command": "Befehl",
     "Set_SecConnection": "Verbindung",
     "Set_SecPanel": "Schnellzugriff",
-    "Set_SecGeneral": "Allgemein"
+    "Set_SecGeneral": "Allgemein",
+    "Set_ErrAuth": "Zugriff abgelehnt — der Token wurde zurückgewiesen. Erstelle in deinem HA-Profil einen neuen langlebigen Zugriffstoken.",
+    "Set_ErrTls": "Zertifikatsfehler — bei selbstsigniertem HTTPS unten „Zertifikatsfehler ignorieren“ aktivieren.",
+    "Set_ErrDns": "Server nicht gefunden — Basis-URL prüfen.",
+    "Set_ErrTimeout": "Home Assistant antwortet nicht (Zeitüberschreitung) — läuft HA? Port und Firewall prüfen.",
+    "Set_ErrNetwork": "Netzwerkfehler — Home Assistant ist nicht erreichbar.",
+    "Set_ErrHttp": "Der Server antwortete mit HTTP-Fehler {0}."
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -645,7 +657,13 @@
     "Rx_Command": "Comando",
     "Set_SecConnection": "Conexión",
     "Set_SecPanel": "Panel rápido",
-    "Set_SecGeneral": "General"
+    "Set_SecGeneral": "General",
+    "Set_ErrAuth": "Acceso denegado — el token fue rechazado. Crea un nuevo token de acceso de larga duración en tu perfil de HA.",
+    "Set_ErrTls": "Error de certificado — para HTTPS autofirmado activa abajo «Ignorar errores de certificado».",
+    "Set_ErrDns": "Servidor no encontrado — comprueba la URL base.",
+    "Set_ErrTimeout": "Home Assistant no responde (tiempo agotado) — ¿está en marcha? Comprueba puerto y cortafuegos.",
+    "Set_ErrNetwork": "Error de red — Home Assistant no es accesible.",
+    "Set_ErrHttp": "El servidor respondió con el error HTTP {0}."
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -861,7 +879,13 @@
     "Rx_Command": "Commande",
     "Set_SecConnection": "Connexion",
     "Set_SecPanel": "Panneau rapide",
-    "Set_SecGeneral": "Général"
+    "Set_SecGeneral": "Général",
+    "Set_ErrAuth": "Accès refusé — le jeton a été rejeté. Créez un nouveau jeton d'accès longue durée dans votre profil HA.",
+    "Set_ErrTls": "Erreur de certificat — pour un HTTPS auto-signé, activez « Ignorer les erreurs de certificat » ci-dessous.",
+    "Set_ErrDns": "Hôte introuvable — vérifiez l'URL de base.",
+    "Set_ErrTimeout": "Home Assistant ne répond pas (délai dépassé) — est-il lancé ? Vérifiez le port et le pare-feu.",
+    "Set_ErrNetwork": "Erreur réseau — Home Assistant est injoignable.",
+    "Set_ErrHttp": "Le serveur a répondu avec l'erreur HTTP {0}."
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1077,7 +1101,13 @@
     "Rx_Command": "命令",
     "Set_SecConnection": "连接",
     "Set_SecPanel": "快捷面板",
-    "Set_SecGeneral": "常规"
+    "Set_SecGeneral": "常规",
+    "Set_ErrAuth": "访问被拒绝 — 令牌被拒。请在你的 HA 个人资料中创建新的长期访问令牌。",
+    "Set_ErrTls": "证书错误 — 如使用自签名 HTTPS，请在下方启用“忽略证书错误”。",
+    "Set_ErrDns": "找不到主机 — 请检查基础 URL。",
+    "Set_ErrTimeout": "Home Assistant 未响应（超时）— 它在运行吗？请检查端口和防火墙。",
+    "Set_ErrNetwork": "网络错误 — 无法连接 Home Assistant。",
+    "Set_ErrHttp": "服务器返回 HTTP 错误 {0}。"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1293,6 +1323,12 @@
     "Rx_Command": "कमांड",
     "Set_SecConnection": "कनेक्शन",
     "Set_SecPanel": "क्विक पैनल",
-    "Set_SecGeneral": "सामान्य"
+    "Set_SecGeneral": "सामान्य",
+    "Set_ErrAuth": "पहुंच अस्वीकृत — टोकन अस्वीकार कर दिया गया। अपनी HA प्रोफ़ाइल में नया दीर्घकालिक एक्सेस टोकन बनाएं।",
+    "Set_ErrTls": "प्रमाणपत्र त्रुटि — स्व-हस्ताक्षरित HTTPS के लिए नीचे 'प्रमाणपत्र त्रुटियां अनदेखा करें' सक्षम करें।",
+    "Set_ErrDns": "होस्ट नहीं मिला — बेस URL जांचें।",
+    "Set_ErrTimeout": "Home Assistant ने जवाब नहीं दिया (टाइमआउट) — क्या यह चल रहा है? पोर्ट और फ़ायरवॉल जांचें।",
+    "Set_ErrNetwork": "नेटवर्क त्रुटि — Home Assistant तक नहीं पहुंचा जा सकता।",
+    "Set_ErrHttp": "सर्वर ने HTTP त्रुटि {0} के साथ जवाब दिया।"
   }
 }

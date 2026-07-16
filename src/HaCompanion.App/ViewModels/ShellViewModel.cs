@@ -4,6 +4,7 @@ using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Models;
 using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
+using HaCompanion.Core.Rest;
 using HaCompanion.Core.Services;
 
 namespace HaCompanion.App.ViewModels;
@@ -45,7 +46,7 @@ public sealed partial class ShellViewModel : ObservableObject
             await ConnectAsync(settings);
     }
 
-    public async Task<bool> ConnectAsync(AppSettings settings)
+    public async Task<ConnectionCheckResult> ConnectAsync(AppSettings settings)
     {
         try
         {
@@ -53,7 +54,7 @@ public sealed partial class ShellViewModel : ObservableObject
         }
         catch
         {
-            return false;
+            return new ConnectionCheckResult(ConnectionCheckStatus.NetworkError);
         }
     }
 

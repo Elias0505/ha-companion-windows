@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Models;
 using HaCompanion.App.Services;
+using HaCompanion.Core.Rest;
 using HaCompanion.Core.Services;
 
 namespace HaCompanion.App.ViewModels;
@@ -313,12 +314,27 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         IsBusy = true;
         StatusMessage = _localization["St_Connecting"];
-        _settingsStore.Save(settings);
 
-        var ok = await _shell.ConnectAsync(settings);
-        StatusMessage = _localization[ok ? "Set_MsgConnected" : "Set_MsgFailed"];
+        // test-before-configure: probe the candidate settings first — on failure NOTHING
+        // is persisted and the previously working connection stays untouched.
+        var check = await _connection.CheckAsync(settings.ToConnectionSettings());
+        if (!check.IsOk)
+        {
+            StatusMessage = FormatCheck(check);
+            IsBusy = false;
+            return;
+        }
+
+        _settingsStore.Save(settings);
+        var result = await _shell.ConnectAsync(settings);
+        StatusMessage = FormatCheck(result);
         IsBusy = false;
-        if (ok)
+        if (result.IsOk)
             _ = LoadStartViewDashboardsAsync(); // the default-view picker can now list real dashboards
     }
+
+    private string FormatCheck(ConnectionCheckResult result) =>
+        result.Status == ConnectionCheckStatus.HttpError
+            ? string.Format(_localization[result.I18nKey], result.HttpStatusCode)
+            : _localization[result.I18nKey];
 }

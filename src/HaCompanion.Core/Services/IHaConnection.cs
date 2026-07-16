@@ -36,8 +36,14 @@ public interface IHaConnection
     /// <summary>Fire a custom event on the HA event bus (notification action callbacks).</summary>
     Task<bool> FireEventAsync(string eventType, object? data = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Probe CANDIDATE settings against the server without persisting anything and without
+    /// touching the live session (test-before-configure). Returns the classified outcome.
+    /// </summary>
+    Task<Rest.ConnectionCheckResult> CheckAsync(HaConnectionSettings settings, CancellationToken ct = default);
+
     /// <summary>Validate credentials, load the initial snapshot and start the live feed.</summary>
-    Task<bool> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default);
+    Task<Rest.ConnectionCheckResult> ConnectAsync(HaConnectionSettings settings, CancellationToken ct = default);
 
     void Disconnect();
 

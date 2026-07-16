@@ -48,19 +48,60 @@ public sealed class HaRestClient : IDisposable
     }
 
     /// <summary>Returns true if the base URL + token reach a working Home Assistant API.</summary>
-    public async Task<bool> ValidateAsync(CancellationToken ct = default)
+    public async Task<bool> ValidateAsync(CancellationToken ct = default) =>
+        (await CheckAsync(ct).ConfigureAwait(false)).IsOk;
+
+    /// <summary>
+    /// Like <see cref="ValidateAsync"/>, but classifies WHY it failed (auth vs. TLS vs.
+    /// DNS vs. timeout ...) so the UI can tell the user what to fix.
+    /// </summary>
+    public async Task<ConnectionCheckResult> CheckAsync(CancellationToken ct = default)
     {
         try
         {
             using var req = BuildRequest(HttpMethod.Get, "api/");
             using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
-            return res.IsSuccessStatusCode;
+            return FromStatusCode((int)res.StatusCode);
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return new ConnectionCheckResult(ConnectionCheckStatus.Timeout);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Home Assistant validation request failed");
-            return false;
+            _logger.LogWarning(ex, "Home Assistant connection check failed");
+            return new ConnectionCheckResult(ClassifyException(ex));
         }
+    }
+
+    internal static ConnectionCheckResult FromStatusCode(int statusCode) =>
+        statusCode is >= 200 and < 300 ? ConnectionCheckResult.Success
+        : statusCode is 401 or 403 ? new ConnectionCheckResult(ConnectionCheckStatus.AuthFailed, statusCode)
+        : new ConnectionCheckResult(ConnectionCheckStatus.HttpError, statusCode);
+
+    /// <summary>
+    /// Walk the exception chain to the user-fixable cause. HttpClient wraps the interesting
+    /// exceptions (AuthenticationException for TLS, SocketException for DNS/reachability)
+    /// inside HttpRequestException — sometimes more than one level deep.
+    /// </summary>
+    internal static ConnectionCheckStatus ClassifyException(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException!)
+        {
+            switch (e)
+            {
+                case System.Security.Authentication.AuthenticationException:
+                    return ConnectionCheckStatus.TlsError;
+                case System.Net.Sockets.SocketException s
+                    when s.SocketErrorCode is System.Net.Sockets.SocketError.HostNotFound
+                        or System.Net.Sockets.SocketError.NoData
+                        or System.Net.Sockets.SocketError.TryAgain:
+                    return ConnectionCheckStatus.DnsError;
+                case System.Net.Sockets.SocketException:
+                    return ConnectionCheckStatus.NetworkError;
+            }
+        }
+        return ConnectionCheckStatus.NetworkError;
     }
 
     public async Task<IReadOnlyList<HaEntityState>> GetStatesAsync(CancellationToken ct = default)
