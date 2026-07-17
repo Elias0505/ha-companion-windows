@@ -30,12 +30,15 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - 🔔 **HA notifications** — persistent notifications appear as native Windows toasts (optional).
 - 🔁 **Robust connection** — instant reconnect on network change / resume from sleep; exponential backoff resets after healthy sessions.
 - 🖥️ **Start with Windows** — optional autostart, silently into the tray; tray icon mirrors the connection state.
+- 🔎 **Network discovery** — a search button finds your Home Assistant on the LAN via mDNS and fills in the URL (where multicast is allowed).
+- 🩺 **Diagnostics & self-repair** — a one-click redacted diagnostics report (never contains your token), an "open log folder" shortcut, and an actionable repair banner that guides you when a token is revoked or a certificate is untrusted.
+- 🧪 **Honest actions** — the connection is tested *before* settings are saved with a precise reason on failure (auth / DNS / TLS / timeout); failed actions surface an error instead of silently lying.
 - 🪵 **File logging** — app.log / crash.log under %LOCALAPPDATA%\HaCompanion for easy diagnosis.
-- ✅ **Unit-tested core** — the protocol/parsing layer is covered by xunit tests, run in CI.
+- ✅ **Unit-tested core & strict build** — the protocol/parsing layer is covered by 260+ xunit tests run in CI; the whole solution builds warnings-as-errors with .NET analyzers.
 
 ### Planned
 
-- 📌 Jump Lists · 🧩 Windows Widgets board · 📦 MSIX packaging + signed releases
+- 📌 Jump Lists · 🧩 Windows Widgets board · 📦 MSIX packaging + signed releases (Microsoft Store)
 
 ---
 
@@ -85,6 +88,97 @@ This produces a **self-contained** build — the resulting `HaCompanion.exe` bun
 2. Enter your Home Assistant base URL (e.g. `https://homeassistant.local:8123` or `http://192.168.x.x:8123`).
 3. Paste a **Long-Lived Access Token** (Home Assistant → your profile → *Long-lived access tokens* → *Create token*).
 4. Connect. Pick the entities you want as quick-action tiles.
+
+Tip: on a network with mDNS enabled, the **🔍 search button** next to the base URL finds your Home Assistant automatically.
+
+---
+
+## Configuration reference
+
+Everything is configured in **Settings** — there is no config file to edit. Settings live in `%LOCALAPPDATA%\HaCompanion\settings.json`; the access token and the mobile_app webhook id are encrypted at rest with **Windows DPAPI** (per-user, per-machine — the file is useless if copied to another PC or user).
+
+| Setting | Meaning |
+|---|---|
+| **Base URL** | Your HA URL, e.g. `https://homeassistant.local:8123`. |
+| **Long-lived access token** | Created in HA → profile → *Long-lived access tokens*. Stored encrypted. |
+| **Ignore certificate errors** | Accept a self-signed HTTPS certificate. Off by default. |
+| **Language** | UI language (English, German, Spanish, French, Chinese, Hindi). |
+| **Start with Windows** | Adds an autostart entry; the app then starts hidden in the tray. |
+| **Show HA notifications** | Mirror Home Assistant persistent notifications as Windows toasts. |
+| **Quick panel** | Global hotkey (default `Win+Ctrl+H`), width, default view, auto-hide, edge-resize. |
+| **Report PC state (PC sensors)** | Opt-in. Publishes this PC to HA as a `mobile_app` device (see below). Off by default. |
+| **Idle threshold** | Minutes of no input before the PC counts as idle. |
+| **PC commands** | Per-command opt-in for HA→PC control (lock / monitor off / volume / mute / sleep / shutdown / launch). The critical ones are **off by default**; `launch` runs only whitelisted apps. |
+
+**Backup / restore** and **Diagnostics** (a redacted report for bug reports — never contains the token or webhook) are also in Settings.
+
+## How data flows
+
+- **Home Assistant → app (live):** entity states arrive over the WebSocket API and update instantly; a REST snapshot loads on connect and after every reconnect. On connection loss all tiles grey out as *unavailable* rather than showing stale values.
+- **App → Home Assistant (PC sensors, opt-in):** pushed on every state transition (coalesced ~500 ms) plus a 60 s heartbeat that self-heals missed updates. A final bounded push fires on lock/suspend/shutdown before the network goes away.
+- **Home Assistant → app (push channel):** `notify.mobile_app_<pc>` deliveries and PC commands ride the mobile_app WebSocket push channel — **no MQTT broker required.**
+
+## Home Assistant automation examples
+
+With **PC sensors** enabled, your PC appears as a device with entities like `binary_sensor.<pc>_microphone_in_use`, `binary_sensor.<pc>_is_locked`, `sensor.<pc>_active_program` and `sensor.<pc>_idle_minutes`:
+
+```yaml
+# Turn on the desk light when the webcam starts (e.g. a meeting begins)
+automation:
+  - alias: Meeting light on
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.my_pc_camera_in_use
+        to: "on"
+    action:
+      - service: light.turn_on
+        target: { entity_id: light.desk }
+```
+
+Send a notification **to** the PC (a toast, optionally with action buttons), or a command the PC executes when you allow it in *My PC*:
+
+```yaml
+# A toast on the PC
+- service: notify.mobile_app_my_pc
+  data:
+    title: "Laundry done"
+    message: "Move it to the dryer 🧺"
+
+# Lock the PC (requires the "lock" command to be enabled in My PC)
+- service: notify.mobile_app_my_pc
+  data:
+    message: "command_lock"
+```
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| **"Access denied — the token was rejected."** | The token is wrong or was revoked. Create a new long-lived token in HA and paste it. |
+| **"Host not found — check the base URL."** | Typo in the URL, or DNS can't resolve the host. |
+| **"Certificate error…"** | Self-signed HTTPS: enable *Ignore certificate errors*. |
+| **"Home Assistant did not respond (timeout)."** | HA isn't running or a firewall/port blocks it. |
+| A warning banner appears at the top | It only shows for a revoked token or a certificate problem — click **Open settings** to fix it. |
+| `notify.mobile_app_<pc>` doesn't exist in HA | Enable **Report PC state**, connect, and let it register once. The service appears on fresh registration. |
+| Something's wrong and you want to report it | Settings → **Diagnostics → Export report** (secrets are redacted), and attach it. |
+
+Logs live in `%LOCALAPPDATA%\HaCompanion\` (`app.log`, `crash.log`) — *Open log folder* is in the Diagnostics card.
+
+## Known limitations
+
+- **No MQTT.** This app uses the HA `mobile_app` API by design (no broker, no YAML). Features that require a real `media_player` entity are out of scope.
+- **`is_locked` has no `lock` device class** on purpose: Home Assistant's `lock` binary class means *on = unlocked*, which would invert the meaning; the sensor stays a plain binary_sensor (`on = locked`).
+- **Network discovery needs mDNS.** If your network blocks/disables multicast, the 🔍 search finds nothing — just enter the URL manually.
+- **The PC-sensor entities are enabled by default** (all 11 are core to the app's purpose); turn the whole feature off in Settings to hide them in HA.
+- **Windows only** (Windows 10 19041+ / Windows 11). The `HaCompanion.Core` library is cross-platform, but the app is WinUI 3.
+
+## Removing the app
+
+1. Quit from the tray (right-click the tray icon → *Exit*).
+2. If you enabled autostart, delete the registry value **`HaCompanion`** under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` (or just toggle *Start with Windows* off before quitting).
+3. Delete the settings/logs folder: `%LOCALAPPDATA%\HaCompanion`.
+4. In Home Assistant, delete the **mobile_app device** it created (Settings → Devices & Services → *Mobile App* → your PC → delete), if you had PC sensors enabled.
+5. Delete the app files (the folder you unzipped, or your build output).
 
 ---
 
