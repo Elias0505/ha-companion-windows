@@ -233,7 +233,11 @@
     "Diag_Export": "Export report",
     "Diag_OpenLogs": "Open log folder",
     "Diag_Saved": "Saved: {0}",
-    "Diag_Failed": "Diagnostics export failed."
+    "Diag_Failed": "Diagnostics export failed.",
+    "Set_Discover": "Search the network for Home Assistant",
+    "Set_DiscoverBusy": "Searching…",
+    "Set_DiscoverFound": "Found: {0}",
+    "Set_DiscoverNone": "No Home Assistant found on the network. Enter the URL manually."
   },
   "de": {
     "Nav_Start": "Start",
@@ -469,7 +473,11 @@
     "Diag_Export": "Bericht exportieren",
     "Diag_OpenLogs": "Log-Ordner öffnen",
     "Diag_Saved": "Gespeichert: {0}",
-    "Diag_Failed": "Diagnose-Export fehlgeschlagen."
+    "Diag_Failed": "Diagnose-Export fehlgeschlagen.",
+    "Set_Discover": "Netzwerk nach Home Assistant durchsuchen",
+    "Set_DiscoverBusy": "Suche läuft…",
+    "Set_DiscoverFound": "Gefunden: {0}",
+    "Set_DiscoverNone": "Kein Home Assistant im Netzwerk gefunden. URL manuell eingeben."
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -705,7 +713,11 @@
     "Diag_Export": "Exportar informe",
     "Diag_OpenLogs": "Abrir carpeta de registros",
     "Diag_Saved": "Guardado: {0}",
-    "Diag_Failed": "Error al exportar el diagnóstico."
+    "Diag_Failed": "Error al exportar el diagnóstico.",
+    "Set_Discover": "Buscar Home Assistant en la red",
+    "Set_DiscoverBusy": "Buscando…",
+    "Set_DiscoverFound": "Encontrado: {0}",
+    "Set_DiscoverNone": "No se encontró Home Assistant en la red. Introduce la URL manualmente."
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -941,7 +953,11 @@
     "Diag_Export": "Exporter le rapport",
     "Diag_OpenLogs": "Ouvrir le dossier des journaux",
     "Diag_Saved": "Enregistré : {0}",
-    "Diag_Failed": "Échec de l'export du diagnostic."
+    "Diag_Failed": "Échec de l'export du diagnostic.",
+    "Set_Discover": "Rechercher Home Assistant sur le réseau",
+    "Set_DiscoverBusy": "Recherche…",
+    "Set_DiscoverFound": "Trouvé : {0}",
+    "Set_DiscoverNone": "Aucun Home Assistant trouvé sur le réseau. Saisissez l'URL manuellement."
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1177,7 +1193,11 @@
     "Diag_Export": "导出报告",
     "Diag_OpenLogs": "打开日志文件夹",
     "Diag_Saved": "已保存：{0}",
-    "Diag_Failed": "诊断导出失败。"
+    "Diag_Failed": "诊断导出失败。",
+    "Set_Discover": "在网络中搜索 Home Assistant",
+    "Set_DiscoverBusy": "正在搜索…",
+    "Set_DiscoverFound": "已找到：{0}",
+    "Set_DiscoverNone": "网络中未找到 Home Assistant。请手动输入 URL。"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1413,6 +1433,10 @@
     "Diag_Export": "रिपोर्ट निर्यात करें",
     "Diag_OpenLogs": "लॉग फ़ोल्डर खोलें",
     "Diag_Saved": "सहेजा गया: {0}",
-    "Diag_Failed": "निदान निर्यात विफल।"
+    "Diag_Failed": "निदान निर्यात विफल।",
+    "Set_Discover": "नेटवर्क में Home Assistant खोजें",
+    "Set_DiscoverBusy": "खोज रहे हैं…",
+    "Set_DiscoverFound": "मिला: {0}",
+    "Set_DiscoverNone": "नेटवर्क में कोई Home Assistant नहीं मिला। URL मैन्युअल रूप से दर्ज करें।"
   }
 }

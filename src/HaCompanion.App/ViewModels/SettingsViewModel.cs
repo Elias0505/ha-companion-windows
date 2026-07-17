@@ -37,6 +37,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _ignoreCertificateErrors;
 
+    /// <summary>Status line for the "search the network" (mDNS) button.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDiscoverStatus))]
+    private string _discoverStatus = string.Empty;
+
+    public bool HasDiscoverStatus => !string.IsNullOrEmpty(DiscoverStatus);
+
+    [ObservableProperty]
+    private bool _isDiscovering;
+
     [ObservableProperty]
     private string _hotkey = "Win+Ctrl+H";
 
@@ -340,4 +350,36 @@ public sealed partial class SettingsViewModel : ObservableObject
         result.Status == ConnectionCheckStatus.HttpError
             ? string.Format(CultureInfo.CurrentCulture, _localization[result.I18nKey], result.HttpStatusCode)
             : _localization[result.I18nKey];
+
+    /// <summary>Search the local network for Home Assistant (mDNS) and fill in the base URL.</summary>
+    [RelayCommand]
+    private async Task DiscoverAsync()
+    {
+        if (IsDiscovering)
+            return;
+        IsDiscovering = true;
+        DiscoverStatus = _localization["Set_DiscoverBusy"];
+        try
+        {
+            var found = await HaCompanion.Core.Discovery.MdnsDiscovery
+                .DiscoverAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(true);
+            var withUrl = found.Where(i => !string.IsNullOrWhiteSpace(i.BaseUrl)).ToList();
+            if (withUrl.Count == 0)
+            {
+                DiscoverStatus = _localization["Set_DiscoverNone"];
+            }
+            else
+            {
+                // One hit fills the box directly; several list their URLs for the user to copy.
+                BaseUrl = withUrl[0].BaseUrl!;
+                DiscoverStatus = withUrl.Count == 1
+                    ? string.Format(CultureInfo.CurrentCulture, _localization["Set_DiscoverFound"], withUrl[0].BaseUrl)
+                    : string.Join("  •  ", withUrl.Select(i => i.BaseUrl));
+            }
+        }
+        finally
+        {
+            IsDiscovering = false;
+        }
+    }
 }
