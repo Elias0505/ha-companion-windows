@@ -264,7 +264,16 @@
     "Pc_cam": "Camera in use",
     "Pc_audio": "Audio playing",
     "Pc_idle": "Idle",
-    "Au_More": "More options"
+    "Au_More": "More options",
+    "Au_Brightness": "Brightness",
+    "Au_Volume": "Volume",
+    "Au_Temperature": "Target temperature",
+    "Au_Position": "Position",
+    "Au_Percentage": "Speed",
+    "Au_CondPc": "PC state",
+    "Au_CondNumeric": "Sensor value",
+    "Au_CondIs": "is",
+    "Au_AddCondition": "Add condition"
   },
   "de": {
     "Nav_Start": "Start",
@@ -531,7 +540,16 @@
     "Pc_cam": "Kamera aktiv",
     "Pc_audio": "Audio läuft",
     "Pc_idle": "Leerlauf",
-    "Au_More": "Weitere Optionen"
+    "Au_More": "Weitere Optionen",
+    "Au_Brightness": "Helligkeit",
+    "Au_Volume": "Lautstärke",
+    "Au_Temperature": "Zieltemperatur",
+    "Au_Position": "Position",
+    "Au_Percentage": "Stufe",
+    "Au_CondPc": "PC-Zustand",
+    "Au_CondNumeric": "Sensor-Wert",
+    "Au_CondIs": "ist",
+    "Au_AddCondition": "Bedingung hinzufügen"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -798,7 +816,16 @@
     "Pc_cam": "Cámara en uso",
     "Pc_audio": "Audio en reproducción",
     "Pc_idle": "Inactivo",
-    "Au_More": "Más opciones"
+    "Au_More": "Más opciones",
+    "Au_Brightness": "Brillo",
+    "Au_Volume": "Volumen",
+    "Au_Temperature": "Temperatura objetivo",
+    "Au_Position": "Posición",
+    "Au_Percentage": "Velocidad",
+    "Au_CondPc": "Estado del PC",
+    "Au_CondNumeric": "Valor del sensor",
+    "Au_CondIs": "es",
+    "Au_AddCondition": "Añadir condición"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -1065,7 +1092,16 @@
     "Pc_cam": "Caméra utilisée",
     "Pc_audio": "Audio en cours",
     "Pc_idle": "Inactif",
-    "Au_More": "Plus d'options"
+    "Au_More": "Plus d'options",
+    "Au_Brightness": "Luminosité",
+    "Au_Volume": "Volume",
+    "Au_Temperature": "Température cible",
+    "Au_Position": "Position",
+    "Au_Percentage": "Vitesse",
+    "Au_CondPc": "État du PC",
+    "Au_CondNumeric": "Valeur du capteur",
+    "Au_CondIs": "est",
+    "Au_AddCondition": "Ajouter une condition"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1332,7 +1368,16 @@
     "Pc_cam": "摄像头使用中",
     "Pc_audio": "正在播放音频",
     "Pc_idle": "空闲",
-    "Au_More": "更多选项"
+    "Au_More": "更多选项",
+    "Au_Brightness": "亮度",
+    "Au_Volume": "音量",
+    "Au_Temperature": "目标温度",
+    "Au_Position": "位置",
+    "Au_Percentage": "档位",
+    "Au_CondPc": "电脑状态",
+    "Au_CondNumeric": "传感器数值",
+    "Au_CondIs": "为",
+    "Au_AddCondition": "添加条件"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1599,6 +1644,15 @@
     "Pc_cam": "कैमरा उपयोग में",
     "Pc_audio": "ऑडियो चल रहा",
     "Pc_idle": "निष्क्रिय",
-    "Au_More": "अधिक विकल्प"
+    "Au_More": "अधिक विकल्प",
+    "Au_Brightness": "चमक",
+    "Au_Volume": "वॉल्यूम",
+    "Au_Temperature": "लक्ष्य तापमान",
+    "Au_Position": "स्थिति",
+    "Au_Percentage": "गति",
+    "Au_CondPc": "PC स्थिति",
+    "Au_CondNumeric": "सेंसर मान",
+    "Au_CondIs": "है",
+    "Au_AddCondition": "शर्त जोड़ें"
   }
 }

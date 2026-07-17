@@ -23,22 +23,144 @@ public sealed class TriggerGroupViewModel
 /// <summary>One selectable action for the current entity's domain.</summary>
 public sealed record ActionOption(string Action, string Label);
 
-/// <summary>One DANN card in the builder: entity plus the chosen action.</summary>
+/// <summary>One DANN card in the builder: entity plus the chosen action + optional data.</summary>
 public sealed partial class ActionDraftViewModel : ObservableObject
 {
+    /// <summary>Localization service (set by the builder) — for the data-field label.</summary>
+    public LocalizationService? Loc { get; init; }
+
     [ObservableProperty]
     private EntityTileViewModel? _tile;
 
     public ObservableCollection<ActionOption> Actions { get; } = new();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SupportsData), nameof(DataLabelText), nameof(IsPercent))]
     private ActionOption? _selectedAction;
+
+    /// <summary>Optional service-data value (brightness %, volume %, temperature, position %).</summary>
+    [ObservableProperty]
+    private double _dataValue = 50;
 
     public bool HasTile => Tile is not null;
 
     public bool IsComplete => Tile is not null && SelectedAction is not null;
 
-    partial void OnTileChanged(EntityTileViewModel? value) => OnPropertyChanged(nameof(HasTile));
+    private string Domain => Tile?.EntityId.Split('.')[0] ?? "";
+
+    /// <summary>The set-verb / light turn_on that carries a data field, else null.</summary>
+    public bool SupportsData => DataKind is not null;
+
+    /// <summary>Whether the data value is a 0–100 percentage (vs. a raw number like °C).</summary>
+    public bool IsPercent => DataKind is "brightness" or "volume" or "position" or "percentage";
+
+    /// <summary>Kind of data control to show for the current action (null = none).</summary>
+    public string? DataKind => (Domain, SelectedAction?.Action) switch
+    {
+        ("light", AutomationActions.TurnOn) => "brightness",
+        ("media_player", AutomationActions.SetVolume) => "volume",
+        ("climate", AutomationActions.SetTemperature) => "temperature",
+        ("cover", AutomationActions.SetPosition) => "position",
+        ("fan", AutomationActions.SetPercentage) => "percentage",
+        _ => null,
+    };
+
+    private string DataLabelKey => DataKind switch
+    {
+        "brightness" => "Au_Brightness",
+        "volume" => "Au_Volume",
+        "temperature" => "Au_Temperature",
+        "position" => "Au_Position",
+        "percentage" => "Au_Percentage",
+        _ => "",
+    };
+
+    public string DataLabelText => Loc is null || DataLabelKey.Length == 0 ? "" : Loc[DataLabelKey];
+
+    /// <summary>Build the service-data dictionary HA expects for the current action, or null.</summary>
+    public IReadOnlyDictionary<string, object?>? BuildData() => DataKind switch
+    {
+        "brightness" => new Dictionary<string, object?> { ["brightness_pct"] = (int)DataValue },
+        "volume" => new Dictionary<string, object?> { ["volume_level"] = Math.Round(DataValue / 100.0, 2) },
+        "temperature" => new Dictionary<string, object?> { ["temperature"] = DataValue },
+        "position" => new Dictionary<string, object?> { ["position"] = (int)DataValue },
+        "percentage" => new Dictionary<string, object?> { ["percentage"] = (int)DataValue },
+        _ => null,
+    };
+
+    partial void OnTileChanged(EntityTileViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasTile));
+        OnPropertyChanged(nameof(SupportsData));
+        OnPropertyChanged(nameof(DataLabelText));
+        OnPropertyChanged(nameof(IsPercent));
+    }
+}
+
+/// <summary>A pc-state field with its localized label (for the pc-condition picker).</summary>
+public sealed record PcFieldOption(string Value, string Label);
+
+/// <summary>One NUR-WENN condition row in the builder (entity / time / numeric / pc).</summary>
+public sealed partial class ConditionRowViewModel : ObservableObject
+{
+    public required string Type { get; init; } // entity | time | numeric | pc
+
+    public bool IsEntity => Type == RuleCondition.TypeEntity;
+    public bool IsTime => Type == RuleCondition.TypeTime;
+    public bool IsNumeric => Type == RuleCondition.TypeNumeric;
+    public bool IsPc => Type == RuleCondition.TypePc;
+    public bool NeedsEntity => IsEntity || IsNumeric;
+
+    [ObservableProperty]
+    private EntityTileViewModel? _entityTile;
+
+    [ObservableProperty]
+    private bool _wantedOn = true;      // entity + pc
+
+    [ObservableProperty]
+    private TimeSpan _from = new(18, 0, 0);
+
+    [ObservableProperty]
+    private TimeSpan _to = new(23, 0, 0);
+
+    [ObservableProperty]
+    private string _operator = "<";     // numeric
+
+    [ObservableProperty]
+    private double _number;             // numeric
+
+    [ObservableProperty]
+    private string _pcField = "locked"; // pc
+
+#pragma warning disable CA1822 // x:Bind target — must be an instance member for the binding
+    public IReadOnlyList<string> Operators => RuleCondition.Operators;
+#pragma warning restore CA1822
+
+    /// <summary>Localized (value, label) pairs for the pc-field picker (set by the parent VM).</summary>
+    public IReadOnlyList<PcFieldOption> PcFieldOptions { get; set; } = Array.Empty<PcFieldOption>();
+
+    partial void OnEntityTileChanged(EntityTileViewModel? value)
+    {
+        OnPropertyChanged(nameof(EntityName));
+        OnPropertyChanged(nameof(HasEntitySelected));
+    }
+
+    public string EntityName => EntityTile?.FriendlyName ?? "";
+
+    public bool HasEntitySelected => EntityTile is not null;
+
+    public RuleCondition? Build() => Type switch
+    {
+        RuleCondition.TypeEntity when EntityTile is not null =>
+            new RuleCondition(Type, EntityTile.EntityId, WantedOn ? "on" : "off"),
+        RuleCondition.TypeTime =>
+            new RuleCondition(Type, FromTime: $"{From.Hours:00}:{From.Minutes:00}", ToTime: $"{To.Hours:00}:{To.Minutes:00}"),
+        RuleCondition.TypeNumeric when EntityTile is not null =>
+            new RuleCondition(Type, EntityTile.EntityId, Operator: Operator, Number: Number),
+        RuleCondition.TypePc =>
+            new RuleCondition(Type, PcField: PcField, WantedState: WantedOn ? "on" : "off"),
+        _ => null,
+    };
 }
 
 /// <summary>One executed action inside a rule card ("💡 Name · Aus").</summary>
@@ -107,25 +229,9 @@ public sealed partial class AutomationsViewModel : ObservableObject
 
     public bool ShowProcess => SelectedTrigger?.ParamKind == TriggerParamKind.ProcessName;
 
-    // ----- builder: NUR WENN (optional condition) -----
+    // ----- builder: NUR WENN (zero or more AND conditions) -----
 
-    [ObservableProperty]
-    private bool _hasCondition;
-
-    [ObservableProperty]
-    private bool _conditionIsTime;
-
-    [ObservableProperty]
-    private EntityTileViewModel? _conditionTile;
-
-    [ObservableProperty]
-    private bool _conditionWantedOn = true;
-
-    [ObservableProperty]
-    private TimeSpan _conditionFrom = new(22, 0, 0);
-
-    [ObservableProperty]
-    private TimeSpan _conditionTo = new(6, 0, 0);
+    public ObservableCollection<ConditionRowViewModel> Conditions { get; } = new();
 
     [ObservableProperty]
     private bool _hasItems;
@@ -148,20 +254,6 @@ public sealed partial class AutomationsViewModel : ObservableObject
     public string EditTitle => _loc[IsEditingExisting ? "Au_EditTitle" : "Au_NewTitle"];
 
     public bool CanAdd => BuildRule() is { } rule && rule.IsValid();
-
-    /// <summary>Short text on the condition node ("Licht Flur ist an" / "22:00–06:00").</summary>
-    public string ConditionSummary
-    {
-        get
-        {
-            if (!HasCondition)
-                return "";
-            if (ConditionIsTime)
-                return $"{ConditionFrom.Hours:00}:{ConditionFrom.Minutes:00}–{ConditionTo.Hours:00}:{ConditionTo.Minutes:00}";
-            var name = ConditionTile?.FriendlyName ?? _loc["Au_CondEntity"];
-            return $"{name} {_loc[ConditionWantedOn ? "Au_CondOn" : "Au_CondOff"]}";
-        }
-    }
 
     public AutomationsViewModel(IRulesStore store, IRulesEngine engine, IWindowsStateMonitor monitor,
         EntityCatalogViewModel catalog, LocalizationService loc, MdiIconProvider icons, IUiDispatcher ui)
@@ -226,16 +318,18 @@ public sealed partial class AutomationsViewModel : ObservableObject
         var free = ActionDrafts.FirstOrDefault(d => d.Tile is null);
         if (free is null)
         {
-            free = new ActionDraftViewModel();
+            free = NewDraft();
             ActionDrafts.Add(free);
         }
         AssignEntity(free, tile);
     }
 
+    private ActionDraftViewModel NewDraft() => new() { Loc = _loc };
+
     [RelayCommand]
     private void AddActionDraft()
     {
-        ActionDrafts.Add(new ActionDraftViewModel());
+        ActionDrafts.Add(NewDraft());
         NotifyBuilderChanged();
     }
 
@@ -244,15 +338,24 @@ public sealed partial class AutomationsViewModel : ObservableObject
     {
         ActionDrafts.Remove(draft);
         if (ActionDrafts.Count == 0)
-            ActionDrafts.Add(new ActionDraftViewModel());
+            ActionDrafts.Add(NewDraft());
         NotifyBuilderChanged();
     }
 
-    [RelayCommand]
-    private void RemoveCondition()
+    /// <summary>Add a condition row of the given type (entity/time/numeric/pc).</summary>
+    public void AddCondition(string type)
     {
-        HasCondition = false;
-        ConditionTile = null;
+        Conditions.Add(new ConditionRowViewModel { Type = type, PcFieldOptions = BuildPcOptions() });
+        NotifyBuilderChanged();
+    }
+
+    private List<PcFieldOption> BuildPcOptions() =>
+        RuleCondition.PcFields.Select(f => new PcFieldOption(f, _loc["Pc_" + f])).ToList();
+
+    [RelayCommand]
+    private void RemoveConditionRow(ConditionRowViewModel row)
+    {
+        Conditions.Remove(row);
         NotifyBuilderChanged();
     }
 
@@ -349,43 +452,76 @@ public sealed partial class AutomationsViewModel : ObservableObject
                 ProcessParam = rule.Param ?? "";
         }
 
-        // S3 seeds the first entity/time condition; numeric/pc conditions are edited in S4.
-        var cond = rule.EffectiveConditions.FirstOrDefault(c =>
-            c.Type is RuleCondition.TypeEntity or RuleCondition.TypeTime);
-        if (cond is not null)
-        {
-            HasCondition = true;
-            ConditionIsTime = cond.Type == RuleCondition.TypeTime;
-            if (ConditionIsTime)
-            {
-                if (RuleCondition.TryParseTime(cond.FromTime, out var from))
-                    ConditionFrom = from.ToTimeSpan();
-                if (RuleCondition.TryParseTime(cond.ToTime, out var to))
-                    ConditionTo = to.ToTimeSpan();
-            }
-            else
-            {
-                ConditionTile = cond.EntityId is null ? null : Catalog.FindTile(cond.EntityId);
-                ConditionWantedOn = cond.WantedState == "on";
-            }
-        }
+        Conditions.Clear();
+        foreach (var cond in rule.EffectiveConditions)
+            Conditions.Add(RowFrom(cond));
 
         ActionDrafts.Clear();
         foreach (var action in rule.Actions)
         {
-            var draft = new ActionDraftViewModel();
+            var draft = NewDraft();
             var tile = Catalog.FindTile(action.EntityId);
             if (tile is not null)
             {
                 AssignEntity(draft, tile);
                 draft.SelectedAction = draft.Actions.FirstOrDefault(a => a.Action == action.Action) ?? draft.SelectedAction;
+                SeedActionData(draft, action);
             }
             ActionDrafts.Add(draft);
         }
         if (ActionDrafts.Count == 0)
-            ActionDrafts.Add(new ActionDraftViewModel());
+            ActionDrafts.Add(NewDraft());
         NotifyBuilderChanged();
     }
+
+    private ConditionRowViewModel RowFrom(RuleCondition c)
+    {
+        var row = new ConditionRowViewModel { Type = c.Type, PcFieldOptions = BuildPcOptions() };
+        switch (c.Type)
+        {
+            case RuleCondition.TypeEntity:
+                row.EntityTile = c.EntityId is null ? null : Catalog.FindTile(c.EntityId);
+                row.WantedOn = c.WantedState == "on";
+                break;
+            case RuleCondition.TypeNumeric:
+                row.EntityTile = c.EntityId is null ? null : Catalog.FindTile(c.EntityId);
+                row.Operator = c.Operator ?? "<";
+                row.Number = c.Number ?? 0;
+                break;
+            case RuleCondition.TypeTime:
+                if (RuleCondition.TryParseTime(c.FromTime, out var from)) row.From = from.ToTimeSpan();
+                if (RuleCondition.TryParseTime(c.ToTime, out var to)) row.To = to.ToTimeSpan();
+                break;
+            case RuleCondition.TypePc:
+                row.PcField = c.PcField ?? "locked";
+                row.WantedOn = c.WantedState == "on";
+                break;
+        }
+        return row;
+    }
+
+    private static void SeedActionData(ActionDraftViewModel draft, RuleAction action)
+    {
+        if (action.Data is null)
+            return;
+        if (action.Data.TryGetValue("brightness_pct", out var b) && b is not null)
+            draft.DataValue = ToDouble(b);
+        else if (action.Data.TryGetValue("volume_level", out var v) && v is not null)
+            draft.DataValue = Math.Round(ToDouble(v) * 100.0);
+        else if (action.Data.TryGetValue("temperature", out var tp) && tp is not null)
+            draft.DataValue = ToDouble(tp);
+        else if (action.Data.TryGetValue("position", out var p) && p is not null)
+            draft.DataValue = ToDouble(p);
+        else if (action.Data.TryGetValue("percentage", out var pc) && pc is not null)
+            draft.DataValue = ToDouble(pc);
+    }
+
+    private static double ToDouble(object value) => value switch
+    {
+        System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Number => je.GetDouble(),
+        IConvertible c => c.ToDouble(CultureInfo.InvariantCulture),
+        _ => 0,
+    };
 
     /// <summary>Auto-generated readable name ("PC gesperrt → Wohnzimmer") when the user left it blank.</summary>
     private string DefaultName(AutomationRule rule)
@@ -408,19 +544,13 @@ public sealed partial class AutomationsViewModel : ObservableObject
         };
         var actions = ActionDrafts
             .Where(d => d.IsComplete)
-            .Select(d => new RuleAction(d.Tile!.EntityId, d.SelectedAction!.Action))
+            .Select(d => new RuleAction(d.Tile!.EntityId, d.SelectedAction!.Action, d.BuildData()))
             .ToList();
-        RuleCondition? condition = null;
-        if (HasCondition)
-        {
-            condition = ConditionIsTime
-                ? new RuleCondition(RuleCondition.TypeTime,
-                    FromTime: $"{ConditionFrom.Hours:00}:{ConditionFrom.Minutes:00}",
-                    ToTime: $"{ConditionTo.Hours:00}:{ConditionTo.Minutes:00}")
-                : new RuleCondition(RuleCondition.TypeEntity, ConditionTile?.EntityId,
-                    ConditionWantedOn ? "on" : "off");
-        }
-        var conditions = condition is null ? null : new[] { condition };
+        // Every condition row must build to a valid condition, else the rule is incomplete.
+        var built = Conditions.Select(r => r.Build()).ToList();
+        if (built.Any(c => c is null || !c.IsValid()))
+            return null;
+        var conditions = built.Count > 0 ? built.Select(c => c!).ToList() : null;
         return new AutomationRule(SelectedTrigger.Key, param, actions,
             Conditions: conditions,
             Id: _editingId ?? Guid.NewGuid().ToString("N"),
@@ -432,7 +562,6 @@ public sealed partial class AutomationsViewModel : ObservableObject
         OnPropertyChanged(nameof(CanAdd));
         OnPropertyChanged(nameof(ShowMinutes));
         OnPropertyChanged(nameof(ShowProcess));
-        OnPropertyChanged(nameof(ConditionSummary));
     }
 
     partial void OnSelectedTriggerChanged(TriggerOption? value) => NotifyBuilderChanged();
@@ -441,29 +570,14 @@ public sealed partial class AutomationsViewModel : ObservableObject
 
     partial void OnProcessParamChanged(string value) => NotifyBuilderChanged();
 
-    partial void OnHasConditionChanged(bool value) => NotifyBuilderChanged();
-
-    partial void OnConditionIsTimeChanged(bool value) => NotifyBuilderChanged();
-
-    partial void OnConditionTileChanged(EntityTileViewModel? value) => NotifyBuilderChanged();
-
-    partial void OnConditionWantedOnChanged(bool value) => NotifyBuilderChanged();
-
-    partial void OnConditionFromChanged(TimeSpan value) => NotifyBuilderChanged();
-
-    partial void OnConditionToChanged(TimeSpan value) => NotifyBuilderChanged();
-
     private void ResetBuilder()
     {
         SelectedTrigger = null;
         MinutesParam = 10;
         ProcessParam = "";
-        HasCondition = false;
-        ConditionIsTime = false;
-        ConditionTile = null;
-        ConditionWantedOn = true;
+        Conditions.Clear();
         ActionDrafts.Clear();
-        ActionDrafts.Add(new ActionDraftViewModel());
+        ActionDrafts.Add(NewDraft());
         NotifyBuilderChanged();
     }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
+using HaCompanion.Core.Automations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -66,52 +67,38 @@ public sealed partial class AutomationsPage : Page
             ViewModel.ProcessParam = name;
     }
 
-    // ----- NUR WENN: condition editor -----
+    // ----- NUR WENN: condition rows -----
 
-    private void ConditionNode_Click(object sender, RoutedEventArgs e) =>
-        ConditionFlyout.ShowAt((FrameworkElement)sender);
+    private Flyout? _openCondFlyout;
 
-    private void CondType_Checked(object sender, RoutedEventArgs e)
+    private void AddCondTime_Click(object sender, RoutedEventArgs e) => ViewModel.AddCondition(RuleCondition.TypeTime);
+    private void AddCondPc_Click(object sender, RoutedEventArgs e) => ViewModel.AddCondition(RuleCondition.TypePc);
+    private void AddCondNumeric_Click(object sender, RoutedEventArgs e) => ViewModel.AddCondition(RuleCondition.TypeNumeric);
+    private void AddCondEntity_Click(object sender, RoutedEventArgs e) => ViewModel.AddCondition(RuleCondition.TypeEntity);
+
+    private void RemoveCond_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel is null)
-            return; // fires during InitializeComponent
-        ViewModel.ConditionIsTime = ReferenceEquals(sender, CondTypeTime);
+        if ((sender as FrameworkElement)?.DataContext is ConditionRowViewModel row)
+            ViewModel.RemoveConditionRowCommand.Execute(row);
     }
 
-    private void CondOn_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.ConditionWantedOn = true;
-        CondOnChip.IsChecked = true;
-        CondOffChip.IsChecked = false;
-    }
+    private void CondEntityFlyout_Opened(object? sender, object e) => _openCondFlyout = sender as Flyout;
 
-    private void CondOff_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.ConditionWantedOn = false;
-        CondOnChip.IsChecked = false;
-        CondOffChip.IsChecked = true;
-    }
-
-    private void CondEntityBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    private void CondRowEntity_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
             sender.ItemsSource = ViewModel.Catalog.SearchTiles(sender.Text, actionableOnly: false);
     }
 
-    private void CondEntityBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+    private void CondRowEntity_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
     {
-        if (args.SelectedItem is EntityTileViewModel tile)
+        if (args.SelectedItem is EntityTileViewModel tile
+            && (sender as FrameworkElement)?.DataContext is ConditionRowViewModel row)
         {
-            ViewModel.ConditionTile = tile;
-            sender.Text = tile.FriendlyName;
+            row.EntityTile = tile;
+            ViewModel.NotifyBuilderChanged();
+            _openCondFlyout?.Hide();
         }
-    }
-
-    private void CondApply_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.HasCondition = true;
-        ViewModel.NotifyBuilderChanged();
-        ConditionFlyout.Hide();
     }
 
     // ----- DANN: entity pickers + action chips -----
