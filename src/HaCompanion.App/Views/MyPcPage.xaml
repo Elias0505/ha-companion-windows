@@ -6,6 +6,7 @@
     xmlns:conv="using:HaCompanion.App.Converters"
     xmlns:vm="using:HaCompanion.App.ViewModels"
     xmlns:svc="using:HaCompanion.App.Services"
+    xmlns:hc="using:HaCompanion.App.Controls"
     NavigationCacheMode="Required"
     mc:Ignorable="d"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -73,6 +74,14 @@
                         IsEnabled="{Binding CanAddRule}"
                         Command="{Binding AddRuleCommand}" />
             </Grid>
+
+            <!-- Browse devices by category to pick the rule's entity without knowing its name. -->
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      Header="{Binding [Browse_Title], Source={StaticResource Loc}}">
+                <hc:DeviceBrowser DataContext="{Binding Browser}"
+                                  HintText="{Binding [Browse_HintPick], Source={StaticResource Loc}}"
+                                  EntityInvoked="Browse_EntityInvoked" />
+            </Expander>
 
             <TextBlock Text="{Binding [Nr_Empty], Source={StaticResource Loc}}"
                        Opacity="0.55" TextWrapping="Wrap"

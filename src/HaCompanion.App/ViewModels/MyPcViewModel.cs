@@ -44,6 +44,9 @@ public sealed partial class MyPcViewModel : ObservableObject
 
     public EntityCatalogViewModel Catalog { get; }
 
+    /// <summary>Category filter for the device browse (pick a notify-rule entity by tapping).</summary>
+    public DeviceBrowserViewModel Browser { get; }
+
     // ----- status card (live) -----
 
     [ObservableProperty]
@@ -98,7 +101,7 @@ public sealed partial class MyPcViewModel : ObservableObject
 
     public MyPcViewModel(IWindowsStateMonitor monitor, INotifyRulesStore rulesStore, INotifyRulesEngine rulesEngine,
         IPushNotificationReceiver receiver, ISettingsStore settings, EntityCatalogViewModel catalog,
-        LocalizationService loc, MdiIconProvider icons, IUiDispatcher ui)
+        LocalizationService loc, MdiIconProvider icons, IUiDispatcher ui, DeviceBrowserViewModel browser)
     {
         _monitor = monitor;
         _rulesStore = rulesStore;
@@ -106,6 +109,7 @@ public sealed partial class MyPcViewModel : ObservableObject
         _receiver = receiver;
         _settings = settings;
         Catalog = catalog;
+        Browser = browser;
         _loc = loc;
         _icons = icons;
         _ui = ui;

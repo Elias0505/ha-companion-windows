@@ -193,6 +193,10 @@ public sealed partial class AutomationsPage : Page
             ViewModel.RemoveActionDraftCommand.Execute(draft);
     }
 
+    /// <summary>A tap in the category browse adds that device as a new DANN action.</summary>
+    private void Browse_EntityInvoked(object sender, EntityTileViewModel tile) =>
+        ViewModel.AssignEntityToNextFreeDraft(tile);
+
     // ----- rule list -----
 
     private void RuleToggle_Toggled(object sender, RoutedEventArgs e)

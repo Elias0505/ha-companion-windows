@@ -58,6 +58,13 @@ public sealed partial class MyPcPage : Page
         }
     }
 
+    /// <summary>A tap in the category browse picks that entity for the new rule.</summary>
+    private void Browse_EntityInvoked(object sender, EntityTileViewModel tile)
+    {
+        ViewModel.AssignEntity(tile);
+        EntityBox.Text = tile.FriendlyName;
+    }
+
     // ----- rule list -----
 
     private void RuleToggle_Toggled(object sender, RoutedEventArgs e)

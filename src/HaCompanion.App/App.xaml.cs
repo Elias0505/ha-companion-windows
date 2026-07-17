@@ -182,6 +182,8 @@ public partial class App : Application
 
         // View models
         services.AddSingleton<EntityCatalogViewModel>();
+        // Per-page category filter over the shared catalog (transient: one per page VM).
+        services.AddTransient<DeviceBrowserViewModel>();
         services.AddSingleton<ShellViewModel>();
         services.AddSingleton<DashboardViewModel>();
         services.AddSingleton<SettingsViewModel>();

@@ -8,9 +8,13 @@ public sealed class DashboardViewModel
 
     public ShellViewModel Shell { get; }
 
-    public DashboardViewModel(EntityCatalogViewModel catalog, ShellViewModel shell)
+    /// <summary>Category filter for the "all devices" list (chips + visible groups).</summary>
+    public DeviceBrowserViewModel Browser { get; }
+
+    public DashboardViewModel(EntityCatalogViewModel catalog, ShellViewModel shell, DeviceBrowserViewModel browser)
     {
         Catalog = catalog;
         Shell = shell;
+        Browser = browser;
     }
 }

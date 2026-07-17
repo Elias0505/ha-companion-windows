@@ -200,10 +200,15 @@
                     </hc:VariableTileGridView>
                 </StackPanel>
 
-                <!-- All devices, auto-grouped. Deliberately non-virtualizing (ItemsControl):
-                     nested ItemsRepeaters inside a StackPanel can only ESTIMATE the total
-                     height, which made the scroll position jump/flicker near the bottom. -->
-                <ItemsControl ItemsSource="{Binding Catalog.Groups}">
+                <!-- Category filter: "All" + one chip per domain present (fully dynamic). -->
+                <hc:CategoryFilterBar DataContext="{Binding Browser}"
+                                      Visibility="{Binding Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+
+                <!-- All devices, auto-grouped and filtered by the bar above. Deliberately
+                     non-virtualizing (ItemsControl): nested ItemsRepeaters inside a StackPanel
+                     can only ESTIMATE the total height, which made the scroll position
+                     jump/flicker near the bottom. -->
+                <ItemsControl ItemsSource="{Binding Browser.VisibleGroups}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Spacing="10" Margin="0,0,0,22">
@@ -220,7 +225,7 @@
                                 <ItemsControl ItemsSource="{Binding Tiles}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="174" ItemHeight="106" />
+                                            <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="174" ItemHeight="120" />
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>

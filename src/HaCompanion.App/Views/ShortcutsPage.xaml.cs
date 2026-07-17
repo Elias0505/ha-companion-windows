@@ -70,14 +70,11 @@ public sealed partial class ShortcutsPage : Page
         }
     }
 
-    /// <summary>A tap in the category quick-pick selects that entity for the new shortcut.</summary>
-    private void QuickPick_Click(object sender, RoutedEventArgs e)
+    /// <summary>A tap in the category browse selects that entity for the new shortcut.</summary>
+    private void Browse_EntityInvoked(object sender, EntityTileViewModel tile)
     {
-        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
-        {
-            ViewModel.SelectedTile = tile;
-            EntityBox.Text = tile.FriendlyName;
-        }
+        ViewModel.SelectedTile = tile;
+        EntityBox.Text = tile.FriendlyName;
     }
 
     // ----- combo recording (same capture logic as the settings page) -----

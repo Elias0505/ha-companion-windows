@@ -36,6 +36,9 @@ public sealed partial class ShortcutsViewModel : ObservableObject
     /// <summary>Category-grouped catalog for the quick-pick browse (same groups as the start page).</summary>
     public EntityCatalogViewModel Catalog => _catalog;
 
+    /// <summary>Category filter for the device browse (chips + visible groups).</summary>
+    public DeviceBrowserViewModel Browser { get; }
+
     [ObservableProperty]
     private EntityTileViewModel? _selectedTile;
 
@@ -47,12 +50,14 @@ public sealed partial class ShortcutsViewModel : ObservableObject
 
     public bool CanAdd => SelectedTile is not null && !string.IsNullOrEmpty(CapturedCombo);
 
-    public ShortcutsViewModel(IShortcutStore store, IShortcutManager manager, EntityCatalogViewModel catalog, MdiIconProvider icons)
+    public ShortcutsViewModel(IShortcutStore store, IShortcutManager manager, EntityCatalogViewModel catalog,
+        MdiIconProvider icons, DeviceBrowserViewModel browser)
     {
         _store = store;
         _manager = manager;
         _catalog = catalog;
         _icons = icons;
+        Browser = browser;
         _manager.Changed += (_, _) => Rebuild();
         Rebuild();
     }

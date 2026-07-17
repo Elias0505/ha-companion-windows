@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HaCompanion.App.Controls.DeviceBrowser"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:HaCompanion.App.Controls"
+    mc:Ignorable="d"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+
+    <StackPanel Spacing="12">
+        <TextBlock x:Name="HintBlock" FontSize="13" Opacity="0.7" TextWrapping="Wrap" />
+
+        <!-- Category filter bar (inherits DataContext = the DeviceBrowserViewModel). -->
+        <controls:CategoryFilterBar />
+
+        <!-- Grouped, tappable device tiles. Non-virtualizing on purpose (small lists,
+             nested wrap grids inside a StackPanel only estimate height otherwise). -->
+        <ItemsControl ItemsSource="{Binding VisibleGroups}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Spacing="8" Margin="0,0,0,14">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
+                                      FontSize="14" Opacity="0.8" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Opacity="0.9"
+                                       VerticalAlignment="Center" />
+                            <Border CornerRadius="9" Padding="7,1" VerticalAlignment="Center"
+                                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                <TextBlock Text="{Binding Count}" FontSize="12" Opacity="0.7" />
+                            </Border>
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding Tiles}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="202" ItemHeight="42" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                            HorizontalContentAlignment="Left" Margin="0,0,6,6"
+                                            Padding="10,7" Click="Tile_Click"
+                                            AutomationProperties.Name="{Binding FriendlyName}">
+                                        <StackPanel Orientation="Horizontal" Spacing="9">
+                                            <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
+                                                      FontSize="15" Opacity="0.85" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding FriendlyName}" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

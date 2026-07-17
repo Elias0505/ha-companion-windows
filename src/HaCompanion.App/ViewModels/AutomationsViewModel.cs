@@ -294,8 +294,12 @@ public sealed partial class AutomationsViewModel : ObservableObject
 
     public bool CanAdd => BuildRule() is { } rule && rule.IsValid();
 
+    /// <summary>Category filter for the in-editor device browse (tap = add as action).</summary>
+    public DeviceBrowserViewModel Browser { get; }
+
     public AutomationsViewModel(IRulesStore store, IRulesEngine engine, IWindowsStateMonitor monitor,
-        EntityCatalogViewModel catalog, LocalizationService loc, MdiIconProvider icons, IUiDispatcher ui)
+        EntityCatalogViewModel catalog, LocalizationService loc, MdiIconProvider icons, IUiDispatcher ui,
+        DeviceBrowserViewModel browser)
     {
         _store = store;
         _engine = engine;
@@ -304,6 +308,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
         _loc = loc;
         _icons = icons;
         _ui = ui;
+        Browser = browser;
 
         BuildTriggerGroups();
         ResetBuilder();
