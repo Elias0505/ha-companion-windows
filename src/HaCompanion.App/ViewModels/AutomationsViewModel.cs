@@ -348,7 +348,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
                 Rule = rule,
                 TriggerGlyph = option?.Glyph ?? "\uE945",
                 TriggerText = TriggerTextOf(rule, option),
-                ConditionText = ConditionTextOf(rule.Condition),
+                ConditionText = ConditionTextOf(rule.EffectiveConditions.Count > 0 ? rule.EffectiveConditions[0] : null),
                 IsEnabled = rule.IsEnabled,
             };
             foreach (var action in rule.Actions)

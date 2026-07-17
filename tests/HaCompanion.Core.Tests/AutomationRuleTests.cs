@@ -115,4 +115,72 @@ public class AutomationRuleTests
         Assert.Equal(rule.Actions.ToList(), back.Actions.ToList());
         Assert.True(back.IsValid() == rule.IsValid());
     }
+
+    // ----- new fields: Id, Name, Conditions[], action Data -----
+
+    [Fact]
+    public void Json_round_trip_preserves_id_name_conditions_and_action_data()
+    {
+        var rule = new AutomationRule(
+            "lock", null,
+            new[] { new RuleAction("light.buero", AutomationActions.TurnOn,
+                new Dictionary<string, object?> { ["brightness_pct"] = 30 }) },
+            Conditions: new[]
+            {
+                new RuleCondition(RuleCondition.TypePc, PcField: "locked", WantedState: "on"),
+                new RuleCondition(RuleCondition.TypeNumeric, "sensor.temp", Operator: "<", Number: 18),
+            },
+            Id: "abc123", Name: "Bei Dunkelheit");
+
+        var json = JsonSerializer.Serialize(rule);
+        var back = JsonSerializer.Deserialize<AutomationRule>(json);
+
+        Assert.Equal("abc123", back!.Id);
+        Assert.Equal("Bei Dunkelheit", back.Name);
+        Assert.Equal(2, back.EffectiveConditions.Count);
+        Assert.Equal("locked", back.EffectiveConditions[0].PcField);
+        Assert.Equal("<", back.EffectiveConditions[1].Operator);
+        Assert.Equal(18, back.EffectiveConditions[1].Number);
+        Assert.True(back.IsValid());
+    }
+
+    [Fact]
+    public void Legacy_single_condition_migrates_into_effective_conditions()
+    {
+        // Old files stored a single "Condition"; EffectiveConditions must fold it in.
+        var legacy = new AutomationRule("lock", null, new[] { LightOff },
+            Condition: new RuleCondition(RuleCondition.TypeTime, FromTime: "22:00", ToTime: "06:00"));
+        Assert.Single(legacy.EffectiveConditions);
+        Assert.Equal(RuleCondition.TypeTime, legacy.EffectiveConditions[0].Type);
+    }
+
+    [Theory]
+    [InlineData("sensor.temp", ">", 5.0, true)]
+    [InlineData("sensor.temp", "bogus", 5.0, false)]  // unknown operator
+    [InlineData("sensor.temp", ">", null, false)]     // missing number
+    [InlineData("nodot", ">", 5.0, false)]            // entity needs a domain
+    public void Numeric_condition_validity(string entity, string op, double? number, bool expected)
+    {
+        var c = new RuleCondition(RuleCondition.TypeNumeric, entity, Operator: op, Number: number);
+        Assert.Equal(expected, c.IsValid());
+    }
+
+    [Theory]
+    [InlineData("locked", "on", true)]
+    [InlineData("fullscreen", "off", true)]
+    [InlineData("locked", "maybe", false)]  // wanted state must be on/off
+    [InlineData("weird", "on", false)]      // unknown pc field
+    public void Pc_condition_validity(string field, string wanted, bool expected)
+    {
+        var c = new RuleCondition(RuleCondition.TypePc, PcField: field, WantedState: wanted);
+        Assert.Equal(expected, c.IsValid());
+    }
+
+    [Fact]
+    public void Schedule_rule_requires_a_valid_schedule_param()
+    {
+        Assert.True(new AutomationRule("schedule", "07:00;12345", new[] { LightOff }).IsValid());
+        Assert.False(new AutomationRule("schedule", "nonsense", new[] { LightOff }).IsValid());
+        Assert.False(new AutomationRule("schedule", null, new[] { LightOff }).IsValid());
+    }
 }

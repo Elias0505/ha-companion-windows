@@ -18,6 +18,7 @@ public enum WindowsTrigger
     AppStart, AppStop,                  // FOREGROUND app changed (param: process name)
     MicOn, MicOff, CamOn, CamOff,       // capability consent store usage
     AudioStart, AudioStop,              // default render device peak activity
+    Schedule,                           // a time of day on chosen weekdays (param: ScheduleSpec)
 }
 
 /// <summary>Which extra input a trigger needs from the user.</summary>
@@ -26,6 +27,7 @@ public enum TriggerParamKind
     None,
     Minutes,      // idle threshold
     ProcessName,  // foreground process to watch
+    Schedule,     // time of day + weekday mask (ScheduleSpec)
 }
 
 public static class WindowsTriggers
@@ -57,6 +59,7 @@ public static class WindowsTriggers
         WindowsTrigger.CamOff => "cam_off",
         WindowsTrigger.AudioStart => "audio_start",
         WindowsTrigger.AudioStop => "audio_stop",
+        WindowsTrigger.Schedule => "schedule",
         _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger, null),
     };
 
@@ -75,6 +78,7 @@ public static class WindowsTriggers
     {
         WindowsTrigger.IdleStart or WindowsTrigger.IdleEnd => TriggerParamKind.Minutes,
         WindowsTrigger.AppStart or WindowsTrigger.AppStop => TriggerParamKind.ProcessName,
+        WindowsTrigger.Schedule => TriggerParamKind.Schedule,
         _ => TriggerParamKind.None,
     };
 

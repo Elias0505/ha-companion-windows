@@ -34,17 +34,35 @@ public sealed class RulesStore : IRulesStore
         {
             if (_cache is not null)
                 return _cache;
+            var migrated = false;
             try
             {
-                _cache = File.Exists(_file)
+                var raw = File.Exists(_file)
                     ? JsonSerializer.Deserialize<Persisted>(File.ReadAllText(_file))?.Rules
                         ?.Where(r => r is not null && r.IsValid()).ToList() ?? new List<AutomationRule>()
                     : new List<AutomationRule>();
+                _cache = raw.Select(r =>
+                {
+                    // Migrate old files: give every rule a stable id and fold the legacy single
+                    // Condition into the canonical Conditions list.
+                    if (r.Id is not null && r.Condition is null)
+                        return r;
+                    migrated = true;
+                    var conditions = r.EffectiveConditions;
+                    return r with
+                    {
+                        Id = r.Id ?? Guid.NewGuid().ToString("N"),
+                        Conditions = conditions.Count > 0 ? conditions : null,
+                        Condition = null,
+                    };
+                }).ToList();
             }
             catch
             {
                 _cache = new List<AutomationRule>(); // unreadable file — start empty, don't crash
             }
+            if (migrated && _cache.Count > 0)
+                WriteToDisk(_cache); // upgrade the file once, in the new shape
             return _cache;
         }
     }
@@ -54,11 +72,16 @@ public sealed class RulesStore : IRulesStore
         lock (_gate)
         {
             _cache = rules.ToList();
-            Directory.CreateDirectory(Path.GetDirectoryName(_file)!);
-            var tmp = _file + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(new Persisted { Rules = _cache }, JsonOptions));
-            File.Move(tmp, _file, overwrite: true);
+            WriteToDisk(_cache);
         }
+    }
+
+    private void WriteToDisk(List<AutomationRule> rules)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_file)!);
+        var tmp = _file + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(new Persisted { Rules = rules }, JsonOptions));
+        File.Move(tmp, _file, overwrite: true);
     }
 
     private sealed class Persisted

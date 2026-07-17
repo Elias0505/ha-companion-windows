@@ -155,7 +155,8 @@ public sealed class RulesEngine : IRulesEngine
             return;
         _cooldown[rule] = now;
 
-        if (!ConditionEvaluator.IsSatisfied(rule.Condition, EntityIsOn, TimeOnly.FromDateTime(DateTime.Now)))
+        var nowTime = TimeOnly.FromDateTime(DateTime.Now);
+        if (!rule.EffectiveConditions.All(c => ConditionEvaluator.IsSatisfied(c, EntityIsOn, nowTime)))
         {
             _logger.LogInformation("Rule {Trigger} skipped: condition not met", rule.Trigger);
             return;
