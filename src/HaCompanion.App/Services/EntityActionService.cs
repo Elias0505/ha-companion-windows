@@ -22,7 +22,8 @@ public interface IEntityActionService
     /// (e.g. the rule's trigger label); <paramref name="showOsd"/> false skips the toast
     /// (multi-action rules show one summary toast, suspend/shutdown rules none).
     /// </summary>
-    void Trigger(string entityId, string action, string? osdTitle = null, bool showOsd = true);
+    void Trigger(string entityId, string action, string? osdTitle = null, bool showOsd = true,
+        IReadOnlyDictionary<string, object?>? data = null);
 
     /// <summary>Show a bare OSD toast (rule summary like "3 Aktionen"). UI thread only.</summary>
     void ShowToast(string title, string subtitle);
@@ -75,7 +76,8 @@ public sealed class EntityActionService : IEntityActionService
         Execute(entityId, serviceDomain, service, predictedKey, accent, titleOverride: null, showOsd: true);
     }
 
-    public void Trigger(string entityId, string action, string? osdTitle = null, bool showOsd = true)
+    public void Trigger(string entityId, string action, string? osdTitle = null, bool showOsd = true,
+        IReadOnlyDictionary<string, object?>? data = null)
     {
         var domain = entityId.Split('.')[0];
         (string, string) call;
@@ -100,7 +102,7 @@ public sealed class EntityActionService : IEntityActionService
                 (StateKey(domain, !state!.IsOn), !state!.IsOn),
             _ => ((string?)null, true),
         };
-        Execute(entityId, call.Item1, call.Item2, predictedKey, accent, osdTitle, showOsd);
+        Execute(entityId, call.Item1, call.Item2, predictedKey, accent, osdTitle, showOsd, data);
     }
 
     public void ShowToast(string title, string subtitle)
@@ -115,7 +117,8 @@ public sealed class EntityActionService : IEntityActionService
 
     /// <summary>Shared tail: fire the service call and (optionally) show the predicted toast.</summary>
     private void Execute(string entityId, string serviceDomain, string service,
-        string? predictedKey, bool accent, string? titleOverride, bool showOsd)
+        string? predictedKey, bool accent, string? titleOverride, bool showOsd,
+        IReadOnlyDictionary<string, object?>? data = null)
     {
         var known = _connection.Entities.TryGetValue(entityId, out var state);
         var domain = entityId.Split('.')[0];
@@ -125,7 +128,7 @@ public sealed class EntityActionService : IEntityActionService
         // The optimistic toast stays (snappiness), but a failed call must not keep lying:
         // the failure handler replaces it — and runs even when the optimistic toast was
         // suppressed, because a silently-failing rule action is worse than an extra toast.
-        var call = RunAsync(serviceDomain, service, entityId);
+        var call = RunAsync(serviceDomain, service, entityId, data);
         _ = ShowFailureAsync(call, glyph, title);
         if (!showOsd)
             return;
@@ -178,11 +181,15 @@ public sealed class EntityActionService : IEntityActionService
         _ui.Post(() => _osd?.UpdateState(subtitle, accent));
     }
 
-    private async Task<bool> RunAsync(string domain, string service, string entityId)
+    private async Task<bool> RunAsync(string domain, string service, string entityId,
+        IReadOnlyDictionary<string, object?>? data = null)
     {
         try
         {
-            await _connection.CallServiceAsync(domain, service, entityId);
+            if (data is { Count: > 0 })
+                await _connection.CallServiceAsync(domain, service, entityId, data);
+            else
+                await _connection.CallServiceAsync(domain, service, entityId);
             return true;
         }
         catch (Exception ex)

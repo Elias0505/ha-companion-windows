@@ -237,7 +237,8 @@
     "Set_Discover": "Search the network for Home Assistant",
     "Set_DiscoverBusy": "Searching…",
     "Set_DiscoverFound": "Found: {0}",
-    "Set_DiscoverNone": "No Home Assistant found on the network. Enter the URL manually."
+    "Set_DiscoverNone": "No Home Assistant found on the network. Enter the URL manually.",
+    "Au_TestTitle": "Test: {0}"
   },
   "de": {
     "Nav_Start": "Start",
@@ -477,7 +478,8 @@
     "Set_Discover": "Netzwerk nach Home Assistant durchsuchen",
     "Set_DiscoverBusy": "Suche läuft…",
     "Set_DiscoverFound": "Gefunden: {0}",
-    "Set_DiscoverNone": "Kein Home Assistant im Netzwerk gefunden. URL manuell eingeben."
+    "Set_DiscoverNone": "Kein Home Assistant im Netzwerk gefunden. URL manuell eingeben.",
+    "Au_TestTitle": "Test: {0}"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -717,7 +719,8 @@
     "Set_Discover": "Buscar Home Assistant en la red",
     "Set_DiscoverBusy": "Buscando…",
     "Set_DiscoverFound": "Encontrado: {0}",
-    "Set_DiscoverNone": "No se encontró Home Assistant en la red. Introduce la URL manualmente."
+    "Set_DiscoverNone": "No se encontró Home Assistant en la red. Introduce la URL manualmente.",
+    "Au_TestTitle": "Prueba: {0}"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -957,7 +960,8 @@
     "Set_Discover": "Rechercher Home Assistant sur le réseau",
     "Set_DiscoverBusy": "Recherche…",
     "Set_DiscoverFound": "Trouvé : {0}",
-    "Set_DiscoverNone": "Aucun Home Assistant trouvé sur le réseau. Saisissez l'URL manuellement."
+    "Set_DiscoverNone": "Aucun Home Assistant trouvé sur le réseau. Saisissez l'URL manuellement.",
+    "Au_TestTitle": "Test : {0}"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1197,7 +1201,8 @@
     "Set_Discover": "在网络中搜索 Home Assistant",
     "Set_DiscoverBusy": "正在搜索…",
     "Set_DiscoverFound": "已找到：{0}",
-    "Set_DiscoverNone": "网络中未找到 Home Assistant。请手动输入 URL。"
+    "Set_DiscoverNone": "网络中未找到 Home Assistant。请手动输入 URL。",
+    "Au_TestTitle": "测试：{0}"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1437,6 +1442,7 @@
     "Set_Discover": "नेटवर्क में Home Assistant खोजें",
     "Set_DiscoverBusy": "खोज रहे हैं…",
     "Set_DiscoverFound": "मिला: {0}",
-    "Set_DiscoverNone": "नेटवर्क में कोई Home Assistant नहीं मिला। URL मैन्युअल रूप से दर्ज करें।"
+    "Set_DiscoverNone": "नेटवर्क में कोई Home Assistant नहीं मिला। URL मैन्युअल रूप से दर्ज करें।",
+    "Au_TestTitle": "परीक्षण: {0}"
   }
 }

@@ -170,6 +170,7 @@ public partial class App : Application
         services.AddSingleton<IShortcutManager, ShortcutManager>();
         services.AddSingleton<IWindowsStateMonitor, WindowsStateMonitor>();
         services.AddSingleton<IRulesStore, RulesStore>();
+        services.AddSingleton<IAutomationStatsStore, AutomationStatsStore>();
         services.AddSingleton<IRulesEngine, RulesEngine>();
         services.AddSingleton<ISensorPublisher, SensorPublisher>();
         services.AddSingleton<IPcCommandExecutor, PcCommandExecutor>();
