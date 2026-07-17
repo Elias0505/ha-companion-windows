@@ -36,6 +36,39 @@ public sealed partial class AutomationsPage : Page
 
     private static LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
 
+    private bool _editTwoColumn = true;
+
+    // Responsive editor: WENN+NUR WENN on the left, DANN on the right when there's room
+    // (fullscreen), a single stacked column otherwise. Driven by the real content width —
+    // the XAML VisualStateManager's attached-Grid setters proved unreliable (see SettingsPage).
+    private void Content_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var wide = e.NewSize.Width >= 1080;
+        if (wide == _editTwoColumn)
+            return;
+        _editTwoColumn = wide;
+        if (wide)
+        {
+            Grid.SetColumnSpan(IfColumn, 1);
+            Grid.SetRow(ThenColumn, 1);
+            Grid.SetColumn(ThenColumn, 1);
+            Grid.SetColumnSpan(ThenColumn, 1);
+            Grid.SetRow(EditFooter, 2);
+            EditRoot.MaxWidth = 1500;
+        }
+        else
+        {
+            // stacked: each section spans both grid columns (the grid keeps two columns,
+            // so without the span a section would sit at half width)
+            Grid.SetColumnSpan(IfColumn, 2);
+            Grid.SetRow(ThenColumn, 2);
+            Grid.SetColumn(ThenColumn, 0);
+            Grid.SetColumnSpan(ThenColumn, 2);
+            Grid.SetRow(EditFooter, 3);
+            EditRoot.MaxWidth = 680;
+        }
+    }
+
     private void SyncBuilderFace()
     {
         var trigger = ViewModel.SelectedTrigger;

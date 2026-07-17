@@ -35,11 +35,11 @@
         </Style>
     </Page.Resources>
 
-    <ScrollViewer>
-        <Grid Padding="24" HorizontalAlignment="Stretch" MaxWidth="1000">
+    <ScrollViewer SizeChanged="Content_SizeChanged">
+        <Grid Padding="24" HorizontalAlignment="Stretch">
 
             <!-- ============ LIST MODE (manager) ============ -->
-            <StackPanel Spacing="16"
+            <StackPanel Spacing="16" MaxWidth="1040" HorizontalAlignment="Stretch"
                         Visibility="{x:Bind ViewModel.IsEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
                 <Grid>
                     <StackPanel Spacing="4">
@@ -211,10 +211,25 @@
                 </ItemsControl>
             </StackPanel>
 
-            <!-- ============ EDIT MODE (full-width builder) ============ -->
-            <StackPanel Spacing="16" MaxWidth="620" HorizontalAlignment="Left"
-                        Visibility="{x:Bind ViewModel.IsEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="{x:Bind ViewModel.EditTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" />
+            <!-- ============ EDIT MODE (responsive: WENN+NUR WENN | DANN side by side when wide) ============ -->
+            <Grid x:Name="EditRoot" ColumnSpacing="16" RowSpacing="16" MaxWidth="1500" HorizontalAlignment="Stretch"
+                  Visibility="{x:Bind ViewModel.IsEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="{x:Bind ViewModel.EditTitle, Mode=OneWay}"
+                           Style="{StaticResource TitleTextBlockStyle}" />
+
+                <!-- IF side: WENN + NUR WENN -->
+                <StackPanel x:Name="IfColumn" Grid.Row="1" Grid.Column="0" Spacing="16" VerticalAlignment="Top">
 
                 <!-- WENN -->
                 <Border Style="{StaticResource FlowNode}">
@@ -381,6 +396,10 @@
                         </ItemsControl>
                     </StackPanel>
                 </Border>
+                </StackPanel>
+
+                <!-- THEN side: DANN -->
+                <StackPanel x:Name="ThenColumn" Grid.Row="1" Grid.Column="1" Spacing="16" VerticalAlignment="Top">
 
                 <!-- DANN -->
                 <Border Style="{StaticResource FlowNode}">
@@ -483,19 +502,23 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Name -->
-                <TextBox Header="{Binding [Au_Name], Source={StaticResource Loc}}"
-                         PlaceholderText="{Binding [Au_NamePh], Source={StaticResource Loc}}"
-                         Text="{x:Bind ViewModel.RuleName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-                    <Button Content="{Binding [Au_Cancel], Source={StaticResource Loc}}"
-                            Command="{x:Bind ViewModel.CancelEditCommand}" />
-                    <Button Style="{StaticResource AccentButtonStyle}" MinWidth="120"
-                            Content="{Binding [Au_Save], Source={StaticResource Loc}}"
-                            IsEnabled="{Binding CanAdd}" Command="{x:Bind ViewModel.SaveCommand}" />
                 </StackPanel>
-            </StackPanel>
+
+                <!-- footer: name + actions (spans both columns) -->
+                <StackPanel x:Name="EditFooter" Grid.Row="2" Grid.ColumnSpan="2" Spacing="14">
+                    <TextBox Header="{Binding [Au_Name], Source={StaticResource Loc}}"
+                             PlaceholderText="{Binding [Au_NamePh], Source={StaticResource Loc}}"
+                             MaxWidth="640" HorizontalAlignment="Left"
+                             Text="{x:Bind ViewModel.RuleName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+                        <Button Style="{StaticResource AccentButtonStyle}" MinWidth="120"
+                                Content="{Binding [Au_Save], Source={StaticResource Loc}}"
+                                IsEnabled="{Binding CanAdd}" Command="{x:Bind ViewModel.SaveCommand}" />
+                        <Button Content="{Binding [Au_Cancel], Source={StaticResource Loc}}"
+                                Command="{x:Bind ViewModel.CancelEditCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
         </Grid>
     </ScrollViewer>
 </Page>
