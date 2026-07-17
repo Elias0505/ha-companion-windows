@@ -57,7 +57,7 @@ public sealed record RuleCondition(
 
     private bool HasEntity => !string.IsNullOrWhiteSpace(EntityId) && EntityId!.Contains('.');
 
-    internal static bool TryParseTime(string? value, out TimeOnly time) =>
+    public static bool TryParseTime(string? value, out TimeOnly time) =>
         TimeOnly.TryParseExact(value, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
 }
 

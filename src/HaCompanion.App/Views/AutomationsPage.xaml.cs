@@ -24,9 +24,24 @@ public sealed partial class AutomationsPage : Page
         ViewModel = App.Services.GetRequiredService<AutomationsViewModel>();
         InitializeComponent();
         DataContext = ViewModel;
+        // The trigger button face + process box are set imperatively, so re-sync them
+        // whenever the builder is (re)seeded — e.g. when editing an existing rule.
+        ViewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(AutomationsViewModel.SelectedTrigger) or nameof(AutomationsViewModel.IsEditing))
+                SyncBuilderFace();
+        };
     }
 
     private static LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
+
+    private void SyncBuilderFace()
+    {
+        var trigger = ViewModel.SelectedTrigger;
+        TriggerIcon.Glyph = trigger?.Glyph ?? "";
+        TriggerLabel.Text = trigger?.Label ?? Loc["Au_PickTrigger"];
+        ProcessBox.Text = ViewModel.ProcessParam;
+    }
 
     // ----- WENN: trigger picker -----
 
@@ -34,9 +49,7 @@ public sealed partial class AutomationsPage : Page
     {
         if ((sender as FrameworkElement)?.DataContext is not TriggerOption option)
             return;
-        ViewModel.SelectedTrigger = option;
-        TriggerIcon.Glyph = option.Glyph;
-        TriggerLabel.Text = option.Label;
+        ViewModel.SelectedTrigger = option; // SyncBuilderFace runs via PropertyChanged
         TriggerFlyout.Hide();
     }
 
@@ -168,25 +181,41 @@ public sealed partial class AutomationsPage : Page
             ViewModel.SetEnabled(item, toggle.IsOn);
     }
 
-    private void Remove_Click(object sender, RoutedEventArgs e)
+    private static AutomationItemViewModel? ItemOf(object sender) =>
+        (sender as FrameworkElement)?.DataContext as AutomationItemViewModel;
+
+    private void Edit_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is AutomationItemViewModel item)
+        if (ItemOf(sender) is { } item)
+            ViewModel.BeginEditCommand.Execute(item);
+    }
+
+    private void Test_Click(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is { } item)
+            ViewModel.RunTestCommand.Execute(item);
+    }
+
+    private void Duplicate_Click(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is { } item)
+            ViewModel.DuplicateCommand.Execute(item);
+    }
+
+    private async void Delete_Click(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is not { } item)
+            return;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = Loc["Au_DeleteTitle"],
+            Content = Loc["Au_DeleteBody"],
+            PrimaryButtonText = Loc["Au_Delete"],
+            CloseButtonText = Loc["Au_Cancel"],
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
             ViewModel.RemoveCommand.Execute(item);
-    }
-
-    private void CtxToggle_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.DataContext is AutomationItemViewModel item)
-            ViewModel.SetEnabled(item, !item.Rule.IsEnabled);
-    }
-
-    private void CtxDelete_Click(object sender, RoutedEventArgs e) => Remove_Click(sender, e);
-
-    // ----- quick pick -----
-
-    private void QuickPick_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
-            ViewModel.AssignEntityToNextFreeDraft(tile);
     }
 }

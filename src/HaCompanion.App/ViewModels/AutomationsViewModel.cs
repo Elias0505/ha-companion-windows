@@ -49,6 +49,9 @@ public sealed partial class AutomationItemViewModel : ObservableObject
 {
     public required AutomationRule Rule { get; init; }
 
+    /// <summary>Card headline — the user's name, or an auto-generated "trigger → action".</summary>
+    public string Title { get; init; } = "";
+
     public required string TriggerGlyph { get; init; }
 
     public required string TriggerText { get; init; }   // incl. param ("Programm wird aktiv: powerpnt")
@@ -126,6 +129,23 @@ public sealed partial class AutomationsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _hasItems;
+
+    // ----- editor mode (manager list vs. the full-width builder form) -----
+
+    [ObservableProperty]
+    private bool _isEditing;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditTitle))]
+    private bool _isEditingExisting;
+
+    [ObservableProperty]
+    private string _ruleName = "";
+
+    private string? _editingId;
+
+    /// <summary>Header of the builder form ("Neue Automation" / "Automation bearbeiten").</summary>
+    public string EditTitle => _loc[IsEditingExisting ? "Au_EditTitle" : "Au_NewTitle"];
 
     public bool CanAdd => BuildRule() is { } rule && rule.IsValid();
 
@@ -236,21 +256,70 @@ public sealed partial class AutomationsViewModel : ObservableObject
         NotifyBuilderChanged();
     }
 
+    /// <summary>Open the builder for a brand-new rule.</summary>
     [RelayCommand]
-    private void Add()
+    private void BeginNew()
+    {
+        ResetBuilder();
+        _editingId = null;
+        RuleName = "";
+        IsEditingExisting = false;
+        IsEditing = true;
+    }
+
+    /// <summary>Open the builder pre-filled with an existing rule.</summary>
+    [RelayCommand]
+    private void BeginEdit(AutomationItemViewModel item)
+    {
+        SeedFrom(item.Rule);
+        _editingId = item.Rule.Id;
+        RuleName = item.Rule.Name ?? "";
+        IsEditingExisting = true;
+        IsEditing = true;
+    }
+
+    [RelayCommand]
+    private void CancelEdit() => IsEditing = false;
+
+    /// <summary>Save the builder as a new rule or replace the one being edited (by id).</summary>
+    [RelayCommand]
+    private void Save()
     {
         if (BuildRule() is not { } rule || !rule.IsValid())
             return;
-        _store.Save(_store.Load().Append(rule).ToList());
+        var rules = _store.Load().ToList();
+        var idx = _editingId is null ? -1 : rules.FindIndex(r => r.Id == _editingId);
+        if (idx >= 0)
+            rules[idx] = rule;
+        else
+            rules.Add(rule);
+        _store.Save(rules);
         _engine.Reload();
-        ResetBuilder();
+        IsEditing = false;
         Rebuild();
     }
 
     [RelayCommand]
+    private void Duplicate(AutomationItemViewModel item)
+    {
+        var copy = item.Rule with
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = (item.Rule.Name is { Length: > 0 } n ? n : DefaultName(item.Rule)) + " " + _loc["Au_CopySuffix"],
+        };
+        _store.Save(_store.Load().Append(copy).ToList());
+        _engine.Reload();
+        Rebuild();
+    }
+
+    /// <summary>"Jetzt testen": run the rule's actions immediately to verify the effect.</summary>
+    [RelayCommand]
+    private void RunTest(AutomationItemViewModel item) => _engine.RunActionsNow(item.Rule);
+
+    [RelayCommand]
     private void Remove(AutomationItemViewModel item)
     {
-        _store.Save(_store.Load().Where(r => r != item.Rule).ToList());
+        _store.Save(_store.Load().Where(r => r.Id != item.Rule.Id).ToList());
         _engine.Reload();
         Rebuild();
     }
@@ -260,11 +329,70 @@ public sealed partial class AutomationsViewModel : ObservableObject
         if (item.Rule.IsEnabled == enabled)
             return;
         var rules = _store.Load()
-            .Select(r => r == item.Rule ? r with { IsEnabled = enabled } : r)
+            .Select(r => r.Id == item.Rule.Id ? r with { IsEnabled = enabled } : r)
             .ToList();
         _store.Save(rules);
         _engine.Reload();
         Rebuild();
+    }
+
+    /// <summary>Populate the builder controls from an existing rule (for editing).</summary>
+    private void SeedFrom(AutomationRule rule)
+    {
+        ResetBuilder();
+        SelectedTrigger = FindOption(rule.Trigger);
+        if (WindowsTriggers.TryParse(rule.Trigger, out var t))
+        {
+            if (WindowsTriggers.ParamKind(t) == TriggerParamKind.Minutes && rule.IdleMinutes is { } m)
+                MinutesParam = m;
+            else if (WindowsTriggers.ParamKind(t) == TriggerParamKind.ProcessName)
+                ProcessParam = rule.Param ?? "";
+        }
+
+        // S3 seeds the first entity/time condition; numeric/pc conditions are edited in S4.
+        var cond = rule.EffectiveConditions.FirstOrDefault(c =>
+            c.Type is RuleCondition.TypeEntity or RuleCondition.TypeTime);
+        if (cond is not null)
+        {
+            HasCondition = true;
+            ConditionIsTime = cond.Type == RuleCondition.TypeTime;
+            if (ConditionIsTime)
+            {
+                if (RuleCondition.TryParseTime(cond.FromTime, out var from))
+                    ConditionFrom = from.ToTimeSpan();
+                if (RuleCondition.TryParseTime(cond.ToTime, out var to))
+                    ConditionTo = to.ToTimeSpan();
+            }
+            else
+            {
+                ConditionTile = cond.EntityId is null ? null : Catalog.FindTile(cond.EntityId);
+                ConditionWantedOn = cond.WantedState == "on";
+            }
+        }
+
+        ActionDrafts.Clear();
+        foreach (var action in rule.Actions)
+        {
+            var draft = new ActionDraftViewModel();
+            var tile = Catalog.FindTile(action.EntityId);
+            if (tile is not null)
+            {
+                AssignEntity(draft, tile);
+                draft.SelectedAction = draft.Actions.FirstOrDefault(a => a.Action == action.Action) ?? draft.SelectedAction;
+            }
+            ActionDrafts.Add(draft);
+        }
+        if (ActionDrafts.Count == 0)
+            ActionDrafts.Add(new ActionDraftViewModel());
+        NotifyBuilderChanged();
+    }
+
+    /// <summary>Auto-generated readable name ("PC gesperrt → Wohnzimmer") when the user left it blank.</summary>
+    private string DefaultName(AutomationRule rule)
+    {
+        var trig = TriggerTextOf(rule, FindOption(rule.Trigger));
+        var first = rule.Actions.Count > 0 ? Catalog.FindTile(rule.Actions[0].EntityId)?.FriendlyName ?? rule.Actions[0].EntityId : "";
+        return rule.Actions.Count > 0 ? $"{trig} → {first}" : trig;
     }
 
     /// <summary>The draft rule as currently configured, or null while nothing is chosen.</summary>
@@ -292,7 +420,11 @@ public sealed partial class AutomationsViewModel : ObservableObject
                 : new RuleCondition(RuleCondition.TypeEntity, ConditionTile?.EntityId,
                     ConditionWantedOn ? "on" : "off");
         }
-        return new AutomationRule(SelectedTrigger.Key, param, actions, condition);
+        var conditions = condition is null ? null : new[] { condition };
+        return new AutomationRule(SelectedTrigger.Key, param, actions,
+            Conditions: conditions,
+            Id: _editingId ?? Guid.NewGuid().ToString("N"),
+            Name: string.IsNullOrWhiteSpace(RuleName) ? null : RuleName.Trim());
     }
 
     public void NotifyBuilderChanged()
@@ -346,9 +478,10 @@ public sealed partial class AutomationsViewModel : ObservableObject
             var item = new AutomationItemViewModel
             {
                 Rule = rule,
+                Title = rule.Name is { Length: > 0 } n ? n : DefaultName(rule),
                 TriggerGlyph = option?.Glyph ?? "\uE945",
                 TriggerText = TriggerTextOf(rule, option),
-                ConditionText = ConditionTextOf(rule.EffectiveConditions.Count > 0 ? rule.EffectiveConditions[0] : null),
+                ConditionText = ConditionChipTextOf(rule.EffectiveConditions),
                 IsEnabled = rule.IsEnabled,
             };
             foreach (var action in rule.Actions)
@@ -382,26 +515,41 @@ public sealed partial class AutomationsViewModel : ObservableObject
             : label;
     }
 
-    private string? ConditionTextOf(RuleCondition? condition)
+    /// <summary>Compact summary of a rule's conditions for the card chip (null when none).</summary>
+    private string? ConditionChipTextOf(IReadOnlyList<RuleCondition> conditions)
     {
-        if (condition is null)
+        if (conditions.Count == 0)
             return null;
-        if (condition.Type == RuleCondition.TypeTime)
-            return $"{condition.FromTime}–{condition.ToTime}";
-        var tile = condition.EntityId is null ? null : Catalog.FindTile(condition.EntityId);
-        var name = tile?.FriendlyName ?? condition.EntityId;
-        return $"{name} {_loc[condition.WantedState == "on" ? "Au_CondOn" : "Au_CondOff"]}";
+        return string.Join(" · ", conditions.Select(ConditionOne));
     }
+
+    private string ConditionOne(RuleCondition c) => c.Type switch
+    {
+        RuleCondition.TypeTime => $"{c.FromTime}–{c.ToTime}",
+        RuleCondition.TypeNumeric => $"{ShortEntity(c.EntityId)} {c.Operator} {c.Number?.ToString(CultureInfo.CurrentCulture)}",
+        RuleCondition.TypePc => $"{_loc["Pc_" + c.PcField]} {_loc[c.WantedState == "on" ? "Au_CondOn" : "Au_CondOff"]}",
+        _ => $"{ShortEntity(c.EntityId)} {_loc[c.WantedState == "on" ? "Au_CondOn" : "Au_CondOff"]}",
+    };
+
+    private string ShortEntity(string? entityId) =>
+        (entityId is null ? null : Catalog.FindTile(entityId)?.FriendlyName) ?? entityId ?? "";
 
     private void RefreshFooters()
     {
         foreach (var item in Items)
         {
             var at = _engine.LastFiredAt(item.Rule);
-            item.LastFiredText = at is null
-                ? ""
-                : string.Format(CultureInfo.CurrentCulture, _loc["Au_LastFired"],
-                    at.Value.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture));
+            if (at is null)
+            {
+                item.LastFiredText = _loc["Au_NeverFired"];
+                continue;
+            }
+            var when = string.Format(CultureInfo.CurrentCulture, _loc["Au_LastFired"],
+                at.Value.ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture));
+            var count = _engine.RunCount(item.Rule);
+            item.LastFiredText = count > 1
+                ? when + " · " + string.Format(CultureInfo.CurrentCulture, _loc["Au_RunCount"], count)
+                : when;
         }
     }
 

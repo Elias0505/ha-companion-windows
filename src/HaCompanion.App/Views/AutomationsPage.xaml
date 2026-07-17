@@ -13,19 +13,18 @@
     <Page.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
 
-        <!-- shared look of the flow nodes -->
         <Style x:Key="FlowNode" TargetType="Border">
             <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Padding" Value="14,12" />
         </Style>
         <Style x:Key="NodeHeader" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Opacity" Value="0.55" />
-            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
         <Style x:Key="GhostButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
@@ -37,386 +36,373 @@
     </Page.Resources>
 
     <ScrollViewer>
-        <StackPanel Spacing="16" MaxWidth="1400" Padding="24" HorizontalAlignment="Stretch">
-            <TextBlock Text="{Binding [Nav_Automations], Source={StaticResource Loc}}"
-                       Style="{StaticResource TitleTextBlockStyle}" />
-            <TextBlock Text="{Binding [Au_Intro], Source={StaticResource Loc}}"
-                       Opacity="0.7" TextWrapping="Wrap" />
+        <Grid Padding="24" HorizontalAlignment="Stretch" MaxWidth="1000">
 
-            <!-- ======== Builder: WENN ──▶ (NUR WENN) ──▶ DANN ======== -->
-            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                    CornerRadius="10" Padding="16">
-                <StackPanel Spacing="14">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-
-                        <!-- WENN node -->
-                        <Border Style="{StaticResource FlowNode}" Width="235" VerticalAlignment="Top">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="{Binding [Au_When], Source={StaticResource Loc}}"
-                                           Style="{StaticResource NodeHeader}" />
-                                <Button x:Name="TriggerButton" Style="{StaticResource GhostButton}"
-                                        AutomationProperties.Name="{Binding [Au_PickTrigger], Source={StaticResource Loc}}">
-                                    <Button.Flyout>
-                                        <Flyout x:Name="TriggerFlyout" Placement="BottomEdgeAlignedLeft">
-                                            <ScrollViewer MaxHeight="420" HorizontalScrollMode="Disabled"
-                                                          HorizontalScrollBarVisibility="Disabled">
-                                                <ItemsControl ItemsSource="{Binding TriggerGroups}" Width="430">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="vm:TriggerGroupViewModel">
-                                                            <StackPanel Spacing="6" Margin="0,0,0,12">
-                                                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold"
-                                                                           FontSize="12" Opacity="0.8" />
-                                                                <ItemsControl ItemsSource="{x:Bind Items}">
-                                                                    <ItemsControl.ItemsPanel>
-                                                                        <ItemsPanelTemplate>
-                                                                            <VariableSizedWrapGrid Orientation="Horizontal"
-                                                                                                   ItemWidth="208" ItemHeight="40" />
-                                                                        </ItemsPanelTemplate>
-                                                                    </ItemsControl.ItemsPanel>
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate x:DataType="vm:TriggerOption">
-                                                                            <Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                                                                    HorizontalContentAlignment="Left" Margin="0,0,6,6"
-                                                                                    Padding="9,6" Click="TriggerPick_Click"
-                                                                                    AutomationProperties.Name="{x:Bind Label}">
-                                                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                                                    <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Opacity="0.85"
-                                                                                              VerticalAlignment="Center" />
-                                                                                    <TextBlock Text="{x:Bind Label}" FontSize="13"
-                                                                                               TextTrimming="CharacterEllipsis"
-                                                                                               VerticalAlignment="Center" />
-                                                                                </StackPanel>
-                                                                            </Button>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </StackPanel>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </ScrollViewer>
-                                        </Flyout>
-                                    </Button.Flyout>
-                                    <StackPanel Orientation="Horizontal" Spacing="9">
-                                        <FontIcon x:Name="TriggerIcon" Glyph="&#xE710;" FontSize="15" Opacity="0.85"
-                                                  VerticalAlignment="Center" />
-                                        <TextBlock x:Name="TriggerLabel"
-                                                   Text="{Binding [Au_PickTrigger], Source={StaticResource Loc}}"
-                                                   FontSize="13" TextWrapping="Wrap" MaxWidth="150"
-                                                   VerticalAlignment="Center" />
-                                        <FontIcon Glyph="&#xE70D;" FontSize="10" Opacity="0.5" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Button>
-
-                                <!-- parameter inputs, shown inside the node -->
-                                <StackPanel Orientation="Horizontal" Spacing="6"
-                                            Visibility="{Binding ShowMinutes, Converter={StaticResource BoolToVisibility}}">
-                                    <NumberBox Value="{Binding MinutesParam, Mode=TwoWay}" Minimum="1" Maximum="720"
-                                               SpinButtonPlacementMode="Compact" Width="120" />
-                                    <TextBlock Text="{Binding [Au_MinutesSuffix], Source={StaticResource Loc}}"
-                                               VerticalAlignment="Center" Opacity="0.7" FontSize="13" />
-                                </StackPanel>
-                                <AutoSuggestBox x:Name="ProcessBox"
-                                                PlaceholderText="{Binding [Au_ProcessPh], Source={StaticResource Loc}}"
-                                                Visibility="{Binding ShowProcess, Converter={StaticResource BoolToVisibility}}"
-                                                TextChanged="ProcessBox_TextChanged"
-                                                SuggestionChosen="ProcessBox_SuggestionChosen" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- connector + optional condition -->
-                        <StackPanel VerticalAlignment="Center" Spacing="4">
-                            <FontIcon Glyph="&#xE72A;" FontSize="16" Opacity="0.6" />
-                            <Button x:Name="AddConditionLink" Padding="4,2" FontSize="11"
-                                    Background="Transparent" BorderThickness="0" Opacity="0.75"
-                                    Content="{Binding [Au_Condition], Source={StaticResource Loc}}"
-                                    Visibility="{Binding HasCondition, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
-                                <Button.Flyout>
-                                    <Flyout x:Name="ConditionFlyout" Placement="Bottom">
-                                        <StackPanel Width="300" Spacing="10">
-                                            <RadioButton x:Name="CondTypeEntity" GroupName="condtype" IsChecked="True"
-                                                         Content="{Binding [Au_CondEntity], Source={StaticResource Loc}}"
-                                                         Checked="CondType_Checked" />
-                                            <StackPanel Spacing="6"
-                                                        Visibility="{Binding ConditionIsTime, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
-                                                <AutoSuggestBox x:Name="CondEntityBox"
-                                                                PlaceholderText="{Binding [Au_PickEntity], Source={StaticResource Loc}}"
-                                                                TextChanged="CondEntityBox_TextChanged"
-                                                                SuggestionChosen="CondEntityBox_SuggestionChosen">
-                                                    <AutoSuggestBox.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <TextBlock Text="{Binding FriendlyName}" />
-                                                        </DataTemplate>
-                                                    </AutoSuggestBox.ItemTemplate>
-                                                </AutoSuggestBox>
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <ToggleButton x:Name="CondOnChip" IsChecked="True" Click="CondOn_Click"
-                                                                  Content="{Binding [Au_CondOn], Source={StaticResource Loc}}" />
-                                                    <ToggleButton x:Name="CondOffChip" Click="CondOff_Click"
-                                                                  Content="{Binding [Au_CondOff], Source={StaticResource Loc}}" />
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <RadioButton x:Name="CondTypeTime" GroupName="condtype"
-                                                         Content="{Binding [Au_CondTime], Source={StaticResource Loc}}"
-                                                         Checked="CondType_Checked" />
-                                            <StackPanel Orientation="Horizontal" Spacing="8"
-                                                        Visibility="{Binding ConditionIsTime, Converter={StaticResource BoolToVisibility}}">
-                                                <TimePicker Time="{Binding ConditionFrom, Mode=TwoWay}" ClockIdentifier="24HourClock" />
-                                                <TextBlock Text="–" VerticalAlignment="Center" />
-                                                <TimePicker Time="{Binding ConditionTo, Mode=TwoWay}" ClockIdentifier="24HourClock" />
-                                            </StackPanel>
-                                            <Button Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right"
-                                                    Content="{Binding [Au_Apply], Source={StaticResource Loc}}"
-                                                    Click="CondApply_Click" />
-                                        </StackPanel>
-                                    </Flyout>
-                                </Button.Flyout>
-                            </Button>
+            <!-- ============ LIST MODE (manager) ============ -->
+            <StackPanel Spacing="16"
+                        Visibility="{x:Bind ViewModel.IsEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                <Grid>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding [Nav_Automations], Source={StaticResource Loc}}"
+                                   Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="{Binding [Au_Intro], Source={StaticResource Loc}}"
+                                   Opacity="0.7" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" />
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.BeginNewCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE710;" FontSize="14" />
+                            <TextBlock Text="{Binding [Au_NewButton], Source={StaticResource Loc}}" />
                         </StackPanel>
+                    </Button>
+                </Grid>
 
-                        <!-- condition node (visible once set) -->
-                        <Border Style="{StaticResource FlowNode}" Width="185" VerticalAlignment="Top"
-                                Background="Transparent"
-                                Visibility="{Binding HasCondition, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel Spacing="4">
-                                <Grid>
-                                    <TextBlock Text="{Binding [Au_OnlyWhen], Source={StaticResource Loc}}"
-                                               Style="{StaticResource NodeHeader}" />
-                                    <Button HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2"
-                                            Background="Transparent" BorderThickness="0"
-                                            Command="{Binding RemoveConditionCommand}"
-                                            AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
-                                        <FontIcon Glyph="&#xE711;" FontSize="10" Opacity="0.6" />
+                <!-- empty state -->
+                <Border Padding="28" CornerRadius="10" Margin="0,8,0,0"
+                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                        Visibility="{x:Bind ViewModel.HasItems, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                    <StackPanel Spacing="10" HorizontalAlignment="Center">
+                        <FontIcon Glyph="&#xE945;" FontSize="30" Opacity="0.5" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding [Au_EmptyTitle], Source={StaticResource Loc}}"
+                                   FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding [Au_EmptyBody], Source={StaticResource Loc}}"
+                                   Opacity="0.7" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="440" />
+                        <Button Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" Margin="0,4,0,0"
+                                Content="{Binding [Au_NewButton], Source={StaticResource Loc}}"
+                                Command="{x:Bind ViewModel.BeginNewCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- rule cards -->
+                <ItemsControl ItemsSource="{x:Bind ViewModel.Items}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AutomationItemViewModel">
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                    CornerRadius="8" Padding="6,8,10,10" Margin="0,0,0,10">
+                                <Border.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="{Binding [Au_Edit], Source={StaticResource Loc}}" Click="Edit_Click">
+                                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE70F;" /></MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutItem Text="{Binding [Au_Test], Source={StaticResource Loc}}" Click="Test_Click">
+                                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutItem Text="{Binding [Au_Duplicate], Source={StaticResource Loc}}" Click="Duplicate_Click">
+                                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C8;" /></MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="{Binding [Au_Delete], Source={StaticResource Loc}}" Click="Delete_Click">
+                                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                    </MenuFlyout>
+                                </Border.ContextFlyout>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- clickable content area = edit -->
+                                    <Button Grid.Column="0" Style="{StaticResource GhostButton}" Padding="8"
+                                            Click="Edit_Click"
+                                            AutomationProperties.Name="{Binding [Au_Edit], Source={StaticResource Loc}}">
+                                        <StackPanel Spacing="5" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                                         Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                                         Visibility="{x:Bind IsLive, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="14"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,1,0,0">
+                                                <FontIcon Glyph="{x:Bind TriggerGlyph}" FontSize="13" Opacity="0.75" VerticalAlignment="Center" />
+                                                <TextBlock Text="{x:Bind TriggerText}" FontSize="12.5" Opacity="0.85"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                <Border CornerRadius="6" Padding="7,2" VerticalAlignment="Center"
+                                                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                        Visibility="{x:Bind HasConditionChip, Converter={StaticResource BoolToVisibility}}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                        <FontIcon Glyph="&#xE9D5;" FontSize="10" Opacity="0.7" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{x:Bind ConditionText}" FontSize="11" Opacity="0.8" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                            <ItemsControl ItemsSource="{x:Bind Actions}" Margin="14,1,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:RuleActionView">
+                                                        <StackPanel Orientation="Horizontal" Spacing="7" Margin="0,1">
+                                                            <FontIcon Glyph="&#xE72A;" FontSize="10" Opacity="0.35" VerticalAlignment="Center" />
+                                                            <FontIcon Glyph="{x:Bind Glyph}" FontFamily="{StaticResource MdiFont}"
+                                                                      FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
+                                                            <TextBlock FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                                                <Run Text="{x:Bind Name}" /><Run Text=" · " /><Run Text="{x:Bind ActionLabel}" />
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock Text="{x:Bind LastFiredText, Mode=OneWay}" FontSize="11" Opacity="0.45" Margin="14,1,0,0" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <ToggleSwitch Grid.Column="1" IsOn="{x:Bind IsEnabled, Mode=TwoWay}"
+                                                  Toggled="RuleToggle_Toggled" OnContent="" OffContent=""
+                                                  MinWidth="0" VerticalAlignment="Center" />
+                                    <Button Grid.Column="2" Width="32" Height="32" Padding="0" CornerRadius="16"
+                                            VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
+                                            AutomationProperties.Name="{Binding [Au_More], Source={StaticResource Loc}}">
+                                        <FontIcon Glyph="&#xE712;" FontSize="15" />
+                                        <Button.Flyout>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem Text="{Binding [Au_Edit], Source={StaticResource Loc}}" Click="Edit_Click">
+                                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE70F;" /></MenuFlyoutItem.Icon>
+                                                </MenuFlyoutItem>
+                                                <MenuFlyoutItem Text="{Binding [Au_Test], Source={StaticResource Loc}}" Click="Test_Click">
+                                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
+                                                </MenuFlyoutItem>
+                                                <MenuFlyoutItem Text="{Binding [Au_Duplicate], Source={StaticResource Loc}}" Click="Duplicate_Click">
+                                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C8;" /></MenuFlyoutItem.Icon>
+                                                </MenuFlyoutItem>
+                                                <MenuFlyoutSeparator />
+                                                <MenuFlyoutItem Text="{Binding [Au_Delete], Source={StaticResource Loc}}" Click="Delete_Click">
+                                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon>
+                                                </MenuFlyoutItem>
+                                            </MenuFlyout>
+                                        </Button.Flyout>
                                     </Button>
                                 </Grid>
-                                <Button Style="{StaticResource GhostButton}" Click="ConditionNode_Click">
-                                    <StackPanel Orientation="Horizontal" Spacing="7">
-                                        <FontIcon Glyph="&#xE9D5;" FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding ConditionSummary}" FontSize="12" TextWrapping="Wrap"
-                                                   MaxWidth="120" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Border>
-                        <FontIcon Glyph="&#xE72A;" FontSize="16" Opacity="0.6" VerticalAlignment="Center"
-                                  Visibility="{Binding HasCondition, Converter={StaticResource BoolToVisibility}}" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
 
-                        <!-- DANN column: one card per action, fan-out -->
-                        <StackPanel Width="250" Spacing="8">
-                            <ItemsControl ItemsSource="{Binding ActionDrafts}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ActionDraftViewModel">
-                                        <Border Style="{StaticResource FlowNode}" Margin="0,0,0,8">
-                                            <StackPanel Spacing="6">
-                                                <Grid>
-                                                    <TextBlock Text="{Binding [Au_Then], Source={StaticResource Loc}}"
-                                                               Style="{StaticResource NodeHeader}" />
-                                                    <Button HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2"
-                                                            Background="Transparent" BorderThickness="0"
-                                                            Click="RemoveDraft_Click"
-                                                            AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
-                                                        <FontIcon Glyph="&#xE711;" FontSize="10" Opacity="0.6" />
-                                                    </Button>
-                                                </Grid>
-                                                <Button Style="{StaticResource GhostButton}"
-                                                        AutomationProperties.Name="{Binding [Au_PickEntity], Source={StaticResource Loc}}">
-                                                    <Button.Flyout>
-                                                        <Flyout Placement="Bottom" Opened="EntityFlyout_Opened">
-                                                            <AutoSuggestBox Width="260"
-                                                                            PlaceholderText="{Binding [Au_PickEntity], Source={StaticResource Loc}}"
-                                                                            TextChanged="EntityBox_TextChanged"
-                                                                            SuggestionChosen="EntityBox_SuggestionChosen"
-                                                                            QuerySubmitted="EntityBox_QuerySubmitted">
-                                                                <AutoSuggestBox.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
-                                                                            <FontIcon Glyph="{Binding IconGlyph}" FontSize="15"
-                                                                                      FontFamily="{StaticResource MdiFont}" Opacity="0.8"
-                                                                                      VerticalAlignment="Center" />
-                                                                            <StackPanel>
-                                                                                <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
-                                                                                <TextBlock Text="{Binding CategoryName}" FontSize="11" Opacity="0.55" />
-                                                                            </StackPanel>
+            <!-- ============ EDIT MODE (full-width builder) ============ -->
+            <StackPanel Spacing="16" MaxWidth="620" HorizontalAlignment="Left"
+                        Visibility="{x:Bind ViewModel.IsEditing, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{x:Bind ViewModel.EditTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" />
+
+                <!-- WENN -->
+                <Border Style="{StaticResource FlowNode}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{Binding [Au_When], Source={StaticResource Loc}}" Style="{StaticResource NodeHeader}" />
+                        <Button x:Name="TriggerButton" Style="{StaticResource GhostButton}"
+                                AutomationProperties.Name="{Binding [Au_PickTrigger], Source={StaticResource Loc}}">
+                            <Button.Flyout>
+                                <Flyout x:Name="TriggerFlyout" Placement="Bottom">
+                                    <ScrollViewer MaxHeight="420" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl ItemsSource="{Binding TriggerGroups}" Width="430">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:TriggerGroupViewModel">
+                                                    <StackPanel Spacing="6" Margin="0,0,0,12">
+                                                        <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12" Opacity="0.8" />
+                                                        <ItemsControl ItemsSource="{x:Bind Items}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="208" ItemHeight="40" />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:TriggerOption">
+                                                                    <Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                                                            HorizontalContentAlignment="Left" Margin="0,0,6,6"
+                                                                            Padding="9,6" Click="TriggerPick_Click"
+                                                                            AutomationProperties.Name="{x:Bind Label}">
+                                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                            <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Opacity="0.85" VerticalAlignment="Center" />
+                                                                            <TextBlock Text="{x:Bind Label}" FontSize="13"
+                                                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                                                         </StackPanel>
-                                                                    </DataTemplate>
-                                                                </AutoSuggestBox.ItemTemplate>
-                                                            </AutoSuggestBox>
-                                                        </Flyout>
-                                                    </Button.Flyout>
-                                                    <StackPanel Orientation="Horizontal" Spacing="9">
-                                                        <FontIcon Glyph="{x:Bind Tile.IconGlyph, Mode=OneWay, FallbackValue=''}"
-                                                                  FontFamily="{StaticResource MdiFont}" FontSize="15" Opacity="0.85"
-                                                                  VerticalAlignment="Center"
-                                                                  Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-                                                        <TextBlock Text="{x:Bind Tile.FriendlyName, Mode=OneWay, FallbackValue=''}"
-                                                                   FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="150"
-                                                                   VerticalAlignment="Center"
-                                                                   Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-                                                        <FontIcon Glyph="&#xE710;" FontSize="12" Opacity="0.6" VerticalAlignment="Center"
-                                                                  Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
-                                                        <TextBlock Text="{Binding [Au_PickEntity], Source={StaticResource Loc}}"
-                                                                   FontSize="13" Opacity="0.6" VerticalAlignment="Center"
-                                                                   Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+                                                                    </Button>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
                                                     </StackPanel>
-                                                </Button>
-                                                <ListView ItemsSource="{x:Bind Actions}"
-                                                          SelectionMode="Single" Height="40"
-                                                          Loaded="ActionChips_Loaded" SelectionChanged="ActionChips_SelectionChanged"
-                                                          ScrollViewer.VerticalScrollMode="Disabled"
-                                                          ScrollViewer.HorizontalScrollMode="Disabled"
-                                                          Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                                                    <ListView.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <StackPanel Orientation="Horizontal" />
-                                                        </ItemsPanelTemplate>
-                                                    </ListView.ItemsPanel>
-                                                    <ListView.ItemTemplate>
-                                                        <DataTemplate x:DataType="vm:ActionOption">
-                                                            <TextBlock Text="{x:Bind Label}" FontSize="12" />
-                                                        </DataTemplate>
-                                                    </ListView.ItemTemplate>
-                                                </ListView>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Flyout>
+                            </Button.Flyout>
+                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                <FontIcon x:Name="TriggerIcon" Glyph="&#xE710;" FontSize="15" Opacity="0.85" VerticalAlignment="Center" />
+                                <TextBlock x:Name="TriggerLabel" Text="{Binding [Au_PickTrigger], Source={StaticResource Loc}}"
+                                           FontSize="14" VerticalAlignment="Center" />
+                                <FontIcon Glyph="&#xE70D;" FontSize="10" Opacity="0.5" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Orientation="Horizontal" Spacing="6"
+                                    Visibility="{Binding ShowMinutes, Converter={StaticResource BoolToVisibility}}">
+                            <NumberBox Value="{Binding MinutesParam, Mode=TwoWay}" Minimum="1" Maximum="720"
+                                       SpinButtonPlacementMode="Compact" Width="130" />
+                            <TextBlock Text="{Binding [Au_MinutesSuffix], Source={StaticResource Loc}}"
+                                       VerticalAlignment="Center" Opacity="0.7" FontSize="13" />
+                        </StackPanel>
+                        <AutoSuggestBox x:Name="ProcessBox" MaxWidth="320" HorizontalAlignment="Left"
+                                        PlaceholderText="{Binding [Au_ProcessPh], Source={StaticResource Loc}}"
+                                        Visibility="{Binding ShowProcess, Converter={StaticResource BoolToVisibility}}"
+                                        TextChanged="ProcessBox_TextChanged" SuggestionChosen="ProcessBox_SuggestionChosen" />
+                    </StackPanel>
+                </Border>
+
+                <!-- NUR WENN (single condition for now; S4 makes it rich) -->
+                <Border Style="{StaticResource FlowNode}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{Binding [Au_OnlyWhen], Source={StaticResource Loc}}" Style="{StaticResource NodeHeader}" />
+                        <Button x:Name="AddConditionLink" HorizontalAlignment="Left" Padding="8,4"
+                                Content="{Binding [Au_Condition], Source={StaticResource Loc}}"
+                                Visibility="{Binding HasCondition, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                            <Button.Flyout>
+                                <Flyout x:Name="ConditionFlyout" Placement="Bottom">
+                                    <StackPanel Width="300" Spacing="10">
+                                        <RadioButton x:Name="CondTypeEntity" GroupName="condtype" IsChecked="True"
+                                                     Content="{Binding [Au_CondEntity], Source={StaticResource Loc}}" Checked="CondType_Checked" />
+                                        <StackPanel Spacing="6"
+                                                    Visibility="{Binding ConditionIsTime, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                                            <AutoSuggestBox x:Name="CondEntityBox"
+                                                            PlaceholderText="{Binding [Au_PickEntity], Source={StaticResource Loc}}"
+                                                            TextChanged="CondEntityBox_TextChanged" SuggestionChosen="CondEntityBox_SuggestionChosen">
+                                                <AutoSuggestBox.ItemTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding FriendlyName}" /></DataTemplate>
+                                                </AutoSuggestBox.ItemTemplate>
+                                            </AutoSuggestBox>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <ToggleButton x:Name="CondOnChip" IsChecked="True" Click="CondOn_Click"
+                                                              Content="{Binding [Au_CondOn], Source={StaticResource Loc}}" />
+                                                <ToggleButton x:Name="CondOffChip" Click="CondOff_Click"
+                                                              Content="{Binding [Au_CondOff], Source={StaticResource Loc}}" />
                                             </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <Button HorizontalAlignment="Stretch" Padding="8"
-                                    Command="{Binding AddActionDraftCommand}"
-                                    AutomationProperties.Name="{Binding [Au_AddAction], Source={StaticResource Loc}}">
+                                        </StackPanel>
+                                        <RadioButton x:Name="CondTypeTime" GroupName="condtype"
+                                                     Content="{Binding [Au_CondTime], Source={StaticResource Loc}}" Checked="CondType_Checked" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                                    Visibility="{Binding ConditionIsTime, Converter={StaticResource BoolToVisibility}}">
+                                            <TimePicker Time="{Binding ConditionFrom, Mode=TwoWay}" ClockIdentifier="24HourClock" />
+                                            <TextBlock Text="–" VerticalAlignment="Center" />
+                                            <TimePicker Time="{Binding ConditionTo, Mode=TwoWay}" ClockIdentifier="24HourClock" />
+                                        </StackPanel>
+                                        <Button Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right"
+                                                Content="{Binding [Au_Apply], Source={StaticResource Loc}}" Click="CondApply_Click" />
+                                    </StackPanel>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                        <Grid Visibility="{Binding HasCondition, Converter={StaticResource BoolToVisibility}}">
+                            <Button HorizontalAlignment="Left" Style="{StaticResource GhostButton}" Click="ConditionNode_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="7">
-                                    <FontIcon Glyph="&#xE710;" FontSize="12" Opacity="0.7" />
-                                    <TextBlock Text="{Binding [Au_AddAction], Source={StaticResource Loc}}" FontSize="12" Opacity="0.8" />
+                                    <FontIcon Glyph="&#xE9D5;" FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding ConditionSummary}" FontSize="13" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
-                        </StackPanel>
+                            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Padding="4"
+                                    Background="Transparent" BorderThickness="0"
+                                    Command="{Binding RemoveConditionCommand}"
+                                    AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
+                                <FontIcon Glyph="&#xE711;" FontSize="11" Opacity="0.6" />
+                            </Button>
+                        </Grid>
                     </StackPanel>
+                </Border>
 
-                    <Button Style="{StaticResource AccentButtonStyle}" MinWidth="140"
-                            Content="{Binding [Au_Add], Source={StaticResource Loc}}"
-                            IsEnabled="{Binding CanAdd}" Command="{Binding AddCommand}" />
-                </StackPanel>
-            </Border>
-
-            <!-- ======== rule list ======== -->
-            <TextBlock Text="{Binding [Au_Empty], Source={StaticResource Loc}}"
-                       Opacity="0.55" TextWrapping="Wrap"
-                       Visibility="{Binding HasItems, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
-
-            <ItemsControl ItemsSource="{Binding Items}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:AutomationItemViewModel">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
-                            <Border.ContextFlyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="{Binding [Au_CtxToggle], Source={StaticResource Loc}}"
-                                                    Click="CtxToggle_Click">
-                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7E8;" /></MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                    <MenuFlyoutItem Text="{Binding [Tip_Remove], Source={StaticResource Loc}}"
-                                                    Click="CtxDelete_Click">
-                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                </MenuFlyout>
-                            </Border.ContextFlyout>
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0" Spacing="5">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Ellipse Width="8" Height="8" VerticalAlignment="Center"
-                                                 Fill="{ThemeResource AccentFillColorDefaultBrush}"
-                                                 Visibility="{x:Bind IsLive, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-                                        <FontIcon Glyph="{x:Bind TriggerGlyph}" FontSize="14" Opacity="0.85" VerticalAlignment="Center" />
-                                        <TextBlock Text="{x:Bind TriggerText}" FontWeight="SemiBold" FontSize="13"
-                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                        <FontIcon Glyph="&#xE72A;" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
-                                        <Border CornerRadius="6" Padding="7,2" VerticalAlignment="Center"
-                                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                                Visibility="{x:Bind HasConditionChip, Converter={StaticResource BoolToVisibility}}">
-                                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                                <FontIcon Glyph="&#xE9D5;" FontSize="10" Opacity="0.7" VerticalAlignment="Center" />
-                                                <TextBlock Text="{x:Bind ConditionText}" FontSize="11" Opacity="0.8" />
-                                            </StackPanel>
-                                        </Border>
-                                    </StackPanel>
-                                    <ItemsControl ItemsSource="{x:Bind Actions}" Margin="16,0,0,0">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:RuleActionView">
-                                                <StackPanel Orientation="Horizontal" Spacing="7" Margin="0,1">
-                                                    <FontIcon Glyph="&#xE72A;" FontSize="10" Opacity="0.35" VerticalAlignment="Center" />
-                                                    <FontIcon Glyph="{x:Bind Glyph}" FontFamily="{StaticResource MdiFont}"
-                                                              FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                                                        <Run Text="{x:Bind Name}" /><Run Text=" · " /><Run Text="{x:Bind ActionLabel}" />
-                                                    </TextBlock>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                    <TextBlock Text="{x:Bind LastFiredText, Mode=OneWay}" FontSize="11" Opacity="0.45" />
-                                </StackPanel>
-
-                                <ToggleSwitch Grid.Column="1" IsOn="{x:Bind IsEnabled, Mode=TwoWay}"
-                                              Toggled="RuleToggle_Toggled" OnContent="" OffContent=""
-                                              MinWidth="0" VerticalAlignment="Center" />
-                                <Button Grid.Column="2" Width="32" Height="32" Padding="0" CornerRadius="16"
-                                        VerticalAlignment="Center" Click="Remove_Click"
-                                        ToolTipService.ToolTip="{Binding [Tip_Remove], Source={StaticResource Loc}}"
-                                        AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
-                                    <FontIcon Glyph="&#xE711;" FontSize="11" />
-                                </Button>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <!-- ======== quick pick (same sections as the start page) ======== -->
-            <TextBlock Text="{Binding [Au_Browse], Source={StaticResource Loc}}"
-                       Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,8,0,0" />
-            <!-- Non-virtualizing on purpose — see the start page's browse list. -->
-            <ItemsControl ItemsSource="{Binding Catalog.Groups}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Spacing="8" Margin="0,0,0,14">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="{Binding Glyph}" FontFamily="{StaticResource MdiFont}"
-                                          FontSize="14" Opacity="0.8" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold" FontSize="13" Opacity="0.9" />
-                            </StackPanel>
-                            <ItemsControl ItemsSource="{Binding Tiles}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="202" ItemHeight="42" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                                HorizontalContentAlignment="Left" Margin="0,0,6,6"
-                                                Padding="10,7" Click="QuickPick_Click"
-                                                AutomationProperties.Name="{Binding FriendlyName}">
+                <!-- DANN -->
+                <Border Style="{StaticResource FlowNode}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{Binding [Au_Then], Source={StaticResource Loc}}" Style="{StaticResource NodeHeader}" />
+                        <ItemsControl ItemsSource="{Binding ActionDrafts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ActionDraftViewModel">
+                                    <Grid ColumnSpacing="8" Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Style="{StaticResource GhostButton}"
+                                                AutomationProperties.Name="{Binding [Au_PickEntity], Source={StaticResource Loc}}">
+                                            <Button.Flyout>
+                                                <Flyout Placement="Bottom" Opened="EntityFlyout_Opened">
+                                                    <AutoSuggestBox Width="280"
+                                                                    PlaceholderText="{Binding [Au_PickEntity], Source={StaticResource Loc}}"
+                                                                    TextChanged="EntityBox_TextChanged" SuggestionChosen="EntityBox_SuggestionChosen"
+                                                                    QuerySubmitted="EntityBox_QuerySubmitted">
+                                                        <AutoSuggestBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <StackPanel Orientation="Horizontal" Spacing="10" Padding="0,4">
+                                                                    <FontIcon Glyph="{Binding IconGlyph}" FontSize="15"
+                                                                              FontFamily="{StaticResource MdiFont}" Opacity="0.8" VerticalAlignment="Center" />
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="{Binding FriendlyName}" TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock Text="{Binding CategoryName}" FontSize="11" Opacity="0.55" />
+                                                                    </StackPanel>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </AutoSuggestBox.ItemTemplate>
+                                                    </AutoSuggestBox>
+                                                </Flyout>
+                                            </Button.Flyout>
                                             <StackPanel Orientation="Horizontal" Spacing="9">
-                                                <FontIcon Glyph="{Binding IconGlyph}" FontFamily="{StaticResource MdiFont}"
-                                                          FontSize="15" Opacity="0.85" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding FriendlyName}" FontSize="13"
-                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                <FontIcon Glyph="{x:Bind Tile.IconGlyph, Mode=OneWay, FallbackValue=''}"
+                                                          FontFamily="{StaticResource MdiFont}" FontSize="15" Opacity="0.85" VerticalAlignment="Center"
+                                                          Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                                <TextBlock Text="{x:Bind Tile.FriendlyName, Mode=OneWay, FallbackValue=''}"
+                                                           FontSize="14" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                           Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                                <FontIcon Glyph="&#xE710;" FontSize="12" Opacity="0.6" VerticalAlignment="Center"
+                                                          Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+                                                <TextBlock Text="{Binding [Au_PickEntity], Source={StaticResource Loc}}"
+                                                           FontSize="14" Opacity="0.6" VerticalAlignment="Center"
+                                                           Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
                                             </StackPanel>
                                         </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
+                                        <ListView Grid.Column="1" ItemsSource="{x:Bind Actions}" SelectionMode="Single" Height="40"
+                                                  Loaded="ActionChips_Loaded" SelectionChanged="ActionChips_SelectionChanged"
+                                                  ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled"
+                                                  Visibility="{x:Bind HasTile, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                            <ListView.ItemsPanel>
+                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                            </ListView.ItemsPanel>
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ActionOption">
+                                                    <TextBlock Text="{x:Bind Label}" FontSize="12" />
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                        <Button Grid.Column="2" Padding="4" Background="Transparent" BorderThickness="0"
+                                                VerticalAlignment="Center" Click="RemoveDraft_Click"
+                                                AutomationProperties.Name="{Binding [Tip_Remove], Source={StaticResource Loc}}">
+                                            <FontIcon Glyph="&#xE711;" FontSize="11" Opacity="0.6" />
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button HorizontalAlignment="Left" Padding="8,6"
+                                Command="{Binding AddActionDraftCommand}"
+                                AutomationProperties.Name="{Binding [Au_AddAction], Source={StaticResource Loc}}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <FontIcon Glyph="&#xE710;" FontSize="12" Opacity="0.7" />
+                                <TextBlock Text="{Binding [Au_AddAction], Source={StaticResource Loc}}" FontSize="13" Opacity="0.85" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Name -->
+                <TextBox Header="{Binding [Au_Name], Source={StaticResource Loc}}"
+                         PlaceholderText="{Binding [Au_NamePh], Source={StaticResource Loc}}"
+                         Text="{x:Bind ViewModel.RuleName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button Content="{Binding [Au_Cancel], Source={StaticResource Loc}}"
+                            Command="{x:Bind ViewModel.CancelEditCommand}" />
+                    <Button Style="{StaticResource AccentButtonStyle}" MinWidth="120"
+                            Content="{Binding [Au_Save], Source={StaticResource Loc}}"
+                            IsEnabled="{Binding CanAdd}" Command="{x:Bind ViewModel.SaveCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>
