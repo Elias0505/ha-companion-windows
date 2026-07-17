@@ -58,6 +58,37 @@
                     </Button>
                 </Grid>
 
+                <!-- quick-start templates -->
+                <StackPanel Spacing="8" Margin="0,4,0,0">
+                    <TextBlock Text="{Binding [Au_Templates], Source={StaticResource Loc}}" FontSize="12" Opacity="0.6" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button CommandParameter="lock" Command="{x:Bind ViewModel.BeginTemplateCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <FontIcon Glyph="&#xE72E;" FontSize="13" />
+                                <TextBlock Text="{Binding [Au_TplLock], Source={StaticResource Loc}}" />
+                            </StackPanel>
+                        </Button>
+                        <Button CommandParameter="cam_on" Command="{x:Bind ViewModel.BeginTemplateCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <FontIcon Glyph="&#xE722;" FontSize="13" />
+                                <TextBlock Text="{Binding [Au_TplCam], Source={StaticResource Loc}}" />
+                            </StackPanel>
+                        </Button>
+                        <Button CommandParameter="idle_start" Command="{x:Bind ViewModel.BeginTemplateCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <FontIcon Glyph="&#xE916;" FontSize="13" />
+                                <TextBlock Text="{Binding [Au_TplIdle], Source={StaticResource Loc}}" />
+                            </StackPanel>
+                        </Button>
+                        <Button CommandParameter="schedule" Command="{x:Bind ViewModel.BeginTemplateCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <FontIcon Glyph="&#xE787;" FontSize="13" />
+                                <TextBlock Text="{Binding [Au_TplSchedule], Source={StaticResource Loc}}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+
                 <!-- empty state -->
                 <Border Padding="28" CornerRadius="10" Margin="0,8,0,0"
                         Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
@@ -245,6 +276,19 @@
                                         PlaceholderText="{Binding [Au_ProcessPh], Source={StaticResource Loc}}"
                                         Visibility="{Binding ShowProcess, Converter={StaticResource BoolToVisibility}}"
                                         TextChanged="ProcessBox_TextChanged" SuggestionChosen="ProcessBox_SuggestionChosen" />
+                        <!-- schedule: time + weekdays -->
+                        <StackPanel Spacing="8" Visibility="{Binding ShowSchedule, Converter={StaticResource BoolToVisibility}}">
+                            <TimePicker Time="{Binding ScheduleTime, Mode=TwoWay}" ClockIdentifier="24HourClock" HorizontalAlignment="Left" />
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <ToggleButton IsChecked="{Binding DayMon, Mode=TwoWay}" MinWidth="0" Padding="10,6" Content="{Binding [Day_Mo], Source={StaticResource Loc}}" />
+                                <ToggleButton IsChecked="{Binding DayTue, Mode=TwoWay}" MinWidth="0" Padding="10,6" Content="{Binding [Day_Tu], Source={StaticResource Loc}}" />
+                                <ToggleButton IsChecked="{Binding DayWed, Mode=TwoWay}" MinWidth="0" Padding="10,6" Content="{Binding [Day_We], Source={StaticResource Loc}}" />
+                                <ToggleButton IsChecked="{Binding DayThu, Mode=TwoWay}" MinWidth="0" Padding="10,6" Content="{Binding [Day_Th], Source={StaticResource Loc}}" />
+                                <ToggleButton IsChecked="{Binding DayFri, Mode=TwoWay}" MinWidth="0" Padding="10,6" Content="{Binding [Day_Fr], Source={StaticResource Loc}}" />
+                                <ToggleButton IsChecked="{Binding DaySat, Mode=TwoWay}" MinWidth="0" Padding="10,6" Content="{Binding [Day_Sa], Source={StaticResource Loc}}" />
+                                <ToggleButton IsChecked="{Binding DaySun, Mode=TwoWay}" MinWidth="0" Padding="10,6" Content="{Binding [Day_Su], Source={StaticResource Loc}}" />
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

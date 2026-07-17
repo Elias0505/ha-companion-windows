@@ -22,7 +22,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - 🧱 **Start-menu style tiles** — resize tiles freely by dragging their corner grip (1×1 up to 4×3), drag to reorder with live re-flow, optional category sections.
 - 📈 **Sensor tiles** — pin read-only sensors (PV power, temperatures, …) as live value tiles.
 - 🎚 **Tile quick controls** — right-click a tile: brightness slider for lights, target temperature for climate, play/pause + volume for media players.
-- ⚡ **Windows → HA automations** — an *Automations* tab (n8n-style flow cards): **WHEN** a Windows event fires (lock/unlock, sign-in/out, sleep/resume, shutdown, display on/off, idle ≥ N min, a program becomes active, fullscreen, microphone/camera/audio) → optional **condition** (an HA entity is on/off, or a time window) → **THEN** one or more HA actions. Live dot shows when a trigger's state currently holds.
+- ⚡ **Windows → HA automations** — an *Automations* tab that manages your rules: **WHEN** a Windows event fires (lock/unlock, sign-in/out, sleep/resume, shutdown, display on/off, idle ≥ N min, a program becomes active, fullscreen, microphone/camera/audio, **or a time-of-day schedule on chosen weekdays**) → optional **conditions** (any number, all must hold: a time window, a **PC state** like *locked/fullscreen/mic in use*, a **numeric sensor comparison** like *temperature < 18*, or an HA entity on/off) → **THEN** one or more HA actions, optionally with **data** (light brightness/colour, media volume, target temperature, cover position, fan speed). Rules are **named, editable, duplicable and testable** ("run now"), remember when they last ran, and quick-start templates get you going in a click. Live dot shows when a trigger's state currently holds.
 - 📡 **PC as an HA device** — opt-in, reports this PC to Home Assistant as a `mobile_app` device (locked, session, idle, active program, fullscreen, microphone, camera, display, audio, last start) so you can automate *in HA* on your PC's state. Privacy-first: off by default, one toggle.
 - 🖥️ **My PC tab** — live PC status, **local notification rules** ("notify me when the front door opens / a light turns on" — no HA automation needed), HA→PC **command permissions**, and a received-notifications history.
 - 📥 **HA → PC** — Home Assistant can push notifications to your PC (with **clickable action buttons** that fire events back to HA) and send **commands** (`notify.mobile_app_<pc>` with `command_lock` / `command_sleep` / `command_shutdown` / `command_monitor_off` / `command_volume` / `command_mute` / `command_launch`). Every command is individually opt-in; the risky ones (shutdown, sleep, launch) stay off until you enable them, and `command_launch` only starts programs from your whitelist.
@@ -134,6 +134,8 @@ automation:
       - service: light.turn_on
         target: { entity_id: light.desk }
 ```
+
+The reverse direction — **Windows → HA** — lives entirely in the app's *Automations* tab (no YAML): e.g. *WHEN the camera turns on, ONLY IF after 18:00 and the PC is not locked, THEN turn the desk light on at 30 %*, or *every weekday at 07:00, turn on the office*. Rules run locally on your PC and call HA over its API.
 
 Send a notification **to** the PC (a toast, optionally with action buttons), or a command the PC executes when you allow it in *My PC*:
 

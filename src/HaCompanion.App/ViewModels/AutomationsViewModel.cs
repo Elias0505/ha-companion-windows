@@ -229,6 +229,45 @@ public sealed partial class AutomationsViewModel : ObservableObject
 
     public bool ShowProcess => SelectedTrigger?.ParamKind == TriggerParamKind.ProcessName;
 
+    public bool ShowSchedule => SelectedTrigger?.ParamKind == TriggerParamKind.Schedule;
+
+    // ----- schedule trigger param (time + weekdays) -----
+
+    [ObservableProperty]
+    private TimeSpan _scheduleTime = new(7, 0, 0);
+
+    [ObservableProperty] private bool _dayMon = true;
+    [ObservableProperty] private bool _dayTue = true;
+    [ObservableProperty] private bool _dayWed = true;
+    [ObservableProperty] private bool _dayThu = true;
+    [ObservableProperty] private bool _dayFri = true;
+    [ObservableProperty] private bool _daySat;
+    [ObservableProperty] private bool _daySun;
+
+    private string BuildScheduleParam()
+    {
+        var days = new List<int>();
+        if (DayMon) days.Add(1);
+        if (DayTue) days.Add(2);
+        if (DayWed) days.Add(3);
+        if (DayThu) days.Add(4);
+        if (DayFri) days.Add(5);
+        if (DaySat) days.Add(6);
+        if (DaySun) days.Add(7);
+        // an empty set (no day ticked) means "every day" — never a rule that can't fire
+        return new ScheduleSpec(TimeOnly.FromTimeSpan(ScheduleTime), days).ToParam();
+    }
+
+    private void SeedSchedule(string? param)
+    {
+        if (!ScheduleSpec.TryParse(param, out var spec))
+            return;
+        ScheduleTime = spec.Time.ToTimeSpan();
+        var set = spec.Days.Count == 0 ? new HashSet<int> { 1, 2, 3, 4, 5, 6, 7 } : new HashSet<int>(spec.Days);
+        DayMon = set.Contains(1); DayTue = set.Contains(2); DayWed = set.Contains(3);
+        DayThu = set.Contains(4); DayFri = set.Contains(5); DaySat = set.Contains(6); DaySun = set.Contains(7);
+    }
+
     // ----- builder: NUR WENN (zero or more AND conditions) -----
 
     public ObservableCollection<ConditionRowViewModel> Conditions { get; } = new();
@@ -384,6 +423,16 @@ public sealed partial class AutomationsViewModel : ObservableObject
     [RelayCommand]
     private void CancelEdit() => IsEditing = false;
 
+    /// <summary>Open the New editor pre-seeded from a quick-start template (trigger only).</summary>
+    [RelayCommand]
+    private void BeginTemplate(string triggerKey)
+    {
+        BeginNew();
+        SelectedTrigger = FindOption(triggerKey);
+        if (triggerKey == WindowsTriggers.ToKey(WindowsTrigger.IdleStart))
+            MinutesParam = 10;
+    }
+
     /// <summary>Save the builder as a new rule or replace the one being edited (by id).</summary>
     [RelayCommand]
     private void Save()
@@ -450,6 +499,8 @@ public sealed partial class AutomationsViewModel : ObservableObject
                 MinutesParam = m;
             else if (WindowsTriggers.ParamKind(t) == TriggerParamKind.ProcessName)
                 ProcessParam = rule.Param ?? "";
+            else if (WindowsTriggers.ParamKind(t) == TriggerParamKind.Schedule)
+                SeedSchedule(rule.Param);
         }
 
         Conditions.Clear();
@@ -540,6 +591,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
         {
             TriggerParamKind.Minutes => ((int)MinutesParam).ToString(CultureInfo.InvariantCulture),
             TriggerParamKind.ProcessName => RuleMatcher.NormalizeProcessName(ProcessParam),
+            TriggerParamKind.Schedule => BuildScheduleParam(),
             _ => null,
         };
         var actions = ActionDrafts
@@ -562,6 +614,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
         OnPropertyChanged(nameof(CanAdd));
         OnPropertyChanged(nameof(ShowMinutes));
         OnPropertyChanged(nameof(ShowProcess));
+        OnPropertyChanged(nameof(ShowSchedule));
     }
 
     partial void OnSelectedTriggerChanged(TriggerOption? value) => NotifyBuilderChanged();
@@ -624,9 +677,21 @@ public sealed partial class AutomationsViewModel : ObservableObject
             {
                 TriggerParamKind.Minutes => $"{label} ({rule.Param} {_loc["Au_MinutesSuffix"]})",
                 TriggerParamKind.ProcessName => $"{label}: {rule.Param}",
+                TriggerParamKind.Schedule => ScheduleText(rule.Param),
                 _ => label,
             }
             : label;
+    }
+
+    private string ScheduleText(string? param)
+    {
+        if (!ScheduleSpec.TryParse(param, out var spec))
+            return _loc["Trig_schedule"];
+        var time = spec.Time.ToString("HH:mm", CultureInfo.InvariantCulture);
+        if (spec.Days.Count is 0 or 7)
+            return $"{time} · {_loc["Au_EveryDay"]}";
+        var abbr = new[] { "", "Day_Mo", "Day_Tu", "Day_We", "Day_Th", "Day_Fr", "Day_Sa", "Day_Su" };
+        return $"{time} · {string.Join(" ", spec.Days.Select(d => _loc[abbr[d]]))}";
     }
 
     /// <summary>Compact summary of a rule's conditions for the card chip (null when none).</summary>
@@ -721,6 +786,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
             WindowsTrigger.MicOn, WindowsTrigger.MicOff, WindowsTrigger.CamOn,
             WindowsTrigger.CamOff, WindowsTrigger.AudioStart, WindowsTrigger.AudioStop,
         });
+        AddGroup("TrigGrp_schedule", new[] { WindowsTrigger.Schedule });
     }
 
     private void AddGroup(string titleKey, IEnumerable<WindowsTrigger> triggers)
@@ -748,6 +814,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
         WindowsTrigger.IdleStart or WindowsTrigger.IdleEnd => "\uE916",    // Stopwatch
         WindowsTrigger.FullscreenStart => "\uE740",  // FullScreen
         WindowsTrigger.FullscreenEnd => "\uE73F",    // BackToWindow
+        WindowsTrigger.Schedule => "\uE787",         // Calendar
         WindowsTrigger.AppStart or WindowsTrigger.AppStop => "\uE71D",     // AllApps
         WindowsTrigger.MicOn or WindowsTrigger.MicOff => "\uE720",         // Microphone
         WindowsTrigger.CamOn or WindowsTrigger.CamOff => "\uE714",         // Video
