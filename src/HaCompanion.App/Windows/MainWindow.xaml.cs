@@ -63,6 +63,15 @@ public sealed partial class MainWindow : Window
         var scale = GetDpiForWindow(WindowNative.GetWindowHandle(this)) / 96.0;
         AppWindow.Resize(new SizeInt32((int)Math.Round(1100 * scale), (int)Math.Round(720 * scale)));
 
+        // Stop the window from being dragged smaller than the layout can sensibly handle.
+        // OverlappedPresenter.PreferredMinimum* is the Windows App SDK's first-class API for
+        // this (values are physical pixels, so scale the intended DIP minimum by the DPI).
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.PreferredMinimumWidth = (int)Math.Round(MinWidthDip * scale);
+            presenter.PreferredMinimumHeight = (int)Math.Round(MinHeightDip * scale);
+        }
+
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
         if (File.Exists(iconPath))
             AppWindow.SetIcon(iconPath);
@@ -201,6 +210,10 @@ public sealed partial class MainWindow : Window
         args.Cancel = true;
         sender.Hide();
     }
+
+    // Smallest the window may be dragged, in DIPs — below this the nav + a page get cramped.
+    private const int MinWidthDip = 640;
+    private const int MinHeightDip = 540;
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
