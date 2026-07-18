@@ -44,7 +44,7 @@
         <ItemsControl.ItemTemplate>
             <DataTemplate>
                 <ToggleButton Style="{StaticResource ChipToggle}"
-                              IsChecked="{Binding IsSelected, Mode=OneWay}"
+                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
                               Click="Chip_Click"
                               AutomationProperties.Name="{Binding Header}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
