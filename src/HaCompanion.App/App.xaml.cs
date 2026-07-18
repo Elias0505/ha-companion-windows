@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.IO;
-using System.Runtime.InteropServices;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
@@ -19,9 +18,6 @@ public partial class App : Application
 
     /// <summary>The main window; kept alive for the lifetime of the app (hidden to tray, not closed).</summary>
     public static MainWindow? MainWindow { get; private set; }
-
-    // Held for the process lifetime; its existence marks the running instance.
-    private static Mutex? _instanceMutex;
 
     public App()
     {
@@ -46,20 +42,8 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        // Single instance: a second launch would fight over the tray icon and the global
-        // hotkey (RegisterHotKey fails). Surface the existing window instead and bow out.
-        _instanceMutex = new Mutex(initiallyOwned: true, @"Local\HaCompanion.SingleInstance", out var isFirstInstance);
-        if (!isFirstInstance)
-        {
-            var existing = FindWindowW(null, "HA Companion");
-            if (existing != IntPtr.Zero)
-            {
-                _ = ShowWindow(existing, 9 /* SW_RESTORE */);
-                _ = SetForegroundWindow(existing);
-            }
-            Environment.Exit(0); // nothing is initialized yet — safe to leave abruptly
-        }
-
+        // Single-instancing is handled in Program.Main via AppInstance; by the time we get here
+        // we are guaranteed to be the one running instance.
         Services = ConfigureServices();
 
         // Apply the saved UI language and expose the localization service to XAML
@@ -216,12 +200,14 @@ public partial class App : Application
         }
     }
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr FindWindowW(string? className, string windowName);
-
-    [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
+    /// <summary>
+    /// A second launch was redirected to us by <see cref="Program"/>. Bring the existing window
+    /// to the front on the UI thread — the same reliable path as a tray-icon click, so it works
+    /// even when the window is currently hidden in the tray.
+    /// </summary>
+    public static void OnRedirected()
+    {
+        var window = MainWindow;
+        window?.DispatcherQueue.TryEnqueue(() => window.OpenCommand.Execute(null));
+    }
 }

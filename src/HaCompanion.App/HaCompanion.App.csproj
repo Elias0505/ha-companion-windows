@@ -16,6 +16,11 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
 
+    <!-- We provide our own Main (Program.cs) to do AppInstance single-instancing before UI.
+         The generated Main in App.g.i.cs is gated by this symbol, so defining it removes it. -->
+    <DisableXamlGeneratedMain>true</DisableXamlGeneratedMain>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+
     <!-- Unpackaged + fully self-contained: end users install nothing. -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
