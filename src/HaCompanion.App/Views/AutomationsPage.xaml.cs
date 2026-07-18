@@ -47,13 +47,15 @@ public sealed partial class AutomationsPage : Page
         if (wide == _editTwoColumn)
             return;
         _editTwoColumn = wide;
+        // BrowseRow + EditFooter always span both columns; only their row index shifts.
         if (wide)
         {
             Grid.SetColumnSpan(IfColumn, 1);
             Grid.SetRow(ThenColumn, 1);
             Grid.SetColumn(ThenColumn, 1);
             Grid.SetColumnSpan(ThenColumn, 1);
-            Grid.SetRow(EditFooter, 2);
+            Grid.SetRow(BrowseRow, 2);
+            Grid.SetRow(EditFooter, 3);
             EditRoot.MaxWidth = 1500;
         }
         else
@@ -64,7 +66,8 @@ public sealed partial class AutomationsPage : Page
             Grid.SetRow(ThenColumn, 2);
             Grid.SetColumn(ThenColumn, 0);
             Grid.SetColumnSpan(ThenColumn, 2);
-            Grid.SetRow(EditFooter, 3);
+            Grid.SetRow(BrowseRow, 3);
+            Grid.SetRow(EditFooter, 4);
             EditRoot.MaxWidth = 680;
         }
     }

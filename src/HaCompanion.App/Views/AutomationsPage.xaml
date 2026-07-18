@@ -224,6 +224,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="{x:Bind ViewModel.EditTitle, Mode=OneWay}"
@@ -503,19 +504,21 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Browse devices by category and tap one to add it as an action —
-                     no need to switch tabs to look up an entity's name. -->
-                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                </StackPanel>
+
+                <!-- Browse devices by category and tap one to add it as an action — no need
+                     to switch tabs to look up a name. Full width (spans both columns) so
+                     expanding it doesn't leave the layout lopsided. -->
+                <Expander x:Name="BrowseRow" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                           Header="{Binding [Browse_Title], Source={StaticResource Loc}}">
                     <hc:DeviceBrowser DataContext="{Binding Browser}"
                                       HintText="{Binding [Browse_HintAction], Source={StaticResource Loc}}"
                                       EntityInvoked="Browse_EntityInvoked" />
                 </Expander>
 
-                </StackPanel>
-
                 <!-- footer: name + actions (spans both columns) -->
-                <StackPanel x:Name="EditFooter" Grid.Row="2" Grid.ColumnSpan="2" Spacing="14">
+                <StackPanel x:Name="EditFooter" Grid.Row="3" Grid.ColumnSpan="2" Spacing="14">
                     <TextBox Header="{Binding [Au_Name], Source={StaticResource Loc}}"
                              PlaceholderText="{Binding [Au_NamePh], Source={StaticResource Loc}}"
                              MaxWidth="640" HorizontalAlignment="Left"
