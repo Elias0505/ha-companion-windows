@@ -224,14 +224,24 @@ public sealed partial class QuickPanelWindow : Window
 
     private async void OnShellConnectedWhileWarm(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(ShellViewModel.IsConnected) || !ViewModel.Shell.IsConnected)
-            return;
-        ViewModel.Shell.PropertyChanged -= OnShellConnectedWhileWarm;
-        await WarmHiddenAsync(async () =>
+        // async void on a NON-UI event (ViewModel PropertyChanged): an escaping exception
+        // would rethrow on the caller's sync context instead of the XAML safety net, so this
+        // handler must swallow its own failures (warming is best-effort anyway).
+        try
         {
-            await ViewModel.EnsureDashboardsAsync(); // re-applies the start view -> pre-navigates
-            await WarmWebIfDashboardAsync();
-        });
+            if (e.PropertyName != nameof(ShellViewModel.IsConnected) || !ViewModel.Shell.IsConnected)
+                return;
+            ViewModel.Shell.PropertyChanged -= OnShellConnectedWhileWarm;
+            await WarmHiddenAsync(async () =>
+            {
+                await ViewModel.EnsureDashboardsAsync(); // re-applies the start view -> pre-navigates
+                await WarmWebIfDashboardAsync();
+            });
+        }
+        catch (Exception ex)
+        {
+            Log("warm-on-connect failed: " + ex.Message);
+        }
     }
 
     /// <summary>Spins up the WebView2 runtime while hidden when a dashboard view is active.</summary>
