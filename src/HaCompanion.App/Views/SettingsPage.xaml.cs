@@ -160,7 +160,14 @@ public sealed partial class SettingsPage : Page
         try
         {
             var folder = App.Services.GetRequiredService<IDiagnosticsService>().LogFolderPath;
-            System.Diagnostics.Process.Start("explorer.exe", folder);
+            System.IO.Directory.CreateDirectory(folder); // exists before we try to open it
+            // Shell-execute the folder itself: robust when the path contains spaces
+            // (e.g. C:\Users\First Last\...), unlike passing it as an explorer.exe argument.
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = folder,
+                UseShellExecute = true,
+            });
         }
         catch (Exception ex)
         {

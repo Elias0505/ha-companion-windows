@@ -191,7 +191,7 @@ public partial class App : Application
             Directory.CreateDirectory(dir);
             var file = Path.Combine(dir, "crash.log");
             if (File.Exists(file) && new FileInfo(file).Length > 512_000)
-                File.Delete(file); // keep the log from growing unbounded
+                File.Move(file, file + ".1", overwrite: true); // rotate, don't wipe crash history
             File.AppendAllText(file, $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}] {source}: {exception}\n\n");
         }
         catch

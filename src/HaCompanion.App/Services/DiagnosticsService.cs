@@ -83,17 +83,22 @@ public sealed class DiagnosticsService : IDiagnosticsService
         sb.AppendLine();
 
         AppendLog(sb, "app.log");
+        AppendLog(sb, "app.log.1", onlyIfPresent: true);   // rotated previous log, if any
         AppendLog(sb, "crash.log");
+        AppendLog(sb, "crash.log.1", onlyIfPresent: true);
 
         // Belt and braces: even if a secret ever leaked into a log line, it must not
         // survive into the report.
         return DiagnosticsRedactor.Redact(sb.ToString(), new[] { s.Token, s.MobileAppWebhookId });
     }
 
-    private void AppendLog(StringBuilder sb, string fileName)
+    private void AppendLog(StringBuilder sb, string fileName, bool onlyIfPresent = false)
     {
+        var path = Path.Combine(LogFolderPath, fileName);
+        if (onlyIfPresent && !File.Exists(path))
+            return;
         sb.AppendLine(CultureInfo.InvariantCulture, $"[{fileName} — last {TailBytes / 1024} KB]");
-        var tail = DiagnosticsRedactor.TailFile(Path.Combine(LogFolderPath, fileName), TailBytes);
+        var tail = DiagnosticsRedactor.TailFile(path, TailBytes);
         sb.AppendLine(string.IsNullOrEmpty(tail) ? "(empty)" : tail);
         sb.AppendLine();
     }

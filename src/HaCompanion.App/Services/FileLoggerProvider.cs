@@ -33,7 +33,10 @@ public sealed class FileLoggerProvider : ILoggerProvider
             lock (_sync)
             {
                 if (File.Exists(_file) && new FileInfo(_file).Length > MaxLogBytes)
-                    File.Delete(_file); // simple cap: start over instead of growing forever
+                    // Rotate rather than wipe: keep one previous log (app.log.1) so the context
+                    // leading up to a problem survives the size cap. Home Assistant rotates its
+                    // own log the same way (home-assistant.log / home-assistant.log.1).
+                    File.Move(_file, _file + ".1", overwrite: true);
                 File.AppendAllText(_file, line);
             }
         }
