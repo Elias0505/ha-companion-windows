@@ -26,9 +26,18 @@ public sealed partial class ShortcutsPage : Page
         InitializeComponent();
         DataContext = ViewModel;
         UpdateRecordLabel();
+        // The record button caption is set imperatively, so XAML bindings cannot repaint it
+        // on a language switch. Refresh while the page is visible, and again on every visit —
+        // the page is cached (NavigationCacheMode=Required), so a switch made on another tab
+        // would otherwise leave a stale caption behind.
+        Loc.LanguageChanged += OnLanguageChanged;
+        Loaded += (_, _) => UpdateRecordLabel();
     }
 
     private static LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
+
+    private void OnLanguageChanged(object? sender, EventArgs e) =>
+        DispatcherQueue.TryEnqueue(UpdateRecordLabel);
 
     private void UpdateRecordLabel() =>
         RecordButton.Content = _recording

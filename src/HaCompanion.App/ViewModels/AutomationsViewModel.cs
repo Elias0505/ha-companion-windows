@@ -289,8 +289,12 @@ public sealed partial class AutomationsViewModel : ObservableObject
 
     private string? _editingId;
 
-    /// <summary>Header of the builder form ("Neue Automation" / "Automation bearbeiten").</summary>
+    /// <summary>Header of the builder form ("New automation" / "Edit automation").</summary>
     public string EditTitle => _loc[IsEditingExisting ? "Au_EditTitle" : "Au_NewTitle"];
+
+    /// <summary>Raised after the UI language changed and this view model has refreshed.
+    /// The page uses it to re-apply the strings it sets imperatively.</summary>
+    public event EventHandler? LanguageChanged;
 
     public bool CanAdd => BuildRule() is { } rule && rule.IsValid();
 
@@ -314,7 +318,15 @@ public sealed partial class AutomationsViewModel : ObservableObject
         ResetBuilder();
         Rebuild();
 
-        _loc.LanguageChanged += (_, _) => _ui.Post(() => { BuildTriggerGroups(); Rebuild(); });
+        // A live language switch must repaint every localized string, including the ones
+        // that are plain computed properties (they have no setter to raise the change).
+        _loc.LanguageChanged += (_, _) => _ui.Post(() =>
+        {
+            BuildTriggerGroups();
+            Rebuild();
+            OnPropertyChanged(nameof(EditTitle));
+            LanguageChanged?.Invoke(this, EventArgs.Empty);
+        });
         _engine.RuleFired += (_, _) => _ui.Post(RefreshFooters);
         _monitor.TriggerFired += (_, _) => RefreshLiveDots();      // already on the UI thread
         _monitor.IdleMinutesChanged += (_, _) => RefreshLiveDots();

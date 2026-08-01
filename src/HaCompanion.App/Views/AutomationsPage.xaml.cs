@@ -32,7 +32,15 @@ public sealed partial class AutomationsPage : Page
             if (e.PropertyName is nameof(AutomationsViewModel.SelectedTrigger) or nameof(AutomationsViewModel.IsEditing))
                 SyncBuilderFace();
         };
+        // ...and after a language switch, otherwise the trigger face keeps the old language
+        // until the builder is reseeded. Both hooks are needed: the event covers a switch made
+        // while this tab is visible, Loaded covers one made on another tab (the page is cached
+        // via NavigationCacheMode=Required and would come back stale).
+        ViewModel.LanguageChanged += OnLanguageChanged;
+        Loaded += (_, _) => SyncBuilderFace();
     }
+
+    private void OnLanguageChanged(object? sender, EventArgs e) => SyncBuilderFace();
 
     private static LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
 
