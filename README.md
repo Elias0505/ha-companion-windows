@@ -5,11 +5,10 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 *Not affiliated with or endorsed by the Home Assistant project / Nabu Casa. "Home Assistant" is a trademark of its respective owners; this app is an independent client "for Home Assistant".*
 
 <p align="center">
-  <a href="docs/media/quick-panel-demo.mp4">
-    <img src="docs/media/quick-panel-poster.png" width="88%" alt="Pressing the global hotkey slides Home Assistant in over the Windows desktop — click to play the demo" />
-  </a>
+  <img src="docs/media/quick-panel-desktop.gif" width="88%" alt="Pressing the global hotkey slides Home Assistant in over the Windows desktop" />
   <br />
-  <sub><b><a href="docs/media/quick-panel-demo.mp4">▶ Play the 9-second demo</a></b> — one hotkey, Home Assistant slides in over whatever you are doing.</sub>
+  <sub>One hotkey, anywhere in Windows — Home Assistant slides in over whatever you are doing.<br />
+  <a href="docs/media/quick-panel-demo.mp4">▶ Same clip as MP4</a> (sharper, 1080p)</sub>
 </p>
 <p align="center">
   <img src="docs/media/automations.png" width="49%" alt="Windows-to-HA automations: when something happens on the PC, Home Assistant reacts" />
