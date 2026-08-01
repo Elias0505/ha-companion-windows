@@ -5,7 +5,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 *Not affiliated with or endorsed by the Home Assistant project / Nabu Casa. "Home Assistant" is a trademark of its respective owners; this app is an independent client "for Home Assistant".*
 
 <p align="center">
-  <img src="docs/media/quick-panel.png" width="330" alt="Quick panel — your Home Assistant sliding in over the desktop via a global hotkey" />
+  <img src="docs/media/quick-panel-desktop.gif" width="88%" alt="Pressing the global hotkey slides Home Assistant in over the Windows desktop" />
 </p>
 <p align="center">
   <img src="docs/media/automations.png" width="49%" alt="Windows-to-HA automations: when something happens on the PC, Home Assistant reacts" />

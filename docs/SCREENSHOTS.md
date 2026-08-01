@@ -4,7 +4,11 @@ A tour through HA Companion for Windows. All shots were taken on Windows 11 (dar
 
 ## Quick panel
 
-Press the global hotkey (default `Win+Ctrl+H`) anywhere in Windows and your Home Assistant slides in from the edge of the screen — pinnable, resizable, and gone again with the same hotkey:
+Press the global hotkey (default `Win+Ctrl+H`) anywhere in Windows and your Home Assistant slides in over whatever you are doing — pinnable, resizable, and gone again with the same hotkey. No window to find, no browser tab:
+
+![Quick panel sliding in over the Windows desktop](media/quick-panel-desktop.gif)
+
+Close-up of the same motion:
 
 ![Quick panel demo](media/quick-panel-demo.gif)
 
