@@ -57,7 +57,25 @@ Clean **MVVM**, split into two projects:
 
 ---
 
-## Run it on your PC
+## Quick install (recommended)
+
+Paste this into **PowerShell** — it downloads the latest release, installs to `%LOCALAPPDATA%\Programs\HaCompanion`, creates a Start Menu shortcut and launches the app. Run it again any time to update (your settings are kept):
+
+```powershell
+irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex
+```
+
+From plain **cmd**:
+
+```bat
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"
+```
+
+Optional: set `$env:HACOMPANION_AUTOSTART = '1'` before running to also start the app with Windows.
+
+> The binary is not code-signed yet, so Windows SmartScreen may warn on first start — click "More info" → "Run anyway". Code signing / winget / Microsoft Store are on the roadmap (see [Planned](#planned)).
+
+## Run it from source
 
 **Only prerequisite: the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).** No Visual Studio, no separate "Windows App SDK" install — WinUI 3 is restored automatically from NuGet. Windows 10 (19041+) or Windows 11.
 
