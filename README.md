@@ -4,6 +4,15 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 
 *Not affiliated with or endorsed by the Home Assistant project / Nabu Casa. "Home Assistant" is a trademark of its respective owners; this app is an independent client "for Home Assistant".*
 
+<p align="center">
+  <img src="docs/media/quick-panel.png" width="330" alt="Quick panel — your Home Assistant sliding in over the desktop via a global hotkey" />
+</p>
+<p align="center">
+  <img src="docs/media/automations.png" width="49%" alt="Windows-to-HA automations: when something happens on the PC, Home Assistant reacts" />
+  <img src="docs/media/ha-dashboards.png" width="49%" alt="Full Lovelace dashboards rendered natively" />
+</p>
+<p align="center"><b><a href="docs/SCREENSHOTS.md">📸 More screenshots & a quick-panel demo GIF</a></b></p>
+
 ---
 
 ## Features
