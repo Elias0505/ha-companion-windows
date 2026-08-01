@@ -19,6 +19,43 @@ $ProgressPreference = 'SilentlyContinue'
 $repo = 'Elias0505/ha-companion-windows'
 $dest = Join-Path $env:LOCALAPPDATA 'Programs\HaCompanion'
 
+# --- prerequisites -----------------------------------------------------------
+# Windows 10 2004 (build 19041) or newer is required by the Windows App SDK.
+$build = [Environment]::OSVersion.Version.Build
+if ($build -lt 19041) {
+    throw "HA Companion requires Windows 10 version 2004 (build 19041) or newer. This PC is on build $build."
+}
+
+# The app bundles .NET and the Windows App SDK (self-contained). The only
+# external requirement is the WebView2 Evergreen Runtime (preinstalled on
+# Windows 11; may be missing on Windows 10). Detect it the way Microsoft
+# documents (EdgeUpdate client registry keys) and install it via the official
+# bootstrapper only if it is missing.
+function Test-WebView2 {
+    $keys = @(
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}',
+        'HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}',
+        'HKCU:\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+    )
+    foreach ($k in $keys) {
+        $pv = (Get-ItemProperty -Path $k -Name pv -ErrorAction SilentlyContinue).pv
+        if ($pv -and $pv -ne '0.0.0.0') { return $true }
+    }
+    return $false
+}
+
+if (-not (Test-WebView2)) {
+    Write-Host 'WebView2 Runtime is missing - installing it via the official Microsoft bootstrapper (a UAC prompt may appear)...'
+    $wv2 = Join-Path $env:TEMP 'MicrosoftEdgeWebView2Setup.exe'
+    Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $wv2
+    Start-Process -FilePath $wv2 -ArgumentList '/install' -Wait
+    Remove-Item -Path $wv2 -Force -ErrorAction SilentlyContinue
+    if (-not (Test-WebView2)) {
+        Write-Warning 'WebView2 Runtime could not be verified. The app will still install, but the Lovelace view needs WebView2 (https://developer.microsoft.com/microsoft-edge/webview2/).'
+    }
+}
+# -----------------------------------------------------------------------------
+
 $headers = @{ 'User-Agent' = 'HaCompanion-Installer' }
 if ($env:GH_TOKEN) { $headers['Authorization'] = "Bearer $($env:GH_TOKEN)" }
 

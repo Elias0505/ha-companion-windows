@@ -59,7 +59,7 @@ Clean **MVVM**, split into two projects:
 
 ## Quick install (recommended)
 
-Paste this into **PowerShell** — it downloads the latest release, installs to `%LOCALAPPDATA%\Programs\HaCompanion`, creates a Start Menu shortcut and launches the app. Run it again any time to update (your settings are kept):
+Paste this into **PowerShell** — it installs everything needed and launches the app. No admin rights required for the app itself (per-user install to `%LOCALAPPDATA%\Programs\HaCompanion`, Start Menu shortcut included; the app is self-contained, and the WebView2 Runtime is auto-installed via the official Microsoft bootstrapper only if missing). Run it again any time to update — your settings are kept:
 
 ```powershell
 irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex
