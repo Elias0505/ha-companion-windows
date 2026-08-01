@@ -36,3 +36,9 @@ dotnet_naming_symbols.private_fields.applicable_kinds = field
 dotnet_naming_symbols.private_fields.applicable_accessibilities = private
 dotnet_naming_style.underscore_prefix.capitalization = camel_case
 dotnet_naming_style.underscore_prefix.required_prefix = _
+
+# CA1873 (new in later .NET 9 SDK analyzers): "avoid potentially expensive logging".
+# All flagged call sites are cold-path, low-frequency informational logs using proper
+# structured logging templates - the theoretical cost of argument evaluation is
+# irrelevant there. Kept visible as a suggestion instead of failing the strict build.
+dotnet_diagnostic.CA1873.severity = suggestion
