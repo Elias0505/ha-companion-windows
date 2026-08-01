@@ -8,49 +8,49 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
   <img src="docs/media/quick-panel-desktop.gif" width="88%" alt="Pressing the global hotkey slides Home Assistant in over the Windows desktop" />
   <br />
   <sub>One hotkey, anywhere in Windows — Home Assistant slides in over whatever you are doing.<br />
-  <a href="docs/media/quick-panel-demo.mp4">▶ Same clip as MP4</a> (sharper, 1080p)</sub>
+  <a href="docs/media/quick-panel-demo.mp4">Same clip as MP4</a> (sharper, 1080p)</sub>
 </p>
 <p align="center">
   <img src="docs/media/automations.png" width="49%" alt="Windows-to-HA automations: when something happens on the PC, Home Assistant reacts" />
   <img src="docs/media/ha-dashboards.png" width="49%" alt="Full Lovelace dashboards rendered natively" />
 </p>
-<p align="center"><b><a href="docs/SCREENSHOTS.md">📸 More screenshots & a quick-panel demo GIF</a></b></p>
+<p align="center"><b><a href="docs/SCREENSHOTS.md">More screenshots</a></b></p>
 
 ---
 
 ## Features
 
-- 🔥 **Quick panel (global hotkey)** — a configurable hotkey (default Win+Ctrl+H) slides a right-edge panel in as one unit; pick **Favourites** (editable pinned tiles) or any of your **HA dashboards** shown 1:1.
-- 🎛 **Auto-detected tiles** — every actionable entity becomes a tile with its **real Home Assistant icon**, grouped by domain, live via WebSocket; tap to toggle.
-- ⭐ **Editable & reorderable** — pin favourites, drag to reorder, add via search; layout persists.
-- 🖥️ **HA Dashboards 1:1** — your real Lovelace dashboards embedded (WebView2), auto-logged-in with your token, no login prompt.
-- 🌐 **6 UI languages** — English, Deutsch, Español, Français, 中文, हिन्दी — switch live in Settings.
-- 🪟 **Dark, clean, native** — Mica main window, borderless acrylic-free panel, adjustable panel width.
-- 🔌 **Live connection** — REST for actions + WebSocket for push updates (auto-reconnect).
-- 🧰 **System tray** — right-click → Open / Quick panel / Exit; closing the window hides to tray.
-- 🔒 **Token stored securely** — the long-lived token is encrypted with Windows DPAPI, never in plaintext.
-- ⌨️ **Entity shortcuts** — bind any key combination to any device or script (own Shortcuts tab with category quick-pick); a clean OSD toast slides in bottom-right saying exactly what happened ("Turned on/off", live-confirmed by HA).
-- 🚀 **Ctrl+K launcher** — search & trigger any entity from the quick panel without touching the mouse layout.
-- 🧱 **Start-menu style tiles** — resize tiles freely by dragging their corner grip (1×1 up to 4×3), drag to reorder with live re-flow, optional category sections.
-- 📈 **Sensor tiles** — pin read-only sensors (PV power, temperatures, …) as live value tiles.
-- 🎚 **Tile quick controls** — right-click a tile: brightness slider for lights, target temperature for climate, play/pause + volume for media players.
-- ⚡ **Windows → HA automations** — an *Automations* tab that manages your rules: **WHEN** a Windows event fires (lock/unlock, sign-in/out, sleep/resume, shutdown, display on/off, idle ≥ N min, a program becomes active, fullscreen, microphone/camera/audio, **or a time-of-day schedule on chosen weekdays**) → optional **conditions** (any number, all must hold: a time window, a **PC state** like *locked/fullscreen/mic in use*, a **numeric sensor comparison** like *temperature < 18*, or an HA entity on/off) → **THEN** one or more HA actions, optionally with **data** (light brightness/colour, media volume, target temperature, cover position, fan speed). Rules are **named, editable, duplicable and testable** ("run now"), remember when they last ran, and quick-start templates get you going in a click. Live dot shows when a trigger's state currently holds.
-- 📡 **PC as an HA device** — opt-in, reports this PC to Home Assistant as a `mobile_app` device (locked, session, idle, active program, fullscreen, microphone, camera, display, audio, last start) so you can automate *in HA* on your PC's state. Privacy-first: off by default, one toggle.
-- 🖥️ **My PC tab** — live PC status, **local notification rules** ("notify me when the front door opens / a light turns on" — no HA automation needed), HA→PC **command permissions**, and a received-notifications history.
-- 📥 **HA → PC** — Home Assistant can push notifications to your PC (with **clickable action buttons** that fire events back to HA) and send **commands** (`notify.mobile_app_<pc>` with `command_lock` / `command_sleep` / `command_shutdown` / `command_monitor_off` / `command_volume` / `command_mute` / `command_launch`). Every command is individually opt-in; the risky ones (shutdown, sleep, launch) stay off until you enable them, and `command_launch` only starts programs from your whitelist.
-- 💾 **Backup** — export/import your whole configuration (layout, shortcuts, automations, notification rules, settings) as one portable JSON — no secrets included.
-- 🔔 **HA notifications** — persistent notifications appear as native Windows toasts (optional).
-- 🔁 **Robust connection** — instant reconnect on network change / resume from sleep; exponential backoff resets after healthy sessions.
-- 🖥️ **Start with Windows** — optional autostart, silently into the tray; tray icon mirrors the connection state.
-- 🔎 **Network discovery** — a search button finds your Home Assistant on the LAN via mDNS and fills in the URL (where multicast is allowed).
-- 🩺 **Diagnostics & self-repair** — a one-click redacted diagnostics report (never contains your token), an "open log folder" shortcut, and an actionable repair banner that guides you when a token is revoked or a certificate is untrusted.
-- 🧪 **Honest actions** — the connection is tested *before* settings are saved with a precise reason on failure (auth / DNS / TLS / timeout); failed actions surface an error instead of silently lying.
-- 🪵 **File logging** — app.log / crash.log under %LOCALAPPDATA%\HaCompanion for easy diagnosis.
-- ✅ **Unit-tested core & strict build** — the protocol/parsing layer is covered by 260+ xunit tests run in CI; the whole solution builds warnings-as-errors with .NET analyzers.
+- **Quick panel (global hotkey)** — a configurable hotkey (default Win+Ctrl+H) slides a right-edge panel in as one unit; pick **Favourites** (editable pinned tiles) or any of your **HA dashboards** shown 1:1.
+- **Auto-detected tiles** — every actionable entity becomes a tile with its **real Home Assistant icon**, grouped by domain, live via WebSocket; tap to toggle.
+- **Editable & reorderable** — pin favourites, drag to reorder, add via search; layout persists.
+- **HA Dashboards 1:1** — your real Lovelace dashboards embedded (WebView2), auto-logged-in with your token, no login prompt.
+- **6 UI languages** — English, Deutsch, Español, Français, 中文, हिन्दी — switch live in Settings.
+- **Dark, clean, native** — Mica main window, borderless acrylic-free panel, adjustable panel width.
+- **Live connection** — REST for actions + WebSocket for push updates (auto-reconnect).
+- **System tray** — right-click → Open / Quick panel / Exit; closing the window hides to tray.
+- **Token stored securely** — the long-lived token is encrypted with Windows DPAPI, never in plaintext.
+- **Entity shortcuts** — bind any key combination to any device or script (own Shortcuts tab with category quick-pick); a clean OSD toast slides in bottom-right saying exactly what happened ("Turned on/off", live-confirmed by HA).
+- **Ctrl+K launcher** — search & trigger any entity from the quick panel without touching the mouse layout.
+- **Start-menu style tiles** — resize tiles freely by dragging their corner grip (1×1 up to 4×3), drag to reorder with live re-flow, optional category sections.
+- **Sensor tiles** — pin read-only sensors (PV power, temperatures, …) as live value tiles.
+- **Tile quick controls** — right-click a tile: brightness slider for lights, target temperature for climate, play/pause + volume for media players.
+- **Windows → HA automations** — an *Automations* tab that manages your rules: **WHEN** a Windows event fires (lock/unlock, sign-in/out, sleep/resume, shutdown, display on/off, idle ≥ N min, a program becomes active, fullscreen, microphone/camera/audio, **or a time-of-day schedule on chosen weekdays**) → optional **conditions** (any number, all must hold: a time window, a **PC state** like *locked/fullscreen/mic in use*, a **numeric sensor comparison** like *temperature < 18*, or an HA entity on/off) → **THEN** one or more HA actions, optionally with **data** (light brightness/colour, media volume, target temperature, cover position, fan speed). Rules are **named, editable, duplicable and testable** ("run now"), remember when they last ran, and quick-start templates get you going in a click. Live dot shows when a trigger's state currently holds.
+- **PC as an HA device** — opt-in, reports this PC to Home Assistant as a `mobile_app` device (locked, session, idle, active program, fullscreen, microphone, camera, display, audio, last start) so you can automate *in HA* on your PC's state. Privacy-first: off by default, one toggle.
+- **My PC tab** — live PC status, **local notification rules** ("notify me when the front door opens / a light turns on" — no HA automation needed), HA→PC **command permissions**, and a received-notifications history.
+- **HA → PC** — Home Assistant can push notifications to your PC (with **clickable action buttons** that fire events back to HA) and send **commands** (`notify.mobile_app_<pc>` with `command_lock` / `command_sleep` / `command_shutdown` / `command_monitor_off` / `command_volume` / `command_mute` / `command_launch`). Every command is individually opt-in; the risky ones (shutdown, sleep, launch) stay off until you enable them, and `command_launch` only starts programs from your whitelist.
+- **Backup** — export/import your whole configuration (layout, shortcuts, automations, notification rules, settings) as one portable JSON — no secrets included.
+- **HA notifications** — persistent notifications appear as native Windows toasts (optional).
+- **Robust connection** — instant reconnect on network change / resume from sleep; exponential backoff resets after healthy sessions.
+- **Start with Windows** — optional autostart, silently into the tray; tray icon mirrors the connection state.
+- **Network discovery** — a search button finds your Home Assistant on the LAN via mDNS and fills in the URL (where multicast is allowed).
+- **Diagnostics & self-repair** — a one-click redacted diagnostics report (never contains your token), an "open log folder" shortcut, and an actionable repair banner that guides you when a token is revoked or a certificate is untrusted.
+- **Honest actions** — the connection is tested *before* settings are saved with a precise reason on failure (auth / DNS / TLS / timeout); failed actions surface an error instead of silently lying.
+- **File logging** — app.log / crash.log under %LOCALAPPDATA%\HaCompanion for easy diagnosis.
+- **Unit-tested core & strict build** — the protocol/parsing layer is covered by 260+ xunit tests run in CI; the whole solution builds warnings-as-errors with .NET analyzers.
 
 ### Planned
 
-- 📌 Jump Lists · 🧩 Windows Widgets board · 📦 MSIX packaging + signed releases (Microsoft Store)
+- Jump Lists · Windows Widgets board · MSIX packaging + signed releases (Microsoft Store)
 
 ---
 
@@ -119,7 +119,7 @@ This produces a **self-contained** build — the resulting `HaCompanion.exe` bun
 3. Paste a **Long-Lived Access Token** (Home Assistant → your profile → *Long-lived access tokens* → *Create token*).
 4. Connect. Pick the entities you want as quick-action tiles.
 
-Tip: on a network with mDNS enabled, the **🔍 search button** next to the base URL finds your Home Assistant automatically.
+Tip: on a network with mDNS enabled, the **search button** next to the base URL finds your Home Assistant automatically.
 
 ---
 
@@ -174,7 +174,7 @@ Send a notification **to** the PC (a toast, optionally with action buttons), or 
 - service: notify.mobile_app_my_pc
   data:
     title: "Laundry done"
-    message: "Move it to the dryer 🧺"
+    message: "Move it to the dryer"
 
 # Lock the PC (requires the "lock" command to be enabled in My PC)
 - service: notify.mobile_app_my_pc
@@ -200,7 +200,7 @@ Logs live in `%LOCALAPPDATA%\HaCompanion\` (`app.log`, `crash.log`) — *Open lo
 
 - **No MQTT.** This app uses the HA `mobile_app` API by design (no broker, no YAML). Features that require a real `media_player` entity are out of scope.
 - **`is_locked` has no `lock` device class** on purpose: Home Assistant's `lock` binary class means *on = unlocked*, which would invert the meaning; the sensor stays a plain binary_sensor (`on = locked`).
-- **Network discovery needs mDNS.** If your network blocks/disables multicast, the 🔍 search finds nothing — just enter the URL manually.
+- **Network discovery needs mDNS.** If your network blocks/disables multicast, the search finds nothing — just enter the URL manually.
 - **The PC-sensor entities are enabled by default** (all 11 are core to the app's purpose); turn the whole feature off in Settings to hide them in HA.
 - **Windows only** (Windows 10 19041+ / Windows 11). The `HaCompanion.Core` library is cross-platform, but the app is WinUI 3.
 
@@ -220,7 +220,7 @@ Logs live in `%LOCALAPPDATA%\HaCompanion\` (`app.log`, `crash.log`) — *Open lo
 
 In short: you may use, study, share and modify this software freely — but **if you distribute it or run a modified version as a network service, you must release your complete corresponding source under the AGPL as well.** This deliberately prevents anyone from taking this code, closing it, and reselling it as a proprietary product.
 
-### 🏢 Commercial / proprietary use
+### Commercial / proprietary use
 
 Want to use this in a **closed-source or commercial product** without the AGPL's copyleft obligations? That requires a **separate commercial license** — please get in touch. See [`COMMERCIAL.md`](COMMERCIAL.md).
 

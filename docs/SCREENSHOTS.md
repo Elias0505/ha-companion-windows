@@ -9,7 +9,7 @@ Press the global hotkey (default `Win+Ctrl+H`) anywhere in Windows and your Home
 ![Quick panel sliding in over the Windows desktop](media/quick-panel-desktop.gif)
 
 Recorded on a real 4K desktop at 60 fps (GPU capture), replayed here at 40 fps.
-**[▶ Same clip as MP4](media/quick-panel-demo.mp4)** if you want it sharper.
+**[Same clip as MP4](media/quick-panel-demo.mp4)** if you want it sharper.
 
 Close-up of the panel itself:
 
