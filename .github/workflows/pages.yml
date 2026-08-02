@@ -24,12 +24,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The site is served from a project subpath, so absolute asset paths 404 —
-      # and the imprint ships with {{...}} placeholders that must be filled with
-      # the real provider identity before anything goes public.
-      - name: Guard — no absolute asset paths, no unfilled placeholders
+      # The site is served from a project subpath, so absolute asset paths 404
+      # (404.html is the deliberate exception and uses the full project prefix).
+      - name: Guard — no absolute asset paths
         run: |
           ! grep -rn 'src="/\|href="/assets\|href="/index' site/ --include='*.html'
+
+      # The imprint ships with {{...}} placeholders for the provider identity.
+      # While the repo is private nothing deploys, so the guard only arms itself
+      # for the real thing — it must never redden the private preview builds.
+      - name: Guard — imprint placeholders filled (public repo only)
+        if: ${{ !github.event.repository.private }}
+        run: |
           ! grep -rn '{{' site/ --include='*.html'
 
       # Downloadable preview — exists even while the repo is private and the
