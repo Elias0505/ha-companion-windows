@@ -78,7 +78,9 @@
      Install button clips silently under body's overflow-x:hidden */
   @media (max-width: 479px) {
     .header__nav .header__link--tight { display: none; }
-    .code__label { display: none; }
+    /* .code prefix: the base .code__label rule sets display:grid LATER in this
+       file and would win the cascade against a bare class at equal specificity */
+    .code .code__label { display: none; }
   }
 
   /* ---------- buttons ----------------------------------------------------- */

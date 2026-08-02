@@ -56,8 +56,8 @@ echo "== screenshots (tour) =="
 # crossfade inside a fixed aspect-ratio box: zero layout shift, no letterbox
 # visible because the pad colour is the app's own window background.
 for name in start ha-dashboards shortcuts automations my-pc settings; do
-    convert "$MEDIA/$name.png" -background '#202020' -gravity center \
-            -extent 1400x853 -strip "$TMP/$name-src.png"
+    convert "$MEDIA/$name.png" -filter Lanczos -resize 1400x853^ \
+            -background '#202020' -gravity center -extent 1400x853 -strip "$TMP/$name-src.png"
     # the dashboard shot is photographic (a real Lovelace view) and needs a
     # gentler quantizer than the flat UI tabs, or the wallpaper bands
     case "$name" in
