@@ -191,6 +191,19 @@
                         <TextBlock x:Name="DiagStatus" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
+
+                <!-- Zuruecksetzen -->
+                <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="{Binding [Reset_Title], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
+                        <TextBlock Text="{Binding [Reset_Hint], Source={StaticResource Loc}}"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="{Binding [Reset_Button], Source={StaticResource Loc}}" Click="Reset_Click" />
+                        </StackPanel>
+                        <TextBlock x:Name="ResetStatus" FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
 
             <!-- Version (spans, bottom) -->

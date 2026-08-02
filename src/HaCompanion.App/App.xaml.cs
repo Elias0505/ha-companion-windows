@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Services;
@@ -91,6 +93,10 @@ public partial class App : Application
         // Keep an existing autostart entry pointing at the current exe (path may change on update).
         Services.GetRequiredService<IStartupService>().SelfHeal();
 
+        // A factory reset cannot delete the WebView2 profiles while they are open — finish
+        // that here, before anything touches them again.
+        Services.GetRequiredService<IConfigResetService>().CompletePending();
+
         // Retry the connection immediately when the network returns or the machine resumes.
         Services.GetRequiredService<IConnectivityWatcher>().Initialize();
 
@@ -162,6 +168,7 @@ public partial class App : Application
         services.AddSingleton<INotifyRulesStore, NotifyRulesStore>();
         services.AddSingleton<INotifyRulesEngine, NotifyRulesEngine>();
         services.AddSingleton<IConfigBackupService, ConfigBackupService>();
+        services.AddSingleton<IConfigResetService, ConfigResetService>();
         services.AddSingleton<IDiagnosticsService, DiagnosticsService>();
 
         // View models
@@ -209,5 +216,42 @@ public partial class App : Application
     {
         var window = MainWindow;
         window?.DispatcherQueue.TryEnqueue(() => window.OpenCommand.Execute(null));
+    }
+
+    /// <summary>
+    /// Start a fresh copy of the app and quit this one — used after a factory reset, where
+    /// every view model still holds the old configuration. The new process is told to wait
+    /// for this process id first: it would otherwise hit the single-instance key we still
+    /// hold, redirect into a dying instance and exit, leaving the user with nothing.
+    /// </summary>
+    public static void Relaunch()
+    {
+        // Same teardown as the tray's Exit: without it the close-to-tray handler cancels the
+        // window close and Exit() never completes — the old process would still be holding the
+        // single-instance key when the new one gives up waiting for it.
+        MainWindow?.PrepareForExit();
+
+        var exe = Environment.ProcessPath;
+        if (!string.IsNullOrEmpty(exe))
+        {
+            var pid = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = exe,
+                Arguments = $"{Program.RelaunchAfterArg} {pid}",
+                UseShellExecute = false,
+            });
+        }
+
+        // Safety net: our successor is waiting for this process id, so a stalled shutdown would
+        // leave the user with no app at all. If we are somehow still here in five seconds, go
+        // the hard way — everything worth saving was already written before the reset.
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            Environment.Exit(0);
+        });
+
+        Current.Exit();
     }
 }

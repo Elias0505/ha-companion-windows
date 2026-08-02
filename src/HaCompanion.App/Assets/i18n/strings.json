@@ -292,7 +292,15 @@
     "Au_TplLock": "When I lock",
     "Au_TplCam": "Camera on",
     "Au_TplIdle": "When idle",
-    "Au_TplSchedule": "On a schedule"
+    "Au_TplSchedule": "On a schedule",
+    "Reset_Title": "Reset",
+    "Reset_Hint": "Deletes your whole configuration on this PC: connection and token, tiles, shortcuts, automations, notification rules and logs. Autostart is switched off and the app restarts as if freshly installed. Export a backup first if you want to keep anything.",
+    "Reset_Button": "Reset to factory settings",
+    "Reset_ConfirmTitle": "Reset to factory settings?",
+    "Reset_ConfirmBody": "Your configuration and the Home Assistant token will be deleted permanently and the app will restart.",
+    "Reset_Confirm": "Reset",
+    "Reset_Restarting": "Configuration deleted — restarting…",
+    "Reset_Failed": "Reset failed."
   },
   "de": {
     "Nav_Start": "Start",
@@ -587,7 +595,15 @@
     "Au_TplLock": "Beim Sperren",
     "Au_TplCam": "Kamera an",
     "Au_TplIdle": "Bei Leerlauf",
-    "Au_TplSchedule": "Nach Zeitplan"
+    "Au_TplSchedule": "Nach Zeitplan",
+    "Reset_Title": "Zurücksetzen",
+    "Reset_Hint": "Löscht die gesamte Konfiguration auf diesem PC: Verbindung und Token, Kacheln, Kurzbefehle, Automationen, Benachrichtigungs-Regeln und Protokolle. Der Autostart wird abgeschaltet und die App startet wie frisch installiert neu. Vorher eine Sicherung exportieren, wenn etwas erhalten bleiben soll.",
+    "Reset_Button": "Auf Werkseinstellungen zurücksetzen",
+    "Reset_ConfirmTitle": "Auf Werkseinstellungen zurücksetzen?",
+    "Reset_ConfirmBody": "Deine Konfiguration und der Home-Assistant-Token werden dauerhaft gelöscht und die App startet neu.",
+    "Reset_Confirm": "Zurücksetzen",
+    "Reset_Restarting": "Konfiguration gelöscht — App startet neu …",
+    "Reset_Failed": "Zurücksetzen fehlgeschlagen."
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -882,7 +898,15 @@
     "Au_TplLock": "Al bloquear",
     "Au_TplCam": "Cámara encendida",
     "Au_TplIdle": "Al estar inactivo",
-    "Au_TplSchedule": "Por horario"
+    "Au_TplSchedule": "Por horario",
+    "Reset_Title": "Restablecer",
+    "Reset_Hint": "Elimina toda la configuración de este PC: conexión y token, mosaicos, atajos, automatizaciones, reglas de notificación y registros. El inicio automático se desactiva y la aplicación se reinicia como recién instalada. Exporta una copia de seguridad antes si quieres conservar algo.",
+    "Reset_Button": "Restablecer valores de fábrica",
+    "Reset_ConfirmTitle": "¿Restablecer valores de fábrica?",
+    "Reset_ConfirmBody": "Tu configuración y el token de Home Assistant se eliminarán permanentemente y la aplicación se reiniciará.",
+    "Reset_Confirm": "Restablecer",
+    "Reset_Restarting": "Configuración eliminada: reiniciando…",
+    "Reset_Failed": "Error al restablecer."
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -1177,7 +1201,15 @@
     "Au_TplLock": "Au verrouillage",
     "Au_TplCam": "Caméra allumée",
     "Au_TplIdle": "En cas d'inactivité",
-    "Au_TplSchedule": "Selon un horaire"
+    "Au_TplSchedule": "Selon un horaire",
+    "Reset_Title": "Réinitialiser",
+    "Reset_Hint": "Supprime toute la configuration sur ce PC : connexion et jeton, tuiles, raccourcis, automatisations, règles de notification et journaux. Le démarrage automatique est désactivé et l'application redémarre comme si elle venait d'être installée. Exportez une sauvegarde d'abord si vous voulez conserver quelque chose.",
+    "Reset_Button": "Réinitialiser aux réglages d'usine",
+    "Reset_ConfirmTitle": "Réinitialiser aux réglages d'usine ?",
+    "Reset_ConfirmBody": "Votre configuration et le jeton Home Assistant seront supprimés définitivement et l'application redémarrera.",
+    "Reset_Confirm": "Réinitialiser",
+    "Reset_Restarting": "Configuration supprimée — redémarrage…",
+    "Reset_Failed": "Échec de la réinitialisation."
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1472,7 +1504,15 @@
     "Au_TplLock": "锁屏时",
     "Au_TplCam": "摄像头开启",
     "Au_TplIdle": "空闲时",
-    "Au_TplSchedule": "按计划"
+    "Au_TplSchedule": "按计划",
+    "Reset_Title": "重置",
+    "Reset_Hint": "删除此电脑上的全部配置：连接和令牌、磁贴、快捷方式、自动化、通知规则和日志。开机自启将被关闭，应用会像刚安装一样重新启动。如需保留内容，请先导出备份。",
+    "Reset_Button": "恢复出厂设置",
+    "Reset_ConfirmTitle": "恢复出厂设置？",
+    "Reset_ConfirmBody": "您的配置和 Home Assistant 令牌将被永久删除，应用将重新启动。",
+    "Reset_Confirm": "重置",
+    "Reset_Restarting": "配置已删除，正在重启…",
+    "Reset_Failed": "重置失败。"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1767,6 +1807,14 @@
     "Au_TplLock": "लॉक करने पर",
     "Au_TplCam": "कैमरा चालू",
     "Au_TplIdle": "निष्क्रिय होने पर",
-    "Au_TplSchedule": "शेड्यूल पर"
+    "Au_TplSchedule": "शेड्यूल पर",
+    "Reset_Title": "रीसेट",
+    "Reset_Hint": "इस पीसी पर पूरा कॉन्फ़िगरेशन हटा देता है: कनेक्शन और टोकन, टाइल, शॉर्टकट, ऑटोमेशन, सूचना नियम और लॉग। ऑटोस्टार्ट बंद हो जाता है और ऐप नए इंस्टॉल जैसा पुनः प्रारंभ होता है। कुछ रखना हो तो पहले बैकअप निर्यात करें।",
+    "Reset_Button": "फ़ैक्टरी सेटिंग्स पर रीसेट करें",
+    "Reset_ConfirmTitle": "फ़ैक्टरी सेटिंग्स पर रीसेट करें?",
+    "Reset_ConfirmBody": "आपका कॉन्फ़िगरेशन और Home Assistant टोकन स्थायी रूप से हटा दिए जाएंगे और ऐप पुनः प्रारंभ होगा।",
+    "Reset_Confirm": "रीसेट",
+    "Reset_Restarting": "कॉन्फ़िगरेशन हटाया गया — पुनः प्रारंभ हो रहा है…",
+    "Reset_Failed": "रीसेट विफल।"
   }
 }

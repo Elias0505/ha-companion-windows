@@ -191,7 +191,18 @@ public sealed partial class MainWindow : Window
 
     private void Tray_Exit(object sender, RoutedEventArgs e)
     {
-        // Fully quit: stop hiding-to-tray, remove the icon, release the hotkey, exit.
+        PrepareForExit();
+        Application.Current.Exit();
+    }
+
+    /// <summary>
+    /// Undo everything that keeps this app alive in the background: the close-to-tray handler —
+    /// it cancels the close, so <see cref="Application.Exit"/> would otherwise hang on it and
+    /// the process would never go away — the global hotkeys and the tray icon. Every real quit
+    /// goes through here, the tray's *Exit* as well as the relaunch after a factory reset.
+    /// </summary>
+    public void PrepareForExit()
+    {
         AppWindow.Closing -= OnClosing;
         try
         {
@@ -201,7 +212,6 @@ public sealed partial class MainWindow : Window
         }
         catch { }
         Tray.Dispose();
-        Application.Current.Exit();
     }
 
     private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)

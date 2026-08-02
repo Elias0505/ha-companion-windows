@@ -176,6 +176,37 @@ public sealed partial class SettingsPage : Page
         }
     }
 
+    // --- Factory reset: wipe the configuration and start over ---
+
+    private async void Reset_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = Loc["Reset_ConfirmTitle"],
+            Content = Loc["Reset_ConfirmBody"],
+            PrimaryButtonText = Loc["Reset_Confirm"],
+            CloseButtonText = Loc["Au_Cancel"],
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            return;
+
+        try
+        {
+            App.Services.GetRequiredService<IConfigResetService>().Reset();
+            ResetStatus.Text = Loc["Reset_Restarting"];
+            // Everything still in memory (view models, connection, hotkeys) belongs to the
+            // configuration we just deleted — a fresh process is the honest way back.
+            App.Relaunch();
+        }
+        catch (Exception ex)
+        {
+            ResetStatus.Text = Loc["Reset_Failed"];
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+    }
+
     // --- Custom hotkey capture: let the user press any Ctrl/Alt/Shift(+Win)+key combo ---
 
     private void RecordHotkeyButton_Click(object sender, RoutedEventArgs e)
