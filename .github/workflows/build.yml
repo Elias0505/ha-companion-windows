@@ -24,6 +24,10 @@ jobs:
         run: dotnet build src/HaCompanion.Core/HaCompanion.Core.csproj -c Release -p:EnableWindowsTargeting=true
       - name: Test HaCompanion.Core
         run: dotnet test tests/HaCompanion.Core.Tests/HaCompanion.Core.Tests.csproj -c Release
+      # install.ps1 carries a copy of uninstall.ps1 (it runs via irm|iex, so it cannot ship a
+      # second file) — fail the build if the two drift apart.
+      - name: Check the embedded uninstaller
+        run: python3 tools/embed-uninstaller.py --check
 
   app:
     name: App (WinUI 3, Windows)

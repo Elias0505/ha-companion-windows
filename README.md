@@ -206,11 +206,24 @@ Logs live in `%LOCALAPPDATA%\HaCompanion\` (`app.log`, `crash.log`) — *Open lo
 
 ## Removing the app
 
-1. Quit from the tray (right-click the tray icon → *Exit*).
-2. If you enabled autostart, delete the registry value **`HaCompanion`** under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` (or just toggle *Start with Windows* off before quitting).
-3. Delete the settings/logs folder: `%LOCALAPPDATA%\HaCompanion`.
-4. In Home Assistant, delete the **mobile_app device** it created (Settings → Devices & Services → *Mobile App* → your PC → delete), if you had PC sensors enabled.
-5. Delete the app files (the folder you unzipped, or your build output).
+Installed with the one-liner? Then it's a normal entry in **Settings → Apps → Installed apps** — click **Uninstall** there (the Start menu's right-click → *Uninstall* and the old *Programs and Features* lead to the same place). That removes the program folder, the Start-menu shortcut, the autostart entry and the notification registration, and asks once whether your settings and token should go as well — answer *No* to keep them for a later reinstall.
+
+The same uninstaller can be run directly, which is also how you script it:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\HaCompanion\uninstall.ps1"             # asks about your data
+& "$env:LOCALAPPDATA\Programs\HaCompanion\uninstall.ps1" -KeepData   # keeps settings and token
+& "$env:LOCALAPPDATA\Programs\HaCompanion\uninstall.ps1" -Silent     # no questions, removes everything
+```
+
+Two things it deliberately leaves alone:
+
+- **The `mobile_app` device in Home Assistant.** Only HA can delete that: Settings → Devices & Services → *Mobile App* → your PC → delete. Without this, its (now dead) sensors stay in HA.
+- **The WebView2 runtime**, because it is shared with other apps on your PC.
+
+**Just want a clean slate?** No need to uninstall: Settings → **Reset to factory settings** deletes the configuration, token, tiles, rules and logs, switches autostart off and restarts the app in its first-run state. If anything is worth keeping, export a backup first (Settings → *Back up configuration → Export*).
+
+Running a copy you built or unzipped yourself? Windows knows nothing about it: quit from the tray, delete the folder, delete `%LOCALAPPDATA%\HaCompanion`, and — if you enabled autostart — the `HaCompanion` value under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`.
 
 ---
 
