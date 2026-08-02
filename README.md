@@ -83,7 +83,7 @@ From plain **cmd** (or the Run box):
 powershell -NoProfile -Command "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"
 ```
 
-Optional — also start the app with Windows (silently into the tray):
+Want it to start with Windows? Just flip **Start with Windows** in the app's Settings. The environment variable below exists only for scripted/unattended installs:
 
 ```powershell
 $env:HACOMPANION_AUTOSTART = '1'   # PowerShell, before the line above
