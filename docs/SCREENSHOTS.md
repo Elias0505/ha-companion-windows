@@ -51,3 +51,11 @@ Assign a system-wide key combination to any device, scene or script:
 Your full Lovelace dashboards, rendered 1:1 in a native window (WebView2) — switchable per dashboard:
 
 ![HA Dashboards](media/ha-dashboards.png)
+
+## Settings
+
+Everything lives on one page: the connection (base URL, long-lived token, optional self-signed certificate), the quick panel (default view, width, auto-hide, hotkey), language and autostart, the opt-in PC sensors, a token-free configuration backup, and a redacted diagnostics report:
+
+![Settings](media/settings.png)
+
+The token is only ever shown masked and is stored encrypted with Windows DPAPI — it never appears in the backup or in a diagnostics report.
