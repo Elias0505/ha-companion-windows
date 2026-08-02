@@ -1,0 +1,7 @@
+# Note: crawlers only read robots.txt at the ORIGIN root (elias0505.github.io),
+# never in a project subpath - this file is declarative documentation only.
+# The sitemap is submitted via Search Console instead.
+User-agent: *
+Allow: /
+
+Sitemap: https://elias0505.github.io/ha-companion-windows/sitemap.xml

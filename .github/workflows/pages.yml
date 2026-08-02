@@ -1,0 +1,62 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false   # never cancel a half-finished deploy
+
+jobs:
+  build:
+    name: Build site artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The site is served from a project subpath, so absolute asset paths 404 —
+      # and the imprint ships with {{...}} placeholders that must be filled with
+      # the real provider identity before anything goes public.
+      - name: Guard — no absolute asset paths, no unfilled placeholders
+        run: |
+          ! grep -rn 'src="/\|href="/assets\|href="/index' site/ --include='*.html'
+          ! grep -rn '{{' site/ --include='*.html'
+
+      # Downloadable preview — exists even while the repo is private and the
+      # Pages deploy below is skipped.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-preview
+          path: site
+          retention-days: 7
+
+      - uses: actions/configure-pages@v5
+        if: ${{ !github.event.repository.private }}
+      - uses: actions/upload-pages-artifact@v3
+        if: ${{ !github.event.repository.private }}
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    # GitHub Pages is unavailable for private repos on the Free plan; skipping
+    # cleanly keeps the run green until the repo goes public.
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

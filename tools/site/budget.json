@@ -1,0 +1,63 @@
+{
+  "comment": "Byte budgets for site/. Text files are measured gzipped (level 9), binaries raw. Enforced by budget.mjs; the aggregates are the real contract - a fast first paint on a phone and on desktop.",
+  "files": {
+    "index.html": 16384,
+    "imprint.html": 4096,
+    "privacy.html": 4096,
+    "404.html": 2048,
+    "assets/css/tokens.css": 3072,
+    "assets/css/base.css": 3072,
+    "assets/css/components.css": 4608,
+    "assets/css/sections.css": 4608,
+    "assets/js/tabs.js": 2048,
+    "assets/js/hotkey.js": 2048,
+    "assets/js/ui.js": 4096,
+    "assets/fonts/inter-var-latin.woff2": 38000,
+    "assets/fonts/noto-sc-sub.woff2": 4096,
+    "assets/fonts/noto-deva-sub.woff2": 6144,
+    "assets/img/hero/hero-poster-960.avif": 30720,
+    "assets/img/hero/hero-poster-1280.avif": 46080,
+    "assets/img/hero/hero-poster-1920.avif": 87040,
+    "assets/img/tour/ha-dashboards-960.avif": 112640,
+    "assets/img/tour/ha-dashboards-1400.avif": 194560,
+    "assets/img/panel/quick-panel-510.avif": 40960,
+    "assets/img/stage/desktop-1600.avif": 92160,
+    "assets/video/quick-panel-demo.mp4": 634880,
+    "assets/video/quick-panel-demo.webm": 573440,
+    "assets/og/og-1200x630.jpg": 163840,
+    "assets/icons/favicon.ico": 12288,
+    "assets/icons/icon-512.png": 102400
+  },
+  "aggregates": {
+    "first view, desktop (html+css+js+font+poster-1280)": {
+      "budget": 348160,
+      "files": [
+        "index.html",
+        "assets/css/tokens.css",
+        "assets/css/base.css",
+        "assets/css/components.css",
+        "assets/css/sections.css",
+        "assets/js/tabs.js",
+        "assets/js/hotkey.js",
+        "assets/js/ui.js",
+        "assets/fonts/inter-var-latin.woff2",
+        "assets/img/hero/hero-poster-1280.avif"
+      ]
+    },
+    "first view, mobile (html+css+js+font+poster-960)": {
+      "budget": 194560,
+      "files": [
+        "index.html",
+        "assets/css/tokens.css",
+        "assets/css/base.css",
+        "assets/css/components.css",
+        "assets/css/sections.css",
+        "assets/js/tabs.js",
+        "assets/js/hotkey.js",
+        "assets/js/ui.js",
+        "assets/fonts/inter-var-latin.woff2",
+        "assets/img/hero/hero-poster-960.avif"
+      ]
+    }
+  }
+}

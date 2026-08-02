@@ -4,8 +4,22 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    # Site/doc-only commits must not spin a windows-latest WinUI publish.
+    # Caveat: GitHub applies paths-ignore to TAG pushes too — never tag a
+    # site-only commit (release commits always bump Directory.Build.props,
+    # which is outside these filters, so normal releases are unaffected).
+    paths-ignore:
+      - 'site/**'
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/workflows/pages.yml'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'site/**'
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:

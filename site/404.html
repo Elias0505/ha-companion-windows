@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only
+
+     The one page where relative paths are WRONG: GitHub Pages serves 404.html
+     for a missing URL at ANY depth (e.g. /ha-companion-windows/docs/nope), so
+     every reference here is absolute to the project subpath. The LAN preview
+     mirrors the same subpath for exactly this reason. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found — HA Companion for Windows</title>
+<meta name="robots" content="noindex, follow">
+<script>document.documentElement.className='js'+(matchMedia('(prefers-reduced-motion: reduce)').matches?' rm':'');</script>
+<script>try{var t=localStorage.getItem('hac-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/ha-companion-windows/assets/icons/favicon.ico" sizes="32x32">
+<link rel="stylesheet" href="/ha-companion-windows/assets/css/tokens.css">
+<link rel="stylesheet" href="/ha-companion-windows/assets/css/base.css">
+<link rel="stylesheet" href="/ha-companion-windows/assets/css/components.css">
+<link rel="stylesheet" href="/ha-companion-windows/assets/css/sections.css">
+</head>
+<body>
+<main id="main" class="container page" style="min-height:70vh;display:grid;align-content:center">
+  <p class="eyebrow">404</p>
+  <h1>That page slid away.</h1>
+  <p>The link is wrong, or the page moved. The app, the install command and everything else are one click away.</p>
+  <p style="display:flex;gap:var(--sp-3);flex-wrap:wrap;margin-block-start:var(--sp-6)">
+    <a class="btn btn--primary" href="/ha-companion-windows/">Back to the start</a>
+    <a class="btn btn--secondary" href="https://github.com/Elias0505/ha-companion-windows" rel="noopener">Open the repository</a>
+  </p>
+</main>
+</body>
+</html>

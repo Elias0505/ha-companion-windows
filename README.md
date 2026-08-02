@@ -46,7 +46,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - **Diagnostics & self-repair** — a one-click redacted diagnostics report (never contains your token), an "open log folder" shortcut, and an actionable repair banner that guides you when a token is revoked or a certificate is untrusted.
 - **Honest actions** — the connection is tested *before* settings are saved with a precise reason on failure (auth / DNS / TLS / timeout); failed actions surface an error instead of silently lying.
 - **File logging** — app.log / crash.log under %LOCALAPPDATA%\HaCompanion for easy diagnosis.
-- **Unit-tested core & strict build** — the protocol/parsing layer is covered by 260+ xunit tests run in CI; the whole solution builds warnings-as-errors with .NET analyzers.
+- **Unit-tested core & strict build** — the protocol/parsing layer is covered by 300+ xunit tests run in CI; the whole solution builds warnings-as-errors with .NET analyzers.
 
 ### Planned
 

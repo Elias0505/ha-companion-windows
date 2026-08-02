@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — HA Companion for Windows</title>
+<meta name="description" content="What this website and the HA Companion app do with data: nothing that leaves your own machines.">
+<link rel="canonical" href="https://elias0505.github.io/ha-companion-windows/privacy.html">
+<meta name="robots" content="index, follow">
+<script>document.documentElement.className='js'+(matchMedia('(prefers-reduced-motion: reduce)').matches?' rm':'');</script>
+<script>try{var t=localStorage.getItem('hac-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<link rel="icon" href="assets/icons/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/inter-var-latin.woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/sections.css">
+<script defer src="assets/js/ui.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="header" id="site-header">
+  <div class="container header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/img/brand/logo-64.png" width="28" height="28" alt="" decoding="async">
+      <span>HA Companion</span>
+    </a>
+    <nav class="header__nav" aria-label="Main">
+      <a href="index.html#features">Features</a>
+      <a href="https://github.com/Elias0505/ha-companion-windows" rel="noopener">GitHub</a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Switch to light theme">
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="container page">
+  <h1>Privacy</h1>
+
+  <p>Short version: this site collects nothing, and the app talks to your Home Assistant and to nobody else.</p>
+
+  <h2>This website</h2>
+  <ul>
+    <li><strong>No analytics, no tracking, no advertising.</strong> There is no Google Analytics, no Plausible, no pixel, no fingerprinting.</li>
+    <li><strong>No cookies.</strong> The only thing stored in your browser is your light/dark preference, kept in <code>localStorage</code> under the key <code>hac-theme</code>. It never leaves your device and you can clear it at any time.</li>
+    <li><strong>No third-party requests.</strong> Fonts, images, video and scripts are all served from this site itself. Opening the page contacts no other domain, which is also why there is no cookie banner: there is nothing to consent to.</li>
+    <li><strong>Hosting.</strong> The site is hosted on GitHub Pages (GitHub, Inc.). Like any web server, GitHub processes your IP address and request metadata in its server logs to deliver the page. That processing is described in the <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub General Privacy Statement</a>. I have no access to those logs.</li>
+    <li><strong>Links.</strong> Buttons that point to GitHub open pages on <code>github.com</code>, which is subject to GitHub's own policies.</li>
+  </ul>
+
+  <h2>The app</h2>
+  <ul>
+    <li><strong>It connects only where you tell it to.</strong> HA Companion talks to the Home Assistant URL you enter. There is no account, no relay, no vendor backend and no telemetry of any kind.</li>
+    <li><strong>Everything stays on your PC.</strong> Settings, tiles, shortcuts, automations, notification rules and logs live in <code>%LOCALAPPDATA%\HaCompanion</code>. Your long-lived access token is encrypted there with the Windows Data Protection API and bound to your Windows account.</li>
+    <li><strong>PC sensors are opt-in.</strong> If — and only if — you switch on <em>Report PC state</em>, the app registers itself in your Home Assistant as a <code>mobile_app</code> device and sends the up to eleven sensor values to <em>your</em> instance. You can turn it off again, and delete the device in Home Assistant.</li>
+    <li><strong>Diagnostics are redacted.</strong> The diagnostics report and the configuration backup deliberately exclude the token and webhook. Log files stay local until you choose to attach one to a bug report.</li>
+    <li><strong>WebView2.</strong> Lovelace dashboards are rendered by Microsoft's WebView2 runtime inside a private profile folder that belongs to this app. That profile holds your Home Assistant session, exactly like a browser tab would, and the factory reset deletes it.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>Since neither this site nor the app collects personal data about you, there is nothing for me to disclose, correct or delete. For anything concerning the hosting provider's logs, please refer to GitHub's privacy statement linked above. Questions are welcome via the contact details in the <a href="imprint.html">imprint</a>.</p>
+
+  <a class="btn btn--secondary btn--sm back" href="index.html">← Back to the app</a>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__note">
+      <p>Not affiliated with or endorsed by the Home Assistant project / Nabu Casa. “Home Assistant” is a trademark of its respective owners; this app is an independent client “for Home Assistant”.</p>
+      <p><a href="index.html">Home</a> · <a href="imprint.html">Imprint</a> · <a href="https://github.com/Elias0505/ha-companion-windows" rel="noopener">GitHub</a></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

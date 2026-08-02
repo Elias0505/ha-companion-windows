@@ -1,0 +1,86 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only
+     Source for the social card. Rendered once, headless, at 1200x630 by
+     tools/site/build-assets.sh; the JPEG it produces is what the site ships.
+     Kept as HTML so the card stays in the same design language as the page
+     instead of being redrawn by hand in an image editor. -->
+<meta charset="utf-8">
+<title>og</title>
+<style>
+  @font-face {
+    font-family: "Inter";
+    src: url("../../site/assets/fonts/inter-var-latin.woff2") format("woff2-variations");
+    font-weight: 400 700;
+    font-display: block;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    background: #171717;
+    color: #ecedef;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* The panel itself is the product, so it is shown at natural scale rather than
+     zoomed out of the desktop shot. Deliberately the climate view: the overview
+     dashboard carries real household energy figures that have no business being
+     legible on a social card. */
+  .shot {
+    position: absolute;
+    inset-block-start: 54px;
+    inset-inline-end: 96px;
+    width: 300px;
+    height: 626px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #202020 url("../../site/assets/img/panel/quick-panel-510.webp") top center / 100% auto no-repeat;
+    box-shadow: 0 40px 90px -20px rgba(0, 0, 0, .85), 0 0 0 1px rgba(255, 255, 255, .09);
+    transform: rotate(-2deg);
+  }
+  .shot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 62%, #171717);
+  }
+  .glow {
+    position: absolute;
+    inset: -30% -10% auto -20%;
+    height: 760px;
+    background: radial-gradient(38% 52% at 26% 42%, rgba(10, 132, 255, .28), transparent 70%),
+                radial-gradient(30% 45% at 82% 30%, rgba(10, 132, 255, .22), transparent 70%);
+    filter: blur(40px);
+  }
+  main {
+    position: relative;
+    padding: 76px 80px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+    max-width: 700px;
+  }
+  .brand { display: flex; align-items: center; gap: 20px; margin-bottom: 34px; }
+  .brand img { width: 84px; height: 84px; border-radius: 18px; }
+  .brand span { font-size: 27px; font-weight: 600; letter-spacing: -.01em; color: #a7abb2; }
+  h1 { font-size: 66px; line-height: 1.04; letter-spacing: -.026em; font-weight: 700; }
+  .rule { width: 96px; height: 6px; border-radius: 3px; background: #0a84ff; margin: 30px 0 26px; }
+  p { font-size: 31px; line-height: 1.34; color: #a7abb2; font-weight: 400; max-width: 30ch; }
+  footer {
+    position: absolute; left: 80px; bottom: 56px;
+    font-size: 22px; color: #6b7076; letter-spacing: .01em;
+  }
+</style>
+<div class="glow"></div>
+<div class="shot"></div>
+<main>
+  <div class="brand">
+    <img src="../../site/assets/img/brand/logo-64.png" alt="">
+    <span>HA Companion for Windows</span>
+  </div>
+  <h1>Home Assistant,<br>one hotkey away.</h1>
+  <div class="rule"></div>
+  <p>A native Windows 11 companion app. Free and open source.</p>
+</main>
+<footer>github.com/Elias0505/ha-companion-windows</footer>

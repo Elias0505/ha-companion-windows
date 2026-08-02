@@ -1,0 +1,10 @@
+{
+  "extends": ["html-validate:recommended", "html-validate:document", "html-validate:a11y"],
+  "rules": {
+    "require-sri": "off",
+    "prefer-native-element": ["error", { "exclude": ["region"] }],
+    "long-title": "off",
+    "no-inline-style": "off",
+    "heading-level": ["error", { "allowMultipleH1": false }]
+  }
+}

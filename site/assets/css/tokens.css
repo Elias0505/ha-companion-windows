@@ -1,0 +1,217 @@
+/* SPDX-License-Identifier: AGPL-3.0-only
+   Design tokens. Loaded first, so the layer order declared here wins globally —
+   the other three stylesheets can then be linked in any order without surprises. */
+
+@layer reset, tokens, base, layout, components, sections, utilities, overrides;
+
+@layer tokens {
+  :root {
+    /* ---- brand ramp, computed from the app's own accent #0A84FF -------------
+       Contrast matters more than loyalty to one hex: #0A84FF on #202020 is
+       4.47:1, which misses AA for body text. So the raw accent is used for
+       fills, borders, indicators and glows only; text and buttons use the
+       lighter/darker steps below. Windows 11 does exactly the same thing. */
+    --brand-100: #d9ecff;
+    --brand-200: #b5daff;
+    --brand-300: #87c3ff;
+    --brand-400: #4fa7ff;
+    --brand-500: #0a84ff;
+    --brand-600: #0070e0;
+    --brand-700: #065aaf;
+    --brand-800: #0b4682;
+    --brand-950: #092139;
+
+    /* ---- neutrals, anchored on the app's real surfaces --------------------- */
+    --n-0:    #ffffff;
+    --n-25:   #fafafa;
+    --n-50:   #f4f5f7;
+    --n-100:  #ecedef;
+    --n-200:  #e1e3e6;
+    --n-300:  #c9ccd1;
+    --n-400:  #a7abb2;
+    --n-500:  #8c8c8c;  /* the app's inactive gray */
+    --n-600:  #6b7076;
+    --n-700:  #4a4e54;
+    --n-750:  #3a3a3a;
+    --n-800:  #323232;  /* app control */
+    --n-850:  #272727;  /* app card */
+    --n-900:  #202020;  /* app window */
+    --n-950:  #171717;
+    --n-1000: #0e0e0e;
+
+    /* ---- type ------------------------------------------------------------- */
+    /* The two Noto faces carry exactly the glyphs of 中文 and हिन्दी — the page
+       names the app's six UI languages in their own scripts, and a row of tofu
+       boxes on a machine without CJK/Devanagari fonts would be worse than not
+       naming them at all. Their unicode-range keeps them out of everything else. */
+    --font-sans: "Inter", "HAC SC", "HAC Deva", "Inter Fallback", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Consolas, monospace;
+
+    --fs-2xs: 0.75rem;
+    --fs-xs:  0.8125rem;
+    --fs-sm:  0.875rem;
+    --fs-base: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
+    --fs-md:  clamp(1.0625rem, 0.99rem + 0.34vw, 1.1875rem);
+    --fs-lg:  clamp(1.25rem, 1.14rem + 0.48vw, 1.5rem);
+    --fs-xl:  clamp(1.5rem, 1.29rem + 0.93vw, 2rem);
+    --fs-2xl: clamp(1.875rem, 1.5rem + 1.65vw, 2.75rem);
+    --fs-3xl: clamp(2.375rem, 1.55rem + 3.65vw, 4rem);
+
+    --lh-tight: 1.08;
+    --lh-snug:  1.2;
+    --lh-base:  1.6;
+    --lh-loose: 1.7;
+    --ls-tight: -0.022em;
+
+    --measure: 62ch;
+
+    /* ---- space, radii ----------------------------------------------------- */
+    --sp-1: 4px;   --sp-2: 8px;   --sp-3: 12px;  --sp-4: 16px;
+    --sp-5: 20px;  --sp-6: 24px;  --sp-8: 32px;  --sp-10: 40px;
+    --sp-12: 48px; --sp-16: 64px; --sp-20: 80px; --sp-24: 96px;
+
+    --section-y: clamp(64px, 8vw, 128px);
+    --container: 1120px;
+    --gutter: clamp(16px, 4vw, 48px);
+
+    --r-4: 4px; --r-8: 8px; --r-12: 12px; --r-16: 16px; --r-20: 20px;
+    --r-full: 999px;
+
+    /* ---- motion ----------------------------------------------------------- */
+    --dur-1: 120ms;
+    --dur-2: 200ms;
+    --dur-3: 260ms;
+    --dur-4: 380ms;
+    --dur-5: 560ms;
+    --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-emph:   cubic-bezier(0.16, 1, 0.3, 1);  /* WinUI "point to point" */
+    --move: 14px;
+
+    /* ---- semantic: dark is the default ------------------------------------ */
+    color-scheme: dark light;
+
+    --bg: var(--n-950);
+    --bg-elev: var(--n-900);
+    --surface: var(--n-900);
+    --surface-2: var(--n-850);
+    --surface-3: var(--n-800);
+    --text: var(--n-100);
+    --text-2: var(--n-400);
+    --text-muted: var(--n-400);
+    --border: var(--n-750);
+    --border-strong: var(--n-700);
+
+    --accent: var(--brand-500);
+    --accent-text: var(--brand-300);
+    --accent-btn-bg: var(--brand-400);
+    --accent-btn-bg-hover: var(--brand-300);
+    --accent-btn-fg: #0b1520;
+    --focus-ring: var(--brand-300);
+
+    --ok: #3ad07a;
+    --warn: #ffb020;
+    --danger: #ff6b5e;
+
+    /* Screenshots are dark. This plate keeps them looking like a window in
+       BOTH themes instead of a black rectangle glued onto white paper. */
+    --surface-media: var(--n-900);
+    --border-media: rgb(255 255 255 / 0.08);
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.30), 0 1px 1px rgb(0 0 0 / 0.22);
+    --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.42), 0 2px 4px -1px rgb(0 0 0 / 0.28);
+    --shadow-3: 0 16px 40px -12px rgb(0 0 0 / 0.55), 0 4px 12px -4px rgb(0 0 0 / 0.35);
+    --shadow-media: 0 32px 80px -24px rgb(0 0 0 / 0.60), 0 0 0 1px var(--border-media);
+    --shadow-panel: 0 24px 60px -12px rgb(0 0 0 / 0.70), 0 0 0 1px rgb(255 255 255 / 0.07);
+
+    --header-bg: rgb(23 23 23 / 0.72);
+    --code-bg: var(--n-1000);
+    --kbd-bg: var(--n-800);
+    --kbd-border: var(--n-700);
+    --scrim: rgb(0 0 0 / 0.5);
+  }
+
+  /* Light theme: only when the visitor's OS asks for it AND no explicit choice
+     is stored (the toggle writes data-theme, which then wins). */
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme]) {
+      --bg: var(--n-0);
+      --bg-elev: var(--n-50);
+      --surface: var(--n-50);
+      --surface-2: var(--n-0);
+      --surface-3: var(--n-100);
+      --text: var(--n-950);
+      --text-2: var(--n-700);
+      --text-muted: var(--n-600);
+      --border: var(--n-200);
+      --border-strong: var(--n-300);
+
+      --accent-text: var(--brand-700);
+      --accent-btn-bg: var(--brand-600);
+      --accent-btn-bg-hover: var(--brand-700);
+      --accent-btn-fg: var(--n-0);
+      --focus-ring: var(--brand-700);
+
+      --ok: #0e7a45;
+      --warn: #8a5a00;
+      --danger: #b3261e;
+
+      --border-media: var(--n-200);
+
+      --shadow-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
+      --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+      --shadow-3: 0 16px 40px -12px rgb(0 0 0 / 0.18), 0 4px 12px -4px rgb(0 0 0 / 0.10);
+      --shadow-media: 0 32px 80px -24px rgb(0 0 0 / 0.28), 0 0 0 1px var(--border-media);
+      --shadow-panel: 0 24px 60px -12px rgb(0 0 0 / 0.30), 0 0 0 1px rgb(0 0 0 / 0.08);
+
+      --header-bg: rgb(255 255 255 / 0.78);
+      --code-bg: var(--n-950);
+      --kbd-bg: var(--n-0);
+      --kbd-border: var(--n-300);
+      --scrim: rgb(0 0 0 / 0.45);
+    }
+  }
+
+  /* Explicit choice from the toggle — same blocks, but unconditional. */
+  :root[data-theme="light"] {
+    --bg: var(--n-0);
+    --bg-elev: var(--n-50);
+    --surface: var(--n-50);
+    --surface-2: var(--n-0);
+    --surface-3: var(--n-100);
+    --text: var(--n-950);
+    --text-2: var(--n-700);
+    --text-muted: var(--n-600);
+    --border: var(--n-200);
+    --border-strong: var(--n-300);
+
+    --accent-text: var(--brand-700);
+    --accent-btn-bg: var(--brand-600);
+    --accent-btn-bg-hover: var(--brand-700);
+    --accent-btn-fg: var(--n-0);
+    --focus-ring: var(--brand-700);
+
+    --ok: #0e7a45;
+    --warn: #8a5a00;
+    --danger: #b3261e;
+
+    --border-media: var(--n-200);
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
+    --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+    --shadow-3: 0 16px 40px -12px rgb(0 0 0 / 0.18), 0 4px 12px -4px rgb(0 0 0 / 0.10);
+    --shadow-media: 0 32px 80px -24px rgb(0 0 0 / 0.28), 0 0 0 1px var(--border-media);
+    --shadow-panel: 0 24px 60px -12px rgb(0 0 0 / 0.30), 0 0 0 1px rgb(0 0 0 / 0.08);
+
+    --header-bg: rgb(255 255 255 / 0.78);
+    --code-bg: var(--n-950);
+    --kbd-bg: var(--n-0);
+    --kbd-border: var(--n-300);
+    --scrim: rgb(0 0 0 / 0.45);
+
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] { color-scheme: dark; }
+}
