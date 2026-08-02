@@ -18,7 +18,8 @@ Close-up of the panel itself:
 The panel can show your favourite entity tiles or a full Lovelace dashboard of your choice:
 
 <img src="media/quick-panel.png" width="420" alt="Quick panel showing a Lovelace overview dashboard" />
-<img width="627" height="1079" alt="image" src="https://github.com/user-attachments/assets/22dd0841-ef00-4751-b24d-51264cc95b72" />
+<img width="514" height="1079" alt="image" src="https://github.com/user-attachments/assets/a9a76e49-d1bd-4f26-a25b-34d86c48b1ad" />
+
 
 
 ## Start
