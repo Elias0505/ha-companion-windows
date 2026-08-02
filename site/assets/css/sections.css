@@ -388,6 +388,36 @@
 
   .faq__list { border-block-start: 1px solid var(--border); max-width: 900px; }
 
+  /* ---------- support ------------------------------------------------------ */
+
+  .support__card {
+    max-width: 660px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-4);
+    text-align: center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-16);
+    padding: var(--sp-10) var(--sp-8);
+    box-shadow: var(--shadow-1);
+  }
+  .support__card p { color: var(--text-2); max-width: 52ch; }
+  .support__cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--sp-4);
+    margin-block-start: var(--sp-2);
+  }
+  @media (max-width: 479px) {
+    .support__card { padding: var(--sp-8) var(--sp-5); }
+    .support__cta { width: 100%; flex-direction: column; }
+    .support__cta .btn { width: 100%; }
+  }
+
   /* ---------- simple content pages (imprint, privacy, 404) ---------------- */
 
   .page {

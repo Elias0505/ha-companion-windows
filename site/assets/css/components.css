@@ -61,6 +61,9 @@
     transition: color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
   }
   .header__nav a:not(.btn):hover { color: var(--text); background: var(--surface-3); }
+  /* the two donation icon links are .icon-btn squares — the nav-link padding
+     above (same specificity, earlier in the file) must not squeeze the glyph */
+  .header__nav a.header__support { padding: 0; }
 
   @media (max-width: 719px) {
     .header__nav .header__link--optional { display: none; }
@@ -78,6 +81,9 @@
      Install button clips silently under body's overflow-x:hidden */
   @media (max-width: 479px) {
     .header__nav .header__link--tight { display: none; }
+    /* the donation links reappear in the #support section, so the tight header
+       keeps only what has no second home */
+    .header__nav .header__support { display: none; }
     /* .code prefix: the base .code__label rule sets display:grid LATER in this
        file and would win the cascade against a bare class at equal specificity */
     .code .code__label { display: none; }
@@ -129,6 +135,13 @@
   .btn--ghost:hover { color: var(--text); border-color: var(--border-strong); }
 
   .btn--sm { min-height: 38px; padding: 0 var(--sp-4); font-size: var(--fs-sm); }
+
+  /* donation buttons: fixed brand colours, deliberately theme-independent —
+     both pass AA on their own fill (#0d0c22 on #ffdd00, #fff on #003087) */
+  .btn--bmc { background: #ffdd00; color: #0d0c22; }
+  .btn--bmc:hover { background: #f2d200; }
+  .btn--paypal { background: #003087; color: #fff; }
+  .btn--paypal:hover { background: #0d3d9e; }
 
   /* icon-only control (theme toggle, dialog close) */
   .icon-btn {
