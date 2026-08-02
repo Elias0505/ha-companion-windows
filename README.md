@@ -80,7 +80,7 @@ irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/instal
 From plain **cmd** (or the Run box):
 
 ```bat
-powershell -NoProfile -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"
+powershell -NoProfile -Command "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"
 ```
 
 Optional — also start the app with Windows (silently into the tray):

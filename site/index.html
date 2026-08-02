@@ -440,7 +440,7 @@ data:
             </div>
             <div role="tabpanel" class="panel" id="panel-cmd" aria-labelledby="tab-cmd" tabindex="0" hidden>
               <div class="code">
-                <pre tabindex="0" role="region" aria-label="Install command, Command Prompt"><code id="cmd-cmd">powershell -NoProfile -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"</code></pre>
+                <pre tabindex="0" role="region" aria-label="Install command, Command Prompt"><code id="cmd-cmd">powershell -NoProfile -Command "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"</code></pre>
                 <button type="button" class="copy" data-copy="#cmd-cmd">
                   <svg class="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
                   <svg class="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
@@ -456,7 +456,7 @@ data:
           <summary>What does this command actually do?</summary>
           <div class="qa__body">
             <p>It downloads <code>install.ps1</code> from this repository and runs it. The script checks your Windows build, installs the Microsoft WebView2 Runtime via Microsoft's own bootstrapper if it is missing, copies a self-contained build to <code>%LOCALAPPDATA%\Programs\HaCompanion</code>, adds a Start-menu shortcut and an entry under Settings → Apps → Installed apps, and starts the app.</p>
-            <p>The app itself needs no administrator rights and writes nothing outside your user profile; only the one-time WebView2 Runtime install (Windows 10 without it) may show a UAC prompt. Read the script first if you like — it is plain PowerShell: <a href="https://github.com/Elias0505/ha-companion-windows/blob/main/install.ps1" rel="noopener">install.ps1</a>.</p>
+            <p>The app itself needs no administrator rights and writes nothing outside your user profile; only the one-time WebView2 Runtime install (Windows 10 without it) may show a UAC prompt. It also does not touch your PowerShell execution policy — piped commands are not subject to it, so no <code>-ExecutionPolicy Bypass</code> is needed anywhere. Read the script first if you like — it is plain PowerShell: <a href="https://github.com/Elias0505/ha-companion-windows/blob/main/install.ps1" rel="noopener">install.ps1</a>.</p>
           </div>
         </details>
 
