@@ -232,8 +232,7 @@
       animation-iteration-count: 1 !important;
       scroll-behavior: auto !important;
     }
-    /* the wide movers: a 340px panel slide is a slide even at 120ms */
-    .hk__panel, .hk__toast, .tabs__ink { transition-duration: 1ms !important; }
+    .tabs__ink { transition-duration: 1ms !important; }
   }
 
   /* Forced colours (Windows high contrast): let the OS win, keep structure. */
@@ -242,7 +241,7 @@
     .tabs__ink { forced-color-adjust: none; background: Highlight; }
     .tab[aria-selected="true"] { border-block-end: 3px solid Highlight; }
     .btn--primary { background: ButtonText; color: ButtonFace; border: 1px solid ButtonText; }
-    .card, .tabs__panels, .hk__stage { border: 1px solid CanvasText; }
+    .card, .tabs__panels { border: 1px solid CanvasText; }
     :focus-visible { outline: 2px solid Highlight; }
   }
 }

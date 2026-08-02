@@ -97,7 +97,14 @@ async function open({ width, height = 900, colorScheme = "dark", reducedMotion =
   });
 
   await page.goto(base, { waitUntil: "load" });
-  await page.waitForTimeout(1400);   // entrance + reveals settle
+  await page.waitForTimeout(1000);   // entrance settles
+  // Full-page capture never scrolls, so the IntersectionObserver would leave
+  // every .reveal transparent - and axe skips invisible elements, silently
+  // exempting the lower half of the page. Force them in like a scroll would.
+  await page.evaluate(() => {
+    document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-in"));
+  });
+  await page.waitForTimeout(650);    // reveal transition settles
   return { context, page };
 }
 
@@ -154,17 +161,6 @@ for (const colorScheme of ["dark", "light"]) {
     await page.locator("#tour").screenshot({ path: join(outDir, `tour-${id}.png`) });
     await axeCheck(page, `tour:${id}`);
   }
-
-  const hk = page.locator("[data-hotkey]");
-  await hk.locator(".hk__keys").click();          // open
-  await page.waitForTimeout(700);
-  await hk.screenshot({ path: join(outDir, "hotkey-open.png") });
-  await axeCheck(page, "hotkey open");
-  const pressed = await hk.locator(".hk__keys").getAttribute("aria-pressed");
-  if (pressed !== "true") note(`hotkey aria-pressed is "${pressed}" after opening`);
-  await page.keyboard.press("Escape");
-  await page.waitForTimeout(400);
-  await hk.screenshot({ path: join(outDir, "hotkey-closed.png") });
 
   // lightbox: opens, traps focus, closes, returns focus
   await page.locator('#tour .panel.is-active [data-lightbox]').first().click();

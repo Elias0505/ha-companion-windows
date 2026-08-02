@@ -136,16 +136,16 @@
      is stored (the toggle writes data-theme, which then wins). */
   @media (prefers-color-scheme: light) {
     :root:not([data-theme]) {
-      --bg: var(--n-0);
-      --bg-elev: var(--n-50);
-      --surface: var(--n-50);
-      --surface-2: var(--n-0);
-      --surface-3: var(--n-100);
+      --bg: #f2f4f6;
+      --bg-elev: #eaedf0;
+      --surface: #eaedf0;
+      --surface-2: #ffffff;
+      --surface-3: #e2e6ea;
       --text: var(--n-950);
       --text-2: var(--n-700);
-      --text-muted: var(--n-600);
-      --border: var(--n-200);
-      --border-strong: var(--n-300);
+      --text-muted: #595e64;  /* n-600 lands at 4.25:1 on the grey strips */
+      --border: #d8dde2;
+      --border-strong: #c2c9d1;
 
       --accent-text: var(--brand-700);
       --accent-btn-bg: var(--brand-600);
@@ -157,7 +157,7 @@
       --warn: #8a5a00;
       --danger: #b3261e;
 
-      --border-media: var(--n-200);
+      --border-media: #d8dde2;
 
       --shadow-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
       --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.06);
@@ -165,26 +165,26 @@
       --shadow-media: 0 32px 80px -24px rgb(0 0 0 / 0.28), 0 0 0 1px var(--border-media);
       --shadow-panel: 0 24px 60px -12px rgb(0 0 0 / 0.30), 0 0 0 1px rgb(0 0 0 / 0.08);
 
-      --header-bg: rgb(255 255 255 / 0.78);
+      --header-bg: rgb(242 244 246 / 0.85);
       --code-bg: var(--n-950);
       --kbd-bg: var(--n-0);
-      --kbd-border: var(--n-300);
+      --kbd-border: #c2c9d1;
       --scrim: rgb(0 0 0 / 0.45);
     }
   }
 
   /* Explicit choice from the toggle — same blocks, but unconditional. */
   :root[data-theme="light"] {
-    --bg: var(--n-0);
-    --bg-elev: var(--n-50);
-    --surface: var(--n-50);
-    --surface-2: var(--n-0);
-    --surface-3: var(--n-100);
+    --bg: #f2f4f6;
+    --bg-elev: #eaedf0;
+    --surface: #eaedf0;
+    --surface-2: #ffffff;
+    --surface-3: #e2e6ea;
     --text: var(--n-950);
     --text-2: var(--n-700);
-    --text-muted: var(--n-600);
-    --border: var(--n-200);
-    --border-strong: var(--n-300);
+    --text-muted: #595e64;  /* n-600 lands at 4.25:1 on the grey strips */
+    --border: #d8dde2;
+    --border-strong: #c2c9d1;
 
     --accent-text: var(--brand-700);
     --accent-btn-bg: var(--brand-600);
@@ -196,7 +196,7 @@
     --warn: #8a5a00;
     --danger: #b3261e;
 
-    --border-media: var(--n-200);
+    --border-media: #d8dde2;
 
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
     --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.06);
@@ -204,10 +204,10 @@
     --shadow-media: 0 32px 80px -24px rgb(0 0 0 / 0.28), 0 0 0 1px var(--border-media);
     --shadow-panel: 0 24px 60px -12px rgb(0 0 0 / 0.30), 0 0 0 1px rgb(0 0 0 / 0.08);
 
-    --header-bg: rgb(255 255 255 / 0.78);
+    --header-bg: rgb(242 244 246 / 0.85);
     --code-bg: var(--n-950);
     --kbd-bg: var(--n-0);
-    --kbd-border: var(--n-300);
+    --kbd-border: #c2c9d1;
     --scrim: rgb(0 0 0 / 0.45);
 
     color-scheme: light;

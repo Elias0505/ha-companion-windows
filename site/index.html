@@ -14,7 +14,7 @@
 <script>try{var t=localStorage.getItem('hac-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
 
 <meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#f2f4f6" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
 
 <meta property="og:type" content="website">
@@ -40,7 +40,7 @@
 
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/inter-var-latin.woff2" crossorigin>
 <link rel="preload" as="image" type="image/avif" href="assets/img/hero/hero-poster-1280.avif"
-      imagesrcset="assets/img/hero/hero-poster-960.avif 960w, assets/img/hero/hero-poster-1280.avif 1280w, assets/img/hero/hero-poster-1920.avif 1920w"
+      imagesrcset="assets/img/hero/hero-poster-960.avif 960w, assets/img/hero/hero-poster-1280.avif 1280w, assets/img/hero/hero-poster-1888.avif 1888w"
       imagesizes="(min-width: 1200px) 1120px, 100vw" fetchpriority="high">
 
 <link rel="stylesheet" href="assets/css/tokens.css">
@@ -49,7 +49,6 @@
 <link rel="stylesheet" href="assets/css/sections.css">
 
 <script defer src="assets/js/tabs.js"></script>
-<script defer src="assets/js/hotkey.js"></script>
 <script defer src="assets/js/ui.js"></script>
 </head>
 
@@ -85,7 +84,7 @@
 
     <h1 data-hero="2">Home Assistant, one hotkey away.</h1>
 
-    <p class="lede" data-hero="3">HA Companion is a native companion app for Windows. Press <kbd>Win</kbd> <kbd>Ctrl</kbd> <kbd>H</kbd> anywhere — in a game, in Teams, in Explorer — and your home slides in over whatever you are doing: live tiles, entity shortcuts, and your real Lovelace dashboards, 1:1.</p>
+    <p class="lede" data-hero="3">HA Companion is a native companion app for Windows. Press one hotkey — <kbd>Win</kbd> <kbd>Ctrl</kbd> <kbd>H</kbd> out of the box, yours to change — anywhere: in a game, in Teams, in Explorer. Your home slides in over whatever you are doing: live tiles, entity shortcuts, and your real Lovelace dashboards, 1:1.</p>
 
     <div class="hero__cta" data-hero="4">
       <a class="btn btn--primary" href="#install">Install in one line</a>
@@ -110,8 +109,8 @@
     <figure class="hero__media" data-hero="7">
       <div class="frame">
         <picture>
-          <source type="image/avif" srcset="assets/img/hero/hero-poster-960.avif 960w, assets/img/hero/hero-poster-1280.avif 1280w, assets/img/hero/hero-poster-1920.avif 1920w" sizes="(min-width: 1200px) 1120px, 100vw">
-          <source type="image/webp" srcset="assets/img/hero/hero-poster-960.webp 960w, assets/img/hero/hero-poster-1280.webp 1280w, assets/img/hero/hero-poster-1920.webp 1920w" sizes="(min-width: 1200px) 1120px, 100vw">
+          <source type="image/avif" srcset="assets/img/hero/hero-poster-960.avif 960w, assets/img/hero/hero-poster-1280.avif 1280w, assets/img/hero/hero-poster-1888.avif 1888w" sizes="(min-width: 1200px) 1120px, 100vw">
+          <source type="image/webp" srcset="assets/img/hero/hero-poster-960.webp 960w, assets/img/hero/hero-poster-1280.webp 1280w, assets/img/hero/hero-poster-1888.webp 1888w" sizes="(min-width: 1200px) 1120px, 100vw">
           <img id="hero-poster" src="assets/img/hero/hero-poster-1280.webp" width="1280" height="720"
                fetchpriority="high" decoding="sync"
                alt="The HA Companion quick panel slid in over a Windows 11 desktop, showing live Home Assistant tiles.">
@@ -161,53 +160,6 @@
   </div>
 </section>
 
-<!-- ================= the hotkey demo ================= -->
-<section class="section" id="hotkey" aria-labelledby="hotkey-h">
-  <div class="container">
-    <div class="section__head reveal">
-      <p class="eyebrow">The whole idea, in one gesture</p>
-      <h2 id="hotkey-h">Try it right here.</h2>
-      <p class="lede">This is what the app does, minus the install. Focus the keys below and press <kbd>H</kbd> — or just click them.</p>
-    </div>
-
-    <div class="hk reveal reveal--d1" data-hotkey data-state="closed">
-      <button type="button" class="hk__keys" aria-pressed="false" aria-controls="hk-stage">
-        <span class="key key--win" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.2 4.5v7.1H3zM11.4 4.3 21 3v8.6h-9.6zM3 12.6h7.2v7.1L3 18.6zM11.4 12.6H21V21l-9.6-1.3z"/></svg></span>
-        <span class="plus" aria-hidden="true">+</span>
-        <span class="key" aria-hidden="true">Ctrl</span>
-        <span class="plus" aria-hidden="true">+</span>
-        <span class="key key--lit" aria-hidden="true">H</span>
-        <span class="visually-hidden" data-hk-label>Quick panel</span>
-      </button>
-
-      <p class="hk__hint">Press <kbd>H</kbd> while this is focused. <kbd>Esc</kbd> closes.</p>
-
-      <div class="hk__stage" id="hk-stage">
-        <picture class="hk__desktop">
-          <source type="image/avif" srcset="assets/img/stage/desktop-800.avif 800w, assets/img/stage/desktop-1200.avif 1200w, assets/img/stage/desktop-1600.avif 1600w" sizes="(min-width: 1200px) 1120px, 100vw">
-          <source type="image/webp" srcset="assets/img/stage/desktop-800.webp 800w, assets/img/stage/desktop-1200.webp 1200w, assets/img/stage/desktop-1600.webp 1600w" sizes="(min-width: 1200px) 1120px, 100vw">
-          <img src="assets/img/stage/desktop-1200.webp" width="1200" height="675" loading="lazy" decoding="async" alt="A Windows 11 desktop, before the panel appears.">
-        </picture>
-        <div class="hk__scrim" aria-hidden="true"></div>
-        <picture>
-          <source type="image/avif" srcset="assets/img/panel/quick-panel-280.avif 280w, assets/img/panel/quick-panel-510.avif 510w" sizes="340px">
-          <source type="image/webp" srcset="assets/img/panel/quick-panel-280.webp 280w, assets/img/panel/quick-panel-510.webp 510w" sizes="340px">
-          <img class="hk__panel" src="assets/img/panel/quick-panel-510.webp" width="510" height="1167" loading="lazy" decoding="async"
-               alt="The quick panel: a Home Assistant climate dashboard with live temperature and humidity tiles.">
-        </picture>
-        <div class="hk__toast" aria-hidden="true">
-          <span class="t-title">Desk light</span>
-          <span class="t-sub">Turned on</span>
-        </div>
-      </div>
-
-      <p class="visually-hidden" aria-live="polite" data-hk-live></p>
-    </div>
-
-    <p class="hk__note" style="margin-inline:auto">In Windows the shortcut is <kbd>Win</kbd> <kbd>Ctrl</kbd> <kbd>H</kbd> and works system-wide. A web page cannot listen for the Windows key, so this demo uses <kbd>H</kbd>.</p>
-  </div>
-</section>
-
 <!-- ================= features ================= -->
 <section class="section" id="features" aria-labelledby="features-h">
   <div class="container">
@@ -223,7 +175,7 @@
         <h3>The quick panel</h3>
         <p class="card__sum">A right-edge panel that appears on a hotkey and disappears the same way.</p>
         <ul>
-          <li>Global hotkey, works over full-screen apps and games</li>
+          <li>Global hotkey (any combination you like), works over full-screen apps and games</li>
           <li>Tiles are detected from your entities — nothing to configure</li>
           <li>Editable and reorderable, 1×1 up to 4×3</li>
           <li>Sensor tiles show the live value, not just an icon</li>
@@ -544,7 +496,7 @@ data:
                  in ONE cell instead of every kbd becoming its own grid item -->
             <li><span>Open Settings and enter your Home Assistant URL — or hit the search button and let mDNS find it.</span></li>
             <li><span>Paste a long-lived access token. It is encrypted with Windows DPAPI and never stored in plain text.</span></li>
-            <li><span>Press <kbd>Win</kbd> <kbd>Ctrl</kbd> <kbd>H</kbd>.</span></li>
+            <li><span>Press <kbd>Win</kbd> <kbd>Ctrl</kbd> <kbd>H</kbd> — or pick your own combination in Settings.</span></li>
           </ol>
         </div>
 

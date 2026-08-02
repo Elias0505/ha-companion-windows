@@ -28,7 +28,7 @@ for t in convert ffmpeg cwebp avifenc pngquant; do
     command -v "$t" >/dev/null || { echo "missing tool: $t" >&2; exit 1; }
 done
 
-mkdir -p "$OUT"/{img/{hero,stage,panel,tour,brand},icons,og,video,fonts}
+mkdir -p "$OUT"/{img/{hero,panel,tour,brand},icons,og,video,fonts}
 
 # avifenc/cwebp settings: visually lossless on flat UI surfaces at a fraction of
 # the bytes. cq-level is the AVIF quantizer (lower = better); 30 keeps 1px
@@ -67,15 +67,16 @@ for name in start ha-dashboards shortcuts automations my-pc settings; do
     emit "$TMP/$name-src.png" "$name" "$OUT/img/tour" "$cq" "$q" 480 720 960 1400
 done
 
-echo "== hero poster + stage (frames from the real demo video) =="
+echo "== hero poster (frame from the real demo video) =="
 VIDEO="$MEDIA/quick-panel-demo.mp4"
-# The clip shows the panel arriving at ~3.4s and leaving again at ~7.2s, so:
-# t=0 is the bare desktop (the stage background for the interactive demo) and
+# The capture has ~30px of a foreign window at the left edge. Crop it plus 18px
+# off the top so the ratio stays exactly 16:9 (1888/1062) and the taskbar at the
+# bottom stays whole. Same crop for the poster and the video, or they would
+# visibly jump when the video fades in over the poster.
+EDGE="crop=1888:1062:32:18"
 # t=6.0 is the panel fully slid in and settled (the hero's LCP image).
-ffmpeg -loglevel error -y -ss 0   -i "$VIDEO" -frames:v 1 "$TMP/desktop-src.png"
-ffmpeg -loglevel error -y -ss 6.0 -i "$VIDEO" -frames:v 1 "$TMP/hero-src.png"
-emit "$TMP/hero-src.png"    "hero-poster" "$OUT/img/hero"  32 80 960 1280 1920
-emit "$TMP/desktop-src.png" "desktop"     "$OUT/img/stage" 34 78 800 1200 1600
+ffmpeg -loglevel error -y -ss 6.0 -i "$VIDEO" -frames:v 1 -vf "$EDGE" "$TMP/hero-src.png"
+emit "$TMP/hero-src.png" "hero-poster" "$OUT/img/hero" 32 80 960 1280 1888
 
 echo "== quick panel =="
 # The screenshot carries ~50px of desktop to the left of the panel. On the page
@@ -90,11 +91,11 @@ echo "== video (trimmed to the part that actually shows something) =="
 # the pause and the exit: 5.2s that loop cleanly.
 CUT="-ss 2.80 -t 5.20"
 # shellcheck disable=SC2086
-ffmpeg -loglevel error -y $CUT -i "$VIDEO" -an -vf "scale=1440:-2" \
+ffmpeg -loglevel error -y $CUT -i "$VIDEO" -an -vf "$EDGE,scale=1440:-2" \
        -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart \
        "$OUT/video/quick-panel-demo.mp4"
 # shellcheck disable=SC2086
-ffmpeg -loglevel error -y $CUT -i "$VIDEO" -an -vf "scale=1440:-2" \
+ffmpeg -loglevel error -y $CUT -i "$VIDEO" -an -vf "$EDGE,scale=1440:-2" \
        -c:v libvpx-vp9 -crf 34 -b:v 0 -row-mt 1 -cpu-used 2 -pix_fmt yuv420p \
        "$OUT/video/quick-panel-demo.webm"
 # ship WebM only when it actually beats the MP4 - a second file that is bigger

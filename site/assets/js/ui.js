@@ -23,7 +23,7 @@
       btn.setAttribute("aria-label", "Switch to " + (mode === "dark" ? "light" : "dark") + " theme");
       // the browser chrome colour must follow the toggle, not only the OS
       document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
-        m.setAttribute("content", mode === "dark" ? "#171717" : "#ffffff");
+        m.setAttribute("content", mode === "dark" ? "#171717" : "#f2f4f6");
         m.removeAttribute("media");
       });
     }

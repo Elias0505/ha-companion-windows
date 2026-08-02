@@ -202,6 +202,9 @@
     background: var(--accent);
     opacity: 0.85;
   }
+  /* the language chips are pills, not list items - no bullet, no text indent */
+  .card .langs li { padding-inline-start: var(--sp-3); }
+  .card .langs li::before { content: none; }
 
   /* ---------- code + copy ------------------------------------------------- */
 
@@ -294,18 +297,16 @@
   .tab:hover { color: var(--text); background: var(--surface-2); }
   .tab[aria-selected="true"] { color: var(--text); font-weight: 600; }
 
-  /* one element, moved with transform only — never left/width */
   .tabs__ink {
     position: absolute;
     inset-block-end: -1px;
     inset-inline-start: 0;
-    width: 1px;
+    width: 0;
     height: 2px;
     background: var(--accent);
     border-radius: 2px 2px 0 0;
-    transform-origin: left center;
-    transform: translateX(0) scaleX(0);
-    transition: transform var(--dur-3) var(--ease-emph);
+    transform: translateX(0);
+    transition: transform var(--dur-3) var(--ease-emph), width var(--dur-3) var(--ease-emph);
     pointer-events: none;
   }
   html:not(.js) .tabs__ink { display: none; }

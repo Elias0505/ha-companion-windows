@@ -173,119 +173,6 @@
   .proof__item h3 { font-size: var(--fs-base); margin-block-end: 2px; }
   .proof__item p { font-size: var(--fs-sm); color: var(--text-muted); max-width: 32ch; }
 
-  /* ---------- the hotkey demo --------------------------------------------- */
-
-  .hk { display: grid; gap: var(--sp-5); justify-items: center; }
-
-  .hk__keys {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    padding: var(--sp-3) var(--sp-5);
-    border-radius: var(--r-full);
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    box-shadow: var(--shadow-1);
-    transition: border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
-  }
-  .hk__keys:hover { border-color: var(--border-strong); box-shadow: var(--shadow-2); }
-  .hk__keys .plus { color: var(--text-muted); font-size: var(--fs-sm); }
-  .hk__keys .key { font-size: var(--fs-sm); padding: 0.35em 0.7em; }
-  .hk__keys .key--win svg { width: 14px; height: 14px; }
-  .hk__keys .key--lit {
-    border-color: var(--accent);
-    color: var(--accent-text);
-    transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
-  }
-  .hk[data-state="open"] .key--lit {
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
-  }
-
-  .hk__hint { font-size: var(--fs-sm); color: var(--text-muted); text-align: center; }
-  .hk__hint kbd { margin-inline: 2px; }
-
-  .hk__stage {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: var(--r-20);
-    overflow: hidden;
-    contain: paint;
-    background: var(--surface-media);
-    box-shadow: var(--shadow-media);
-    touch-action: pan-y;
-  }
-  .hk__desktop, .hk__desktop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-
-  .hk__scrim {
-    position: absolute;
-    inset: 0;
-    background: var(--scrim);
-    opacity: 0;
-    transition: opacity var(--dur-3) linear;
-  }
-  .hk[data-state="open"] .hk__scrim { opacity: 1; }
-
-  .hk__panel {
-    position: absolute;
-    inset-block: 2.5%;
-    inset-inline-end: 1.6%;
-    width: min(30%, 340px);
-    height: auto;
-    max-height: 95%;
-    object-fit: cover;
-    object-position: top center;
-    border-radius: var(--r-12);
-    box-shadow: var(--shadow-panel);
-    /* 101% so the shadow clears the edge too */
-    transform: translate3d(101%, 0, 0);
-    transition: transform var(--dur-4) var(--ease-emph);
-  }
-  .hk[data-state="open"] .hk__panel { transform: translate3d(0, 0, 0); }
-  .hk[data-state="closed"] .hk__panel { transition-duration: var(--dur-3); transition-timing-function: var(--ease-in); }
-  /* no JS: show the finished picture rather than an empty desktop */
-  html:not(.js) .hk__panel { transform: none; }
-  html:not(.js) .hk__scrim { opacity: 1; }
-  html:not(.js) .hk__keys, html:not(.js) .hk__hint { display: none; }
-
-  .hk__toast {
-    position: absolute;
-    inset-block-end: 6%;
-    inset-inline-end: calc(1.6% + min(30%, 340px) + 2.5%);
-    display: grid;
-    gap: 2px;
-    padding: var(--sp-3) var(--sp-5);
-    border-radius: var(--r-8);
-    background: rgb(32 32 32 / 0.92);
-    border: 1px solid rgb(255 255 255 / 0.10);
-    box-shadow: var(--shadow-3);
-    color: #ecedef;
-    opacity: 0;
-    transform: translate3d(0, 120%, 0);
-    transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-3) var(--ease-out);
-  }
-  .hk__toast .t-title { font-size: var(--fs-sm); font-weight: 600; }
-  .hk__toast .t-sub { font-size: var(--fs-2xs); color: var(--n-400); }
-  .hk__toast.is-in { opacity: 1; transform: translate3d(0, 0, 0); }
-
-  .hk__note {
-    font-size: var(--fs-sm);
-    color: var(--text-muted);
-    text-align: center;
-    max-width: 66ch;
-  }
-
-  @media (max-width: 720px) {
-    .hk__stage { aspect-ratio: 4 / 3; }
-    .hk__panel { width: 62%; min-width: 168px; }
-    .hk__toast {
-      inset-inline: var(--sp-3) auto;
-      inset-block-end: var(--sp-3);
-      padding: var(--sp-2) var(--sp-4);
-    }
-    .hk__keys { width: 100%; justify-content: center; min-height: 48px; }
-  }
-
   /* ---------- feature cards ----------------------------------------------- */
 
   .features__grid {
@@ -354,7 +241,10 @@
       padding: var(--sp-4) 0 0;
     }
     .tour .tabs__panels { overflow: visible; box-shadow: none; background: none; }
-    .tour .panel figure { border-radius: var(--r-12); overflow: hidden; background: var(--surface-media); box-shadow: var(--shadow-media); }
+    /* The dark plate moves onto the picture: the caption is static below the
+       image here, and inside a dark figure it would sit light-on-dark. */
+    .tour .panel figure { border-radius: 0; overflow: visible; background: none; box-shadow: none; }
+    .tour .panel picture { display: block; border-radius: var(--r-12); overflow: hidden; background: var(--surface-media); box-shadow: var(--shadow-media); }
     .tour .tabs__panels { aspect-ratio: auto; }
     .tour .tabs__panels--stacked .panel { position: absolute; }
     .tour .tabs__panels--stacked .panel.is-active { position: relative; }
@@ -466,7 +356,8 @@
     flex-wrap: wrap;
     gap: var(--sp-2);
     list-style: none;
-    padding: 0;
+    /* sits under a bulleted list inside the cards — align with the bullet text */
+    padding: 0 0 0 var(--sp-5);
   }
   .langs li {
     padding: var(--sp-1) var(--sp-3);

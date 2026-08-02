@@ -25,10 +25,13 @@
 
     function moveInk(tab) {
       if (!ink) return;
-      // The bar is 1px wide and scaled, so both position and length animate as
-      // one transform. It is absolutely positioned INSIDE the scroller, so it
-      // scrolls along with the tabs by itself — no scroll handling needed.
-      ink.style.transform = "translateX(" + tab.offsetLeft + "px) scaleX(" + tab.offsetWidth + ")";
+      // Position via transform, length via real width. Scaling a 1px bar would
+      // also scale its 2px corner radius a hundredfold - the ends taper into a
+      // long lens and the bar looks misaligned. A width transition on a 2px-tall
+      // element costs nothing. (The bar lives inside the scroller, so it scrolls
+      // with the tabs by itself.)
+      ink.style.width = tab.offsetWidth + "px";
+      ink.style.transform = "translateX(" + tab.offsetLeft + "px)";
     }
 
     function select(index, focusTab) {
