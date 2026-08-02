@@ -77,13 +77,20 @@ Paste this into **PowerShell** — it installs everything needed and launches th
 irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex
 ```
 
-From plain **cmd**:
+From plain **cmd** (or the Run box):
 
 ```bat
-powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/Elias0505/ha-companion-windows/main/install.ps1 | iex"
 ```
 
-Optional: set `$env:HACOMPANION_AUTOSTART = '1'` before running to also start the app with Windows.
+Optional — also start the app with Windows (silently into the tray):
+
+```powershell
+$env:HACOMPANION_AUTOSTART = '1'   # PowerShell, before the line above
+```
+```bat
+set HACOMPANION_AUTOSTART=1        :: cmd, before the line above
+```
 
 > The binary is not code-signed yet, so Windows SmartScreen may warn on first start — click "More info" → "Run anyway". Code signing / winget / Microsoft Store are on the roadmap (see [Planned](#planned)).
 

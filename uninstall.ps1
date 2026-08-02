@@ -49,7 +49,9 @@ function Test-InDest {
 if (-not $FromTemp) {
     $tempCopy = Join-Path $env:TEMP 'hacompanion-uninstall.ps1'
     Copy-Item -LiteralPath $PSCommandPath -Destination $tempCopy -Force
-    $psExe = Join-Path $PSHOME 'powershell.exe'
+    # Windows PowerShell by absolute path - $PSHOME would be pwsh.exe's folder if someone
+    # started this script from PowerShell 7, and powershell.exe does not live there.
+    $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$tempCopy`"", '-FromTemp')
     if ($Silent) { $argList += '-Silent' }
     if ($KeepData) { $argList += '-KeepData' }

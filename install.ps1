@@ -47,7 +47,9 @@ function Test-WebView2 {
 if (-not (Test-WebView2)) {
     Write-Host 'WebView2 Runtime is missing - installing it via the official Microsoft bootstrapper (a UAC prompt may appear)...'
     $wv2 = Join-Path $env:TEMP 'MicrosoftEdgeWebView2Setup.exe'
-    Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $wv2
+    # -UseBasicParsing everywhere: Windows PowerShell 5.1 otherwise reaches for the Internet
+    # Explorer engine, which no longer exists on Windows 11.
+    Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $wv2 -UseBasicParsing
     Start-Process -FilePath $wv2 -ArgumentList '/install' -Wait
     Remove-Item -Path $wv2 -Force -ErrorAction SilentlyContinue
     if (-not (Test-WebView2)) {
@@ -71,13 +73,18 @@ Write-Host ("Downloading {0} ({1:N1} MB)..." -f $asset.name, ($asset.size / 1MB)
 if ($env:GH_TOKEN) {
     # Private repos require the asset API endpoint with octet-stream accept header
     $dlHeaders = @{ 'User-Agent' = 'HaCompanion-Installer'; 'Authorization' = "Bearer $($env:GH_TOKEN)"; 'Accept' = 'application/octet-stream' }
-    Invoke-WebRequest -Uri $asset.url -Headers $dlHeaders -OutFile $zip
+    Invoke-WebRequest -Uri $asset.url -Headers $dlHeaders -OutFile $zip -UseBasicParsing
 } else {
-    Invoke-WebRequest -Uri $asset.browser_download_url -Headers $headers -OutFile $zip
+    Invoke-WebRequest -Uri $asset.browser_download_url -Headers $headers -OutFile $zip -UseBasicParsing
 }
 
-$running = Get-Process -Name 'HaCompanion' -ErrorAction SilentlyContinue
-if ($running) {
+# Every running copy has to go: the app is single-instance, so one started from somewhere
+# else would swallow the launch of the one we are installing. Remember where those came
+# from - this installer only manages $dest, and the user deserves to hear about it.
+$running = @(Get-Process -Name 'HaCompanion' -ErrorAction SilentlyContinue)
+$foreign = @($running | Where-Object { $_.Path -and -not $_.Path.ToLowerInvariant().StartsWith($dest.ToLowerInvariant()) } |
+             ForEach-Object { $_.Path } | Select-Object -Unique)
+if ($running.Count -gt 0) {
     Write-Host 'Stopping the running HA Companion instance...'
     $running | Stop-Process -Force
     Start-Sleep -Milliseconds 800
@@ -100,7 +107,9 @@ $lnk.Description = 'HA Companion for Windows'
 $lnk.Save()
 
 if ($env:HACOMPANION_AUTOSTART -eq '1') {
-    Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'HaCompanion' -Value ('"' + $exe + '"')
+    # Exactly the command the app writes for itself: --autostart starts it silently into the
+    # tray instead of opening the main window at every boot.
+    Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'HaCompanion' -Value ('"' + $exe + '" --autostart')
     Write-Host 'Autostart enabled (HKCU Run key).'
 }
 
@@ -165,7 +174,9 @@ function Test-InDest {
 if (-not $FromTemp) {
     $tempCopy = Join-Path $env:TEMP 'hacompanion-uninstall.ps1'
     Copy-Item -LiteralPath $PSCommandPath -Destination $tempCopy -Force
-    $psExe = Join-Path $PSHOME 'powershell.exe'
+    # Windows PowerShell by absolute path - $PSHOME would be pwsh.exe's folder if someone
+    # started this script from PowerShell 7, and powershell.exe does not live there.
+    $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$tempCopy`"", '-FromTemp')
     if ($Silent) { $argList += '-Silent' }
     if ($KeepData) { $argList += '-KeepData' }
@@ -283,7 +294,10 @@ exit 0
 $uninstallPath = Join-Path $dest 'uninstall.ps1'
 Set-Content -LiteralPath $uninstallPath -Value $uninstallPs1 -Encoding ASCII
 
-$psExe = Join-Path $PSHOME 'powershell.exe'   # never rely on PATH when Windows starts this
+# Windows PowerShell by absolute path: PATH is not to be trusted when *Windows* starts this,
+# and $PSHOME would point at pwsh.exe's folder when the installer is run from PowerShell 7 -
+# the Uninstall button would then call a file that does not exist.
+$psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $uninstallCmd = '"{0}" -NoProfile -ExecutionPolicy Bypass -File "{1}"' -f $psExe, $uninstallPath
 $sizeKb = [int]((Get-ChildItem -LiteralPath $dest -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1KB)
 
@@ -304,11 +318,8 @@ Set-ItemProperty -Path $arp -Name 'EstimatedSize' -Value $sizeKb -Type DWord
 Set-ItemProperty -Path $arp -Name 'NoModify'      -Value 1 -Type DWord
 Set-ItemProperty -Path $arp -Name 'NoRepair'      -Value 1 -Type DWord
 
-# A copy running from somewhere else (manual unzip, self-built) is not managed here.
-$foreign = @(Get-Process -Name 'HaCompanion' -ErrorAction SilentlyContinue |
-             Where-Object { $_.Path -and -not $_.Path.ToLowerInvariant().StartsWith($dest.ToLowerInvariant()) })
 if ($foreign.Count -gt 0) {
-    Write-Warning ('Another copy of HA Companion is running from ' + $foreign[0].Path +
+    Write-Warning ('Stopped another copy of HA Companion that was running from ' + $foreign[0] +
                    ' - this installer only manages ' + $dest)
 }
 
