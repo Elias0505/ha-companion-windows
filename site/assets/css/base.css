@@ -237,7 +237,7 @@
 
   /* Forced colours (Windows high contrast): let the OS win, keep structure. */
   @media (forced-colors: active) {
-    .btn, .tab, .copy, .key { forced-color-adjust: none; }
+    .btn, .tab, .copy { forced-color-adjust: none; }
     .tabs__ink { forced-color-adjust: none; background: Highlight; }
     .tab[aria-selected="true"] { border-block-end: 3px solid Highlight; }
     .btn--primary { background: ButtonText; color: ButtonFace; border: 1px solid ButtonText; }

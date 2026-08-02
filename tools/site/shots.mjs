@@ -2,8 +2,8 @@
 //
 // Visual + accessibility sweep for the site. Serves site/ from a throwaway
 // static server, then walks every viewport, both themes and both motion
-// preferences, runs axe on the states that usually break (each tab, the hotkey
-// demo open), and fails on console errors or any request leaving the origin.
+// preferences, runs axe on the states that usually break (each tab, the lightbox
+// open), and fails on console errors or any request leaving the origin.
 //
 //   node tools/site/shots.mjs [--out /tmp/shots] [--file-protocol]
 //
@@ -150,7 +150,7 @@ for (const colorScheme of ["dark", "light"]) {
   await context.close();
 }
 
-// every tab of the tour, plus the hotkey demo in both states
+// every tab of the tour, then lightbox and copy button
 {
   const { context, page } = await open({ width: 1440 });
   const tabs = await page.locator('#tour [role="tab"]').all();
@@ -184,7 +184,7 @@ for (const colorScheme of ["dark", "light"]) {
 // section close-ups for design review (viewport-sized, both themes)
 for (const colorScheme of ["dark", "light"]) {
   const { context, page } = await open({ width: 1440, height: 1000, colorScheme });
-  for (const id of ["top", "hotkey", "features", "tour", "two-way", "install", "open-source", "faq"]) {
+  for (const id of ["top", "features", "tour", "two-way", "install", "open-source", "faq"]) {
     const el = page.locator("#" + id);
     if (await el.count()) {
       await el.scrollIntoViewIfNeeded();

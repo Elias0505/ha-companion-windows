@@ -111,7 +111,7 @@
         <picture>
           <source type="image/avif" srcset="assets/img/hero/hero-poster-960.avif 960w, assets/img/hero/hero-poster-1280.avif 1280w, assets/img/hero/hero-poster-1888.avif 1888w" sizes="(min-width: 1200px) 1120px, 100vw">
           <source type="image/webp" srcset="assets/img/hero/hero-poster-960.webp 960w, assets/img/hero/hero-poster-1280.webp 1280w, assets/img/hero/hero-poster-1888.webp 1888w" sizes="(min-width: 1200px) 1120px, 100vw">
-          <img id="hero-poster" src="assets/img/hero/hero-poster-1280.webp" width="1280" height="720"
+          <img id="hero-poster" src="assets/img/hero/hero-poster-1280.webp" width="1280" height="732"
                fetchpriority="high" decoding="sync"
                alt="The HA Companion quick panel slid in over a Windows 11 desktop, showing live Home Assistant tiles.">
         </picture>
@@ -175,7 +175,7 @@
         <h3>The quick panel</h3>
         <p class="card__sum">A right-edge panel that appears on a hotkey and disappears the same way.</p>
         <ul>
-          <li>Global hotkey (any combination you like), works over full-screen apps and games</li>
+          <li>Global hotkey (almost any combination), works over full-screen apps and borderless games</li>
           <li>Tiles are detected from your entities — nothing to configure</li>
           <li>Editable and reorderable, 1×1 up to 4×3</li>
           <li>Sensor tiles show the live value, not just an icon</li>
@@ -190,8 +190,8 @@
         <ul>
           <li>Bind any key combination to any device, scene or script</li>
           <li>An OSD toast confirms what actually happened, live from HA</li>
-          <li><kbd>Ctrl</kbd> <kbd>K</kbd> launcher: type, hit Enter, done</li>
-          <li>Tray menu: Open · Quick panel · Exit</li>
+          <li><kbd>Ctrl</kbd> <kbd>K</kbd> launcher in the quick panel: type, hit Enter, done</li>
+          <li>Tray menu: Open · Quick panel · Reconnect · Exit</li>
           <li>Optional silent autostart straight into the tray</li>
         </ul>
       </article>
@@ -403,7 +403,7 @@ data:
     actions:
       - action: "OPEN"
         title: "Unlock"</code></pre>
-          <p>Toasts with action buttons come back as HA events. <code>command_lock</code>, <code>command_sleep</code> and five more control the PC — each behind its own permission switch in My PC, and the risky ones (sleep, shutdown, launch) stay off until you enable them.</p>
+          <p>Toasts with action buttons come back as HA events. <code>command_lock</code>, <code>command_sleep</code> and five more control the PC — each behind a permission switch in My PC (volume and mute share one), and the risky ones (sleep, shutdown, launch) stay off until you enable them.</p>
         </div>
       </article>
     </div>
@@ -456,7 +456,7 @@ data:
           <summary>What does this command actually do?</summary>
           <div class="qa__body">
             <p>It downloads <code>install.ps1</code> from this repository and runs it. The script checks your Windows build, installs the Microsoft WebView2 Runtime via Microsoft's own bootstrapper if it is missing, copies a self-contained build to <code>%LOCALAPPDATA%\Programs\HaCompanion</code>, adds a Start-menu shortcut and an entry under Settings → Apps → Installed apps, and starts the app.</p>
-            <p>The app itself needs no administrator rights and writes nothing outside your user profile; only the one-time WebView2 Runtime install (Windows 10 without it) may show a UAC prompt. It also does not touch your PowerShell execution policy — piped commands are not subject to it, so no <code>-ExecutionPolicy Bypass</code> is needed anywhere. Read the script first if you like — it is plain PowerShell: <a href="https://github.com/Elias0505/ha-companion-windows/blob/main/install.ps1" rel="noopener">install.ps1</a>.</p>
+            <p>The app itself needs no administrator rights and writes nothing outside your user profile; only the one-time WebView2 Runtime install (Windows 10 without it) may show a UAC prompt. It also does not touch your PowerShell execution policy — the piped install command is not subject to it, so this line needs no <code>-ExecutionPolicy Bypass</code>. (Only the uninstaller, which Windows starts as a script file, runs with a per-process bypass; your stored policy is never changed.) Read the script first if you like — it is plain PowerShell: <a href="https://github.com/Elias0505/ha-companion-windows/blob/main/install.ps1" rel="noopener">install.ps1</a>.</p>
           </div>
         </details>
 
@@ -464,7 +464,7 @@ data:
           <summary>Updating, uninstalling, starting over</summary>
           <div class="qa__body">
             <p><strong>Update</strong> — run the same line again. Your settings, tiles, shortcuts and rules are kept.</p>
-            <p><strong>Uninstall</strong> — Settings → Apps → Installed apps → HA Companion → Uninstall. It removes the program folder, the Start-menu shortcut, the autostart entry and the notification registration, and asks once whether your settings and token should go too.</p>
+            <p><strong>Uninstall</strong> — Settings → Apps → Installed apps → HA Companion for Windows → Uninstall. It removes the program folder, the Start-menu shortcut, the autostart entry and the notification registration, and asks once whether your settings and token should go too.</p>
             <p><strong>Start over</strong> — no uninstall needed: Settings → <em>Reset to factory settings</em> wipes the configuration, token, tiles, rules and logs and restarts the app in its first-run state.</p>
             <p>Two things it deliberately leaves alone: the <code>mobile_app</code> device inside Home Assistant (only HA can delete that) and the WebView2 runtime (other apps share it).</p>
           </div>
@@ -535,17 +535,17 @@ data:
       <article class="card reveal">
         <h3>AGPL-3.0-only</h3>
         <p>Use it, study it, share it, change it. If you distribute it or run a modified version as a network service, your complete corresponding source has to be available under the AGPL too.</p>
-        <p style="margin-block-start:var(--sp-3)"><a href="https://github.com/Elias0505/ha-companion-windows/blob/main/LICENSE" rel="noopener">Read the licence</a></p>
+        <p class="card__link"><a href="https://github.com/Elias0505/ha-companion-windows/blob/main/LICENSE" rel="noopener">Read the licence</a></p>
       </article>
       <article class="card reveal reveal--d1">
         <h3>Commercial licence</h3>
         <p>Want to use this inside a closed-source or commercial product without the copyleft obligations? That needs a separate agreement — get in touch.</p>
-        <p style="margin-block-start:var(--sp-3)"><a href="https://github.com/Elias0505/ha-companion-windows/blob/main/COMMERCIAL.md" rel="noopener">COMMERCIAL.md</a></p>
+        <p class="card__link"><a href="https://github.com/Elias0505/ha-companion-windows/blob/main/COMMERCIAL.md" rel="noopener">COMMERCIAL.md</a></p>
       </article>
       <article class="card reveal reveal--d2">
         <h3>Contributing</h3>
         <p>Issues and pull requests are welcome. Contributions are signed off (DCO) and dual-licensed so the commercial option above stays possible.</p>
-        <p style="margin-block-start:var(--sp-3)"><a href="https://github.com/Elias0505/ha-companion-windows/blob/main/CONTRIBUTING.md" rel="noopener">CONTRIBUTING.md</a></p>
+        <p class="card__link"><a href="https://github.com/Elias0505/ha-companion-windows/blob/main/CONTRIBUTING.md" rel="noopener">CONTRIBUTING.md</a></p>
       </article>
     </div>
   </div>
@@ -593,7 +593,7 @@ data:
       </details>
       <details class="qa">
         <summary>How do I uninstall it, or start over?</summary>
-        <div class="qa__body"><p>Settings → Apps → Installed apps → HA Companion → Uninstall. It asks once whether your settings and token should be removed too. If you only want a clean slate, Settings → <em>Reset to factory settings</em> inside the app does that without uninstalling. The <code>mobile_app</code> device in Home Assistant has to be deleted in Home Assistant.</p></div>
+        <div class="qa__body"><p>Settings → Apps → Installed apps → HA Companion for Windows → Uninstall. It asks once whether your settings and token should be removed too. If you only want a clean slate, Settings → <em>Reset to factory settings</em> inside the app does that without uninstalling. The <code>mobile_app</code> device in Home Assistant has to be deleted in Home Assistant.</p></div>
       </details>
       <details class="qa">
         <summary>Is it really free?</summary>
@@ -676,7 +676,7 @@ data:
 {"@type":"Question","name":"Where is my access token stored?","acceptedAnswer":{"@type":"Answer","text":"In %LOCALAPPDATA%\\HaCompanion\\settings.json, encrypted with the Windows Data Protection API and bound to your Windows user account."}},
 {"@type":"Question","name":"Does it work with a remote or HTTPS instance?","acceptedAnswer":{"@type":"Answer","text":"Yes, any URL the PC can reach, including HTTPS behind a reverse proxy. For self-signed certificates there is an explicit switch, off by default."}},
 {"@type":"Question","name":"What exactly does the installer put on my PC?","acceptedAnswer":{"@type":"Answer","text":"A self-contained build in %LOCALAPPDATA%\\Programs\\HaCompanion, a Start-menu shortcut and one entry under Installed apps. No services, no drivers, and no admin rights for the app itself."}},
-{"@type":"Question","name":"How do I uninstall it, or start over?","acceptedAnswer":{"@type":"Answer","text":"Settings, Apps, Installed apps, HA Companion, Uninstall. Inside the app, Reset to factory settings gives a clean slate without uninstalling."}},
+{"@type":"Question","name":"How do I uninstall it, or start over?","acceptedAnswer":{"@type":"Answer","text":"Settings, Apps, Installed apps, HA Companion for Windows, Uninstall. Inside the app, Reset to factory settings gives a clean slate without uninstalling."}},
 {"@type":"Question","name":"Is it really free?","acceptedAnswer":{"@type":"Answer","text":"Yes, under AGPL-3.0-only, with no paid tier, no ads and no data collection. A separate commercial licence exists for closed-source products."}}
 ]}
 </script>

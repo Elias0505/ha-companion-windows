@@ -129,7 +129,8 @@
           sel.addRange(range);
           if (label) label.textContent = "Press Ctrl+C";
           announce("Press Control C to copy the selected command.");
-          window.setTimeout(function () { if (label) label.textContent = "Copy"; }, 3000);
+          window.clearTimeout(btn._resetTimer);
+          btn._resetTimer = window.setTimeout(function () { if (label) label.textContent = "Copy"; }, 3000);
         }
 
         if (navigator.clipboard && window.isSecureContext) {

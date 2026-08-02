@@ -104,7 +104,9 @@
     position: relative;
     width: min(100%, 1120px);
     margin-block-start: var(--sp-8);
-    aspect-ratio: 16 / 9;
+    /* the demo capture minus the cropped left edge - not quite 16:9, and the
+       frame follows the media instead of shaving the panel header off */
+    aspect-ratio: 1888 / 1080;
   }
   .hero__media .frame { position: absolute; inset: 0; }
   .hero__media img, .hero__media video {
@@ -181,6 +183,7 @@
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
 
+  /* reserved for the upcoming feature-card demo clips */
   .card__clip {
     margin-block: var(--sp-4) 0;
     border-radius: var(--r-8);
@@ -258,7 +261,7 @@
     display: grid;
     gap: var(--sp-6);
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    align-items: start;
+    /* stretch: uneven bottom edges read as a mistake at this size */
   }
   .rule-card {
     background: var(--surface-2);
@@ -375,8 +378,11 @@
     gap: var(--sp-6);
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
+  .os__grid .card { display: flex; flex-direction: column; }
   .os__grid .card p { font-size: var(--fs-sm); color: var(--text-2); }
   .os__grid .card a { font-weight: 500; }
+  /* the link line sits on the card's bottom edge in all three cards */
+  .os__grid .card__link { margin-block-start: auto; padding-block-start: var(--sp-4); }
 
   /* ---------- faq --------------------------------------------------------- */
 

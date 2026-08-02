@@ -69,11 +69,12 @@ done
 
 echo "== hero poster (frame from the real demo video) =="
 VIDEO="$MEDIA/quick-panel-demo.mp4"
-# The capture has ~30px of a foreign window at the left edge. Crop it plus 18px
-# off the top so the ratio stays exactly 16:9 (1888/1062) and the taskbar at the
-# bottom stays whole. Same crop for the poster and the video, or they would
-# visibly jump when the video fades in over the poster.
-EDGE="crop=1888:1062:32:18"
+# The capture has ~30px of a foreign window at the left edge. Crop ONLY that:
+# the panel header touches the top and the taskbar the bottom, so any vertical
+# trim cuts into one of them (an earlier 18px top-crop halved the panel title).
+# The hero frame simply uses the resulting 1888:1080 ratio. Same crop for
+# poster and video, or they would jump when the video fades in.
+EDGE="crop=1888:1080:32:0"
 # t=6.0 is the panel fully slid in and settled (the hero's LCP image).
 ffmpeg -loglevel error -y -ss 6.0 -i "$VIDEO" -frames:v 1 -vf "$EDGE" "$TMP/hero-src.png"
 emit "$TMP/hero-src.png" "hero-poster" "$OUT/img/hero" 32 80 960 1280 1888
@@ -83,7 +84,7 @@ echo "== quick panel =="
 # the panel is presented as an object in its own right, so that strip is cropped
 # away instead of being faked into a border.
 convert "$MEDIA/quick-panel.png" -crop +50+0 +repage -strip "$TMP/panel-src.png"
-emit "$TMP/panel-src.png" "quick-panel" "$OUT/img/panel" 28 84 280 510
+emit "$TMP/panel-src.png" "quick-panel" "$OUT/img/panel" 28 84 510
 
 echo "== video (trimmed to the part that actually shows something) =="
 # The 11s original spends its first 3.4s and last 3.8s on an empty desktop. As a

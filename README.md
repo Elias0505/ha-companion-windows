@@ -27,7 +27,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - **6 UI languages** — English, Deutsch, Español, Français, 中文, हिन्दी — switch live in Settings.
 - **Dark, clean, native** — Mica main window, borderless acrylic-free panel, adjustable panel width.
 - **Live connection** — REST for actions + WebSocket for push updates (auto-reconnect).
-- **System tray** — right-click → Open / Quick panel / Exit; closing the window hides to tray.
+- **System tray** — right-click → Open / Quick panel / Reconnect / Exit; closing the window hides to tray.
 - **Token stored securely** — the long-lived token is encrypted with Windows DPAPI, never in plaintext.
 - **Entity shortcuts** — bind any key combination to any device or script (own Shortcuts tab with category quick-pick); a clean OSD toast slides in bottom-right saying exactly what happened ("Turned on/off", live-confirmed by HA).
 - **Ctrl+K launcher** — search & trigger any entity from the quick panel without touching the mouse layout.

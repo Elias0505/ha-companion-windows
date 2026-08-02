@@ -66,7 +66,7 @@
     .header__nav .header__link--optional { display: none; }
     /* The wordmark goes away visually, not semantically — display:none here
        left the logo link with no accessible name at all. */
-    .brand span {
+    .header .brand span {
       position: absolute;
       width: 1px; height: 1px;
       overflow: hidden;
@@ -78,6 +78,7 @@
      Install button clips silently under body's overflow-x:hidden */
   @media (max-width: 479px) {
     .header__nav .header__link--tight { display: none; }
+    .code__label { display: none; }
   }
 
   /* ---------- buttons ----------------------------------------------------- */
@@ -224,6 +225,9 @@
     flex: 1 1 auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    /* the command is longer than the chip: fade out instead of slicing glyphs */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
   }
   .code code {
     font-size: var(--fs-sm);
@@ -282,6 +286,12 @@
     margin-block-end: var(--sp-6);
   }
   .tabs__list::-webkit-scrollbar { display: none; }
+  @media (max-width: 719px) {
+    .tabs__list {
+      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+      mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+    }
+  }
 
   .tab {
     flex: none;
@@ -392,7 +402,7 @@
 
   /* ---------- keycaps ----------------------------------------------------- */
 
-  kbd, .key {
+  kbd {
     display: inline-grid;
     place-items: center;
     min-width: 2.1em;
@@ -535,5 +545,4 @@
   html.js:not(.rm) .reveal.is-in { opacity: 1; transform: none; }
   html.js:not(.rm) .reveal--d1 { transition-delay: 70ms; }
   html.js:not(.rm) .reveal--d2 { transition-delay: 140ms; }
-  html.js:not(.rm) .reveal--d3 { transition-delay: 210ms; }
 }
