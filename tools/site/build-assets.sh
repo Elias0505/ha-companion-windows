@@ -9,6 +9,15 @@
 # Run it anywhere the tools exist (Debian: ffmpeg imagemagick webp libavif-bin
 # pngquant chromium, plus python3-fonttools for the font subset):
 #
+# The committed font subsets in site/assets/fonts/ are made out-of-band (they
+# only change when the language row changes). Recipe for the Arabic one:
+#   curl -L -o NotoSansArabic.ttf \
+#     "https://github.com/google/fonts/raw/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf"
+#   fonttools varLib.instancer NotoSansArabic.ttf wght=400 wdth=100 -o na-400.ttf
+#   pyftsubset na-400.ttf --text="العربية" --flavor=woff2 \
+#     --layout-features=init,medi,fina,rlig,liga,ccmp,mark,mkmk,kern \
+#     --output-file=noto-arabic-sub.woff2   # keep shaping or letters won't join
+#
 #   SRC=/path/to/repo OUT=/path/to/repo/site/assets tools/site/build-assets.sh
 #
 # It is idempotent: delete OUT and re-run to rebuild from scratch. The hashes of

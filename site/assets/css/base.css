@@ -47,8 +47,9 @@
                    U+2193, U+21C4, U+2212, U+2215, U+FEFF, U+FFFD;
   }
 
-  /* Two glyphs and six glyphs respectively, subset to exactly what the language
-     row prints. Under 3.5 KB together. */
+  /* Three tiny Noto subsets carrying exactly what the language row prints
+     (中文, हिन्दी, العربية) — under 7 KB together. The Arabic one keeps its
+     shaping features (init/medi/fina/rlig), or the letters would not join. */
   @font-face {
     font-family: "HAC SC";
     src: url("../fonts/noto-sc-sub.woff2") format("woff2");
@@ -62,6 +63,13 @@
     font-weight: 400 700;
     font-display: swap;
     unicode-range: U+0900-097F;
+  }
+  @font-face {
+    font-family: "HAC Arab";
+    src: url("../fonts/noto-arabic-sub.woff2") format("woff2");
+    font-weight: 400 700;
+    font-display: swap;
+    unicode-range: U+0627-0629, U+0631, U+0639, U+0644, U+064A;
   }
 
   /* Metric-matched fallback: the swap from system font to Inter must not move

@@ -40,11 +40,12 @@
     --n-1000: #0e0e0e;
 
     /* ---- type ------------------------------------------------------------- */
-    /* The two Noto faces carry exactly the glyphs of 中文 and हिन्दी — the page
-       names the app's six UI languages in their own scripts, and a row of tofu
-       boxes on a machine without CJK/Devanagari fonts would be worse than not
-       naming them at all. Their unicode-range keeps them out of everything else. */
-    --font-sans: "Inter", "HAC SC", "HAC Deva", "Inter Fallback", system-ui, -apple-system, "Segoe UI", sans-serif;
+    /* The three Noto faces carry exactly the glyphs of 中文, हिन्दी and العربية —
+       the page names the app's seven UI languages in their own scripts, and a
+       row of tofu boxes on a machine without CJK/Devanagari/Arabic fonts would
+       be worse than not naming them at all. Their unicode-range keeps them out
+       of everything else. */
+    --font-sans: "Inter", "HAC SC", "HAC Deva", "HAC Arab", "Inter Fallback", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Consolas, monospace;
 
     --fs-2xs: 0.75rem;
