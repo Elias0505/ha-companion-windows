@@ -93,6 +93,10 @@ public sealed partial class QuickPanelWindow : Window
         _settingsStore = App.Services.GetRequiredService<ISettingsStore>();
         InitializeComponent();
         RootGrid.DataContext = viewModel;
+
+        var loc = App.Services.GetRequiredService<LocalizationService>();
+        ApplyFlowDirection(loc);
+        loc.LanguageChanged += (_, _) => ApplyFlowDirection(loc);
         ViewModel.DashboardRequested += OnDashboardRequested;
         // Size changes made on the start page must re-flow this view too (shared tiles).
         ViewModel.Catalog.TileSizeChanged += (_, tile) =>
@@ -662,6 +666,15 @@ public sealed partial class QuickPanelWindow : Window
             source.Move(from, to); // persisted via the catalog's CollectionChanged handler
             _lastLiveMoveMs = Environment.TickCount64;
         }
+    }
+
+    private void ApplyFlowDirection(LocalizationService loc)
+    {
+        RootGrid.FlowDirection = loc.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        // The width grip must stay on the inner (screen-left) edge. Mirroring flips
+        // what Left/Right mean, so RTL needs Right to land on the same visual edge;
+        // the drag math itself uses raw screen coordinates and is direction-agnostic.
+        ResizeGrip.HorizontalAlignment = loc.IsRightToLeft ? HorizontalAlignment.Right : HorizontalAlignment.Left;
     }
 
     // ----- live drag-to-resize (left-edge grip) -----

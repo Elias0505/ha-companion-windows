@@ -29,9 +29,13 @@ public sealed partial class LocalizationService : ObservableObject
         new("fr", "Français"),
         new("zh", "中文"),
         new("hi", "हिन्दी"),
+        new("ar", "العربية"),
     };
 
     public string CurrentLanguage { get; private set; } = "en";
+
+    /// <summary>Whether the current language is written right-to-left (drives FlowDirection).</summary>
+    public bool IsRightToLeft => CurrentLanguage == "ar";
 
     public event EventHandler? LanguageChanged;
 
@@ -58,6 +62,7 @@ public sealed partial class LocalizationService : ObservableObject
         // "en" is missing — fall back to an empty map (indexer then returns the keys).
         _current = _all.TryGetValue(code, out var dict) ? dict : new Dictionary<string, string>();
         OnPropertyChanged("Item[]"); // refresh every {Binding [Key]}
+        OnPropertyChanged(nameof(IsRightToLeft));
         LanguageChanged?.Invoke(this, EventArgs.Empty);
     }
 

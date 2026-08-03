@@ -279,7 +279,7 @@
                 </Grid>
 
                 <!-- Selected HA dashboard: real HA frontend 1:1, chrome hidden -->
-                <controls:WebView2 x:Name="PanelWeb"
+                <controls:WebView2 x:Name="PanelWeb" FlowDirection="LeftToRight"
                                    Visibility="{Binding ShowDashboard, Converter={StaticResource BoolToVisibility}}" />
             </Grid>
         </Grid>

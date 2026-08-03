@@ -33,6 +33,8 @@
 
         <InfoBar Grid.Row="1" x:Name="Info" Margin="16,0,16,8" IsOpen="False" IsClosable="True" />
 
-        <controls:WebView2 Grid.Row="2" x:Name="Web" />
+        <!-- Web content manages its own reading direction (HA has RTL built in) —
+             mirroring the host element would double-flip it under Arabic UI. -->
+        <controls:WebView2 Grid.Row="2" x:Name="Web" FlowDirection="LeftToRight" />
     </Grid>
 </Page>

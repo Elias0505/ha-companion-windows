@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Runtime.InteropServices;
+using HaCompanion.App.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -37,11 +39,18 @@ public sealed partial class ShortcutOsdWindow : Window
     private long _animStartMs;
     private bool _timerBoosted;
 
+    private void ApplyFlowDirection(LocalizationService loc) =>
+        RootGrid.FlowDirection = loc.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+
     public ShortcutOsdWindow()
     {
         InitializeComponent();
         Title = "HA Companion — Shortcut";
         _hwnd = WindowNative.GetWindowHandle(this);
+
+        var loc = App.Services.GetRequiredService<LocalizationService>();
+        ApplyFlowDirection(loc);
+        loc.LanguageChanged += (_, _) => ApplyFlowDirection(loc);
 
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;

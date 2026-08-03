@@ -27,7 +27,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - **Auto-detected tiles** — every actionable entity becomes a tile with its **real Home Assistant icon**, grouped by domain, live via WebSocket; tap to toggle.
 - **Editable & reorderable** — pin favourites, drag to reorder, add via search; layout persists.
 - **HA Dashboards 1:1** — your real Lovelace dashboards embedded (WebView2), auto-logged-in with your token, no login prompt.
-- **6 UI languages** — English, Deutsch, Español, Français, 中文, हिन्दी — switch live in Settings.
+- **7 UI languages** — English, Deutsch, Español, Français, 中文, हिन्दी, العربية (with full right-to-left layout) — switch live in Settings.
 - **Dark, clean, native** — Mica main window, borderless acrylic-free panel, adjustable panel width.
 - **Live connection** — REST for actions + WebSocket for push updates (auto-reconnect).
 - **System tray** — right-click → Open / Quick panel / Reconnect / Exit; closing the window hides to tray.
@@ -142,7 +142,7 @@ Everything is configured in **Settings** — there is no config file to edit. Se
 | **Base URL** | Your HA URL, e.g. `https://homeassistant.local:8123`. |
 | **Long-lived access token** | Created in HA → profile → *Long-lived access tokens*. Stored encrypted. |
 | **Ignore certificate errors** | Accept a self-signed HTTPS certificate. Off by default. |
-| **Language** | UI language (English, German, Spanish, French, Chinese, Hindi). |
+| **Language** | UI language (English, German, Spanish, French, Chinese, Hindi, Arabic — Arabic mirrors the layout right-to-left). |
 | **Start with Windows** | Adds an autostart entry; the app then starts hidden in the tray. |
 | **Show HA notifications** | Mirror Home Assistant persistent notifications as Windows toasts. |
 | **Quick panel** | Global hotkey (default `Win+Ctrl+H`), width, default view, auto-hide, edge-resize. |

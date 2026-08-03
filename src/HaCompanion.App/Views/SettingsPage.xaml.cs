@@ -183,6 +183,8 @@ public sealed partial class SettingsPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
+            // dialogs open in the popup layer and do not inherit the window's direction
+            FlowDirection = Loc.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
             Title = Loc["Reset_ConfirmTitle"],
             Content = Loc["Reset_ConfirmBody"],
             PrimaryButtonText = Loc["Reset_Confirm"],

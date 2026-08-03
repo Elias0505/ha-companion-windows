@@ -42,6 +42,9 @@ jobs:
       # second file) — fail the build if the two drift apart.
       - name: Check the embedded uninstaller
         run: python3 tools/embed-uninstaller.py --check
+      # Missing translation keys fall back to English silently — fail loudly instead.
+      - name: Check translation completeness
+        run: python3 tools/check-i18n.py
 
   app:
     name: App (WinUI 3, Windows)

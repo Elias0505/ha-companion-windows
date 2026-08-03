@@ -11,6 +11,12 @@ Their licenses are permissive and compatible with this project's AGPL-3.0-only l
 - License: **Apache License 2.0** — https://github.com/Templarian/MaterialDesign-Webfont/blob/master/LICENSE
 - Used to render each Home Assistant entity's icon natively.
 
+### Website fonts (`site/assets/fonts/`, self-hosted subsets)
+
+- **Inter** — https://rsms.me/inter/ — **SIL Open Font License 1.1**
+- **Noto Sans SC / Noto Sans Devanagari / Noto Sans Arabic** — https://fonts.google.com/noto — **SIL Open Font License 1.1**
+- Subset with fonttools to exactly the glyphs the page prints; served only from this site.
+
 ## NuGet dependencies
 
 | Package | License |

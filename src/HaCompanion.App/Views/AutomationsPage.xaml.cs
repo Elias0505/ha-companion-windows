@@ -244,6 +244,8 @@ public sealed partial class AutomationsPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
+            // dialogs open in the popup layer and do not inherit the window's direction
+            FlowDirection = Loc.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
             Title = Loc["Au_DeleteTitle"],
             Content = Loc["Au_DeleteBody"],
             PrimaryButtonText = Loc["Au_Delete"],

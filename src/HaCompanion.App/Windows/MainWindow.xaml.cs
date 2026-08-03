@@ -55,6 +55,10 @@ public sealed partial class MainWindow : Window
             UpdateRepairBar();
         });
 
+        var loc = App.Services.GetRequiredService<LocalizationService>();
+        ApplyFlowDirection(loc);
+        loc.LanguageChanged += (_, _) => ApplyFlowDirection(loc);
+
         Title = "HA Companion";
         SystemBackdrop = new MicaBackdrop();
 
@@ -99,6 +103,17 @@ public sealed partial class MainWindow : Window
         }
 
         AppWindow.Closing += OnClosing;
+    }
+
+    private void ApplyFlowDirection(LocalizationService loc)
+    {
+        var dir = loc.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        Root.FlowDirection = dir;
+        // The tray flyout opens in its own second window (ContextMenuMode) and does
+        // not inherit from Root — mirror its items explicitly.
+        if (Tray.ContextFlyout is MenuFlyout menu)
+            foreach (var item in menu.Items)
+                item.FlowDirection = dir;
     }
 
     private void Nav_Loaded(object sender, RoutedEventArgs e)
