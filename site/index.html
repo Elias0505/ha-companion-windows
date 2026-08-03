@@ -186,50 +186,44 @@
       <article class="card reveal">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="M6.5 8.5h5M6.5 12h5"/></svg></div>
         <h3>The quick panel</h3>
-        <p class="card__sum">A right-edge panel that appears on a hotkey and disappears the same way.</p>
+        <p class="card__sum">One hotkey in, same hotkey out.</p>
         <ul>
-          <li>Global hotkey (almost any combination), works over full-screen apps and borderless games</li>
-          <li>Tiles are detected from your entities — nothing to configure</li>
-          <li>Editable and reorderable, 1×1 up to 4×3</li>
-          <li>Sensor tiles show the live value, not just an icon</li>
-          <li>Right-click a tile for brightness, target temperature or volume</li>
+          <li>Slides over anything — even full-screen games</li>
+          <li>Tiles auto-detected from your entities, zero setup</li>
+          <li>Drag, resize 1×1–4×3, right-click for brightness / temperature / volume</li>
         </ul>
       </article>
 
       <article class="card reveal reveal--d1">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M4 12h16M4 17h7"/><path d="M17 5.5 20 8l-3 2.5"/></svg></div>
         <h3>Always one keystroke away</h3>
-        <p class="card__sum">It stays out of the way until you need it.</p>
+        <p class="card__sum">Invisible until you need it.</p>
         <ul>
-          <li>Bind any key combination to any device, scene or script</li>
-          <li>An OSD toast confirms what actually happened, live from HA</li>
-          <li><kbd>Ctrl</kbd> <kbd>K</kbd> launcher in the quick panel: type, hit Enter, done</li>
-          <li>Tray menu: Open · Quick panel · Reconnect · Exit</li>
-          <li>Optional silent autostart straight into the tray</li>
+          <li>Any key combo → any device, scene or script</li>
+          <li>OSD toast confirms what really happened, live from HA</li>
+          <li><kbd>Ctrl</kbd> <kbd>K</kbd> in the panel: type, Enter, done</li>
         </ul>
       </article>
 
       <article class="card reveal reveal--d2">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13l-3-3M20 15H7l3 3"/></svg></div>
         <h3>Windows ⇄ Home Assistant</h3>
-        <p class="card__sum">Both directions, without MQTT and without YAML.</p>
+        <p class="card__sum">Both directions. No MQTT, no YAML.</p>
         <ul>
-          <li>WHEN a Windows event, ONLY IF your conditions hold, THEN Home Assistant acts</li>
-          <li>Your PC becomes a real HA device with 11 sensors (opt-in)</li>
-          <li>My PC tab: local notification rules and per-command permissions</li>
-          <li>HA can send toasts with action buttons and seven permission-gated PC commands</li>
+          <li>WHEN the PC locks → ONLY IF after 22:00 → THEN lights off</li>
+          <li>Your PC becomes a real HA device — 11 sensors, opt-in</li>
+          <li>HA sends toasts with buttons + seven permission-gated commands</li>
         </ul>
       </article>
 
       <article class="card reveal">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/><path d="M7 9h4v4H7z"/><path d="M14 9h3M14 12h3"/></svg></div>
         <h3>Feels like Windows, because it is</h3>
-        <p class="card__sum">WinUI 3 and .NET 9 — native shell, native tiles; the Lovelace view is the one place a WebView appears.</p>
+        <p class="card__sum">WinUI 3 + .NET 9 — native, not Electron.</p>
         <ul>
-          <li>Dark Fluent UI, Mica window, real Windows toasts</li>
-          <li>Your Lovelace dashboards 1:1 in a native window, already signed in</li>
-          <li>Home Assistant's own MDI icons, not lookalikes</li>
-          <li>Seven UI languages, switchable while the app runs — Arabic with full right-to-left layout</li>
+          <li>Mica window, Fluent dark UI, real Windows toasts</li>
+          <li>Your Lovelace dashboards 1:1, already signed in</li>
+          <li>Seven UI languages, switchable live — Arabic fully right-to-left</li>
         </ul>
         <ul class="langs" style="margin-block-start:var(--sp-4)">
           <li>English</li><li>Deutsch</li><li>Español</li><li>Français</li><li lang="zh">中文</li><li lang="hi">हिन्दी</li><li lang="ar" dir="rtl">العربية</li>
@@ -239,25 +233,22 @@
       <article class="card reveal reveal--d1">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></div>
         <h3>Live, and it stays live</h3>
-        <p class="card__sum">REST for actions, WebSocket for truth.</p>
+        <p class="card__sum">Push, not polling.</p>
         <ul>
-          <li>State changes arrive by push, not by polling</li>
-          <li>Reconnects instantly when the network returns or the PC wakes up</li>
-          <li>mDNS discovery fills in your Home Assistant URL (where the network allows multicast)</li>
-          <li>Tiles go visibly unavailable instead of lying to you</li>
+          <li>State changes arrive over WebSocket, instantly</li>
+          <li>Reconnects on wake and network return — by itself</li>
+          <li>Tiles go visibly unavailable instead of lying</li>
         </ul>
       </article>
 
       <article class="card reveal reveal--d2">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.2 2.9 7.4 7 8.5 4.1-1.1 7-4.3 7-8.5V6z"/><path d="m9.2 12 2 2 3.6-3.8"/></svg></div>
         <h3>Built to be trusted</h3>
-        <p class="card__sum">Boring, verifiable things — the reason you can leave it running.</p>
+        <p class="card__sum">Boring on purpose.</p>
         <ul>
-          <li>Your token is encrypted with Windows DPAPI, never stored in plain text</li>
-          <li>Portable JSON backup and restore, without secrets</li>
-          <li>Diagnostics export with the token and webhook redacted</li>
-          <li>The connection is tested before any settings are saved</li>
-          <li>300+ unit tests, warnings-as-errors, rotating log files</li>
+          <li>Token encrypted with Windows DPAPI, never plain text</li>
+          <li>Backup without secrets, diagnostics with the token redacted</li>
+          <li>300+ unit tests, warnings-as-errors</li>
         </ul>
       </article>
     </div>
