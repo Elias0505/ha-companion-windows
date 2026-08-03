@@ -249,7 +249,7 @@
     .tabs__ink { forced-color-adjust: none; background: Highlight; }
     .tab[aria-selected="true"] { border-block-end: 3px solid Highlight; }
     .btn--primary { background: ButtonText; color: ButtonFace; border: 1px solid ButtonText; }
-    .btn--bmc, .btn--paypal { background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; }
+    .btn--bmc, .btn--kofi { background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; }
     .card, .tabs__panels { border: 1px solid CanvasText; }
     :focus-visible { outline: 2px solid Highlight; }
   }

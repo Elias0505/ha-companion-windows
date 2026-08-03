@@ -137,11 +137,12 @@
   .btn--sm { min-height: 38px; padding: 0 var(--sp-4); font-size: var(--fs-sm); }
 
   /* donation buttons: fixed brand colours, deliberately theme-independent —
-     both pass AA on their own fill (#0d0c22 on #ffdd00, #fff on #003087) */
+     both pass AA with the dark label (#0d0c22 on #ffdd00 ≈ 14:1, on #ff6433 ≈ 6.3:1;
+     white on Ko-fi red would fail at 2.9:1) */
   .btn--bmc { background: #ffdd00; color: #0d0c22; }
   .btn--bmc:hover { background: #f2d200; }
-  .btn--paypal { background: #003087; color: #fff; }
-  .btn--paypal:hover { background: #0d3d9e; }
+  .btn--kofi { background: #ff6433; color: #0d0c22; }
+  .btn--kofi:hover { background: #f0551f; }
 
   /* icon-only control (theme toggle, dialog close) */
   .icon-btn {
