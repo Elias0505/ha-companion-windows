@@ -1,7 +1,10 @@
 # HA Companion for Windows
 
+[![Website](https://img.shields.io/badge/Website-hacompanion.com-0A84FF?logo=googlechrome&logoColor=white)](https://hacompanion.com)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-elias0505-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/elias0505)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-elias0505-FF6433?logo=kofi&logoColor=white)](https://ko-fi.com/elias0505)
+
+**Website: [hacompanion.com](https://hacompanion.com)** — demo video, screenshots, one-line install.
 
 A **fully native Windows 11 companion app for [Home Assistant](https://www.home-assistant.io/)** — built in C# with **.NET 9 + WinUI 3 (Windows App SDK)**. Fluent design, a dark clean UI, live REST + WebSocket integration, an editable quick-action panel opened by a global hotkey, real Home-Assistant (MDI) icons, and your actual Lovelace dashboards embedded 1:1.
 
