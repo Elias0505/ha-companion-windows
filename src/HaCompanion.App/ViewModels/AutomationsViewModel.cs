@@ -35,12 +35,55 @@ public sealed partial class ActionDraftViewModel : ObservableObject
     public ObservableCollection<ActionOption> Actions { get; } = new();
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SupportsData), nameof(DataLabelText), nameof(IsPercent))]
+    [NotifyPropertyChangedFor(nameof(DataLabelText), nameof(IsPercent))]
     private ActionOption? _selectedAction;
 
     /// <summary>Optional service-data value (brightness %, volume %, temperature, position %).</summary>
     [ObservableProperty]
     private double _dataValue = 50;
+
+    // ----- light turn_on data modes (unchanged / brightness / colour / both / colour temp) -----
+
+    public ObservableCollection<LightDataModeOption> LightModes { get; } = new();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowBrightness), nameof(ShowColor), nameof(ShowColorTemp))]
+    private LightDataModeOption? _selectedLightMode;
+
+    /// <summary>Quick colour swatches for the colour mode (shared palette with the tiles).</summary>
+    public IReadOnlyList<ColorSwatchViewModel> ColorSwatches { get; }
+
+    private (byte R, byte G, byte B) _rgb = (0, 122, 255); // default: the palette's blue
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ColorTempKelvinText))]
+    private double _colorTempKelvin = 3000;
+
+    public string ColorTempKelvinText => $"{(int)ColorTempKelvin} K";
+
+    public double MinKelvin => Tile?.HasColorTemp == true ? Tile.MinColorTempKelvin : 2000;
+
+    public double MaxKelvin => Tile?.HasColorTemp == true ? Tile.MaxColorTempKelvin : 6500;
+
+    /// <summary>The persisted Data of the action being edited — foreign, hand-added keys
+    /// must survive an edit round-trip, so BuildData merges instead of rebuilding.</summary>
+    private IReadOnlyDictionary<string, object?>? _originalData;
+
+    private static readonly string[] ManagedDataKeys =
+        ["brightness_pct", "rgb_color", "color_temp_kelvin", "volume_level", "temperature", "position", "percentage"];
+
+    public ActionDraftViewModel()
+    {
+        ColorSwatches = ColorSwatchViewModel.CreatePalette(SelectSwatch);
+        ColorSwatches[5].IsCurrent = true; // matches the _rgb default
+    }
+
+    private void SelectSwatch(ColorSwatchViewModel swatch)
+    {
+        foreach (var s in ColorSwatches)
+            s.IsCurrent = ReferenceEquals(s, swatch);
+        _rgb = (swatch.R, swatch.G, swatch.B);
+    }
 
     public bool HasTile => Tile is not null;
 
@@ -48,16 +91,24 @@ public sealed partial class ActionDraftViewModel : ObservableObject
 
     private string Domain => Tile?.EntityId.Split('.')[0] ?? "";
 
-    /// <summary>The set-verb / light turn_on that carries a data field, else null.</summary>
-    public bool SupportsData => DataKind is not null;
+    /// <summary>light + turn_on gets the data-mode chips instead of a forced value.</summary>
+    public bool IsLightTurnOn => Domain == "light" && SelectedAction?.Action == AutomationActions.TurnOn;
+
+    /// <summary>The set-verbs that carry a single data field (light turn_on has its own UI).</summary>
+    public bool ShowSimpleData => DataKind is not null;
+
+    public bool ShowBrightness => IsLightTurnOn && SelectedLightMode?.Key is "brightness" or "brightness_color";
+
+    public bool ShowColor => IsLightTurnOn && SelectedLightMode?.Key is "color" or "brightness_color";
+
+    public bool ShowColorTemp => IsLightTurnOn && SelectedLightMode?.Key == "color_temp";
 
     /// <summary>Whether the data value is a 0–100 percentage (vs. a raw number like °C).</summary>
-    public bool IsPercent => DataKind is "brightness" or "volume" or "position" or "percentage";
+    public bool IsPercent => DataKind is "volume" or "position" or "percentage";
 
     /// <summary>Kind of data control to show for the current action (null = none).</summary>
     public string? DataKind => (Domain, SelectedAction?.Action) switch
     {
-        ("light", AutomationActions.TurnOn) => "brightness",
         ("media_player", AutomationActions.SetVolume) => "volume",
         ("climate", AutomationActions.SetTemperature) => "temperature",
         ("cover", AutomationActions.SetPosition) => "position",
@@ -67,7 +118,6 @@ public sealed partial class ActionDraftViewModel : ObservableObject
 
     private string DataLabelKey => DataKind switch
     {
-        "brightness" => "Au_Brightness",
         "volume" => "Au_Volume",
         "temperature" => "Au_Temperature",
         "position" => "Au_Position",
@@ -77,25 +127,195 @@ public sealed partial class ActionDraftViewModel : ObservableObject
 
     public string DataLabelText => Loc is null || DataLabelKey.Length == 0 ? "" : Loc[DataLabelKey];
 
-    /// <summary>Build the service-data dictionary HA expects for the current action, or null.</summary>
-    public IReadOnlyDictionary<string, object?>? BuildData() => DataKind switch
+    /// <summary>
+    /// Build the service data for the current action. Starts from the ORIGINAL persisted
+    /// data (minus the keys this UI manages) so hand-edited extras in automations.json are
+    /// not silently deleted by an edit round-trip.
+    /// </summary>
+    public IReadOnlyDictionary<string, object?>? BuildData()
     {
-        "brightness" => new Dictionary<string, object?> { ["brightness_pct"] = (int)DataValue },
-        "volume" => new Dictionary<string, object?> { ["volume_level"] = Math.Round(DataValue / 100.0, 2) },
-        "temperature" => new Dictionary<string, object?> { ["temperature"] = DataValue },
-        "position" => new Dictionary<string, object?> { ["position"] = (int)DataValue },
-        "percentage" => new Dictionary<string, object?> { ["percentage"] = (int)DataValue },
-        _ => null,
-    };
+        var data = _originalData is null
+            ? new Dictionary<string, object?>()
+            : new Dictionary<string, object?>(_originalData);
+        foreach (var key in ManagedDataKeys)
+            data.Remove(key);
+
+        if (IsLightTurnOn)
+        {
+            switch (SelectedLightMode?.Key)
+            {
+                case "brightness":
+                    data["brightness_pct"] = (int)DataValue;
+                    break;
+                case "color":
+                    data["rgb_color"] = new int[] { _rgb.R, _rgb.G, _rgb.B };
+                    break;
+                case "brightness_color":
+                    data["brightness_pct"] = (int)DataValue;
+                    data["rgb_color"] = new int[] { _rgb.R, _rgb.G, _rgb.B };
+                    break;
+                case "color_temp":
+                    data["color_temp_kelvin"] = (int)ColorTempKelvin;
+                    break;
+                // "none" (unchanged): send no light data — HA restores its last state
+            }
+        }
+        else
+        {
+            switch (DataKind)
+            {
+                case "volume":
+                    data["volume_level"] = Math.Round(DataValue / 100.0, 2);
+                    break;
+                case "temperature":
+                    data["temperature"] = DataValue;
+                    break;
+                case "position":
+                    data["position"] = (int)DataValue;
+                    break;
+                case "percentage":
+                    data["percentage"] = (int)DataValue;
+                    break;
+            }
+        }
+        return data.Count == 0 ? null : data;
+    }
+
+    /// <summary>Seed the data UI from a persisted action (edit flow).</summary>
+    public void SeedData(RuleAction action)
+    {
+        _originalData = action.Data;
+        if (action.Data is null)
+            return;
+
+        var hasBrightness = TryGetDouble(action.Data, "brightness_pct", out var brightness);
+        if (hasBrightness)
+            DataValue = brightness;
+        var hasRgb = TryGetRgb(action.Data, out var rgb);
+        if (hasRgb)
+        {
+            _rgb = rgb;
+            foreach (var s in ColorSwatches)
+                s.IsCurrent = Math.Abs(s.R - rgb.R) + Math.Abs(s.G - rgb.G) + Math.Abs(s.B - rgb.B) <= 60;
+        }
+        var hasKelvin = TryGetDouble(action.Data, "color_temp_kelvin", out var kelvin);
+        if (hasKelvin)
+            ColorTempKelvin = kelvin;
+
+        SelectedLightMode = LightModes.FirstOrDefault(m => m.Key == (hasBrightness, hasRgb, hasKelvin) switch
+        {
+            (true, true, _) => "brightness_color",
+            (false, true, _) => "color",
+            (_, _, true) => "color_temp",
+            (true, false, false) => "brightness",
+            _ => "none",
+        }) ?? LightModes.FirstOrDefault();
+
+        if (TryGetDouble(action.Data, "volume_level", out var volume))
+            DataValue = Math.Round(volume * 100.0);
+        else if (TryGetDouble(action.Data, "temperature", out var temperature))
+            DataValue = temperature;
+        else if (TryGetDouble(action.Data, "position", out var position))
+            DataValue = position;
+        else if (TryGetDouble(action.Data, "percentage", out var percentage))
+            DataValue = percentage;
+    }
+
+    internal static bool TryGetDouble(IReadOnlyDictionary<string, object?> data, string key, out double value)
+    {
+        value = 0;
+        if (!data.TryGetValue(key, out var raw) || raw is null)
+            return false;
+        switch (raw)
+        {
+            case System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Number:
+                value = je.GetDouble();
+                return true;
+            case IConvertible c:
+                value = c.ToDouble(CultureInfo.InvariantCulture);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    internal static bool TryGetRgb(IReadOnlyDictionary<string, object?> data, out (byte R, byte G, byte B) rgb)
+    {
+        rgb = default;
+        if (!data.TryGetValue("rgb_color", out var raw) || raw is null)
+            return false;
+        var parts = new List<byte>(3);
+        if (raw is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var item in je.EnumerateArray())
+            {
+                if (item.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    parts.Add((byte)Math.Clamp(item.GetDouble(), 0, 255));
+            }
+        }
+        else if (raw is System.Collections.IEnumerable seq)
+        {
+            foreach (var item in seq)
+            {
+                if (item is IConvertible c)
+                    parts.Add((byte)Math.Clamp(c.ToDouble(CultureInfo.InvariantCulture), 0, 255));
+            }
+        }
+        if (parts.Count != 3)
+            return false;
+        rgb = (parts[0], parts[1], parts[2]);
+        return true;
+    }
+
+    /// <summary>Offer only the modes the target light actually supports.</summary>
+    private void RebuildLightModes()
+    {
+        var previous = SelectedLightMode?.Key;
+        LightModes.Clear();
+        if (!IsLightTurnOn || Loc is null)
+            return;
+        LightModes.Add(new LightDataModeOption("none", Loc["Au_DataUnchanged"]));
+        if (Tile?.HasBrightness == true)
+            LightModes.Add(new LightDataModeOption("brightness", Loc["Au_Brightness"]));
+        if (Tile?.HasColor == true)
+        {
+            LightModes.Add(new LightDataModeOption("color", Loc["Au_Color"]));
+            if (Tile?.HasBrightness == true)
+                LightModes.Add(new LightDataModeOption("brightness_color", Loc["Au_BrightnessColor"]));
+        }
+        if (Tile?.HasColorTemp == true)
+            LightModes.Add(new LightDataModeOption("color_temp", Loc["Au_ColorTemp"]));
+        SelectedLightMode = LightModes.FirstOrDefault(m => m.Key == previous) ?? LightModes[0];
+    }
+
+    partial void OnSelectedActionChanged(ActionOption? value)
+    {
+        RebuildLightModes();
+        OnPropertyChanged(nameof(IsLightTurnOn));
+        OnPropertyChanged(nameof(ShowSimpleData));
+        OnPropertyChanged(nameof(ShowBrightness));
+        OnPropertyChanged(nameof(ShowColor));
+        OnPropertyChanged(nameof(ShowColorTemp));
+    }
 
     partial void OnTileChanged(EntityTileViewModel? value)
     {
+        RebuildLightModes();
         OnPropertyChanged(nameof(HasTile));
-        OnPropertyChanged(nameof(SupportsData));
+        OnPropertyChanged(nameof(IsLightTurnOn));
+        OnPropertyChanged(nameof(ShowSimpleData));
+        OnPropertyChanged(nameof(ShowBrightness));
+        OnPropertyChanged(nameof(ShowColor));
+        OnPropertyChanged(nameof(ShowColorTemp));
         OnPropertyChanged(nameof(DataLabelText));
         OnPropertyChanged(nameof(IsPercent));
+        OnPropertyChanged(nameof(MinKelvin));
+        OnPropertyChanged(nameof(MaxKelvin));
     }
 }
+
+/// <summary>One selectable data mode for a light turn_on action.</summary>
+public sealed record LightDataModeOption(string Key, string Label);
 
 /// <summary>A pc-state field with its localized label (for the pc-condition picker).</summary>
 public sealed record PcFieldOption(string Value, string Label);
@@ -164,7 +384,11 @@ public sealed partial class ConditionRowViewModel : ObservableObject
 }
 
 /// <summary>One executed action inside a rule card ("💡 Name · Aus").</summary>
-public sealed record RuleActionView(string Glyph, string Name, string ActionLabel);
+public sealed record RuleActionView(string Glyph, string Name, string ActionLabel,
+    string DataText = "", Microsoft.UI.Xaml.Media.SolidColorBrush? DataBrush = null)
+{
+    public bool HasDataBrush => DataBrush is not null;
+}
 
 /// <summary>One rule card in the list.</summary>
 public sealed partial class AutomationItemViewModel : ObservableObject
@@ -199,6 +423,36 @@ public sealed partial class AutomationItemViewModel : ObservableObject
 /// <summary>Backing view model for the Automationen tab (flow-card builder + rule list).</summary>
 public sealed partial class AutomationsViewModel : ObservableObject
 {
+    /// <summary>Builder-level error line (e.g. refusing a save that would drop actions).</summary>
+    [ObservableProperty]
+    private string _builderError = "";
+
+    /// <summary>Compact, human-readable summary of an action's data for the rule list
+    /// ("· 60 % · 2700 K" plus a colour dot) — a wrong value must be visible BEFORE it fires.</summary>
+    private static (string Text, Microsoft.UI.Xaml.Media.SolidColorBrush? Brush) FormatActionData(
+        IReadOnlyDictionary<string, object?>? data)
+    {
+        if (data is null)
+            return ("", null);
+        var parts = new List<string>();
+        if (ActionDraftViewModel.TryGetDouble(data, "brightness_pct", out var brightness))
+            parts.Add($"{(int)brightness} %");
+        if (ActionDraftViewModel.TryGetDouble(data, "volume_level", out var volume))
+            parts.Add($"{(int)Math.Round(volume * 100.0)} %");
+        if (ActionDraftViewModel.TryGetDouble(data, "temperature", out var temperature))
+            parts.Add($"{temperature:0.#}\u00b0");
+        if (ActionDraftViewModel.TryGetDouble(data, "position", out var position))
+            parts.Add($"{(int)position} %");
+        if (ActionDraftViewModel.TryGetDouble(data, "percentage", out var percentage))
+            parts.Add($"{(int)percentage} %");
+        if (ActionDraftViewModel.TryGetDouble(data, "color_temp_kelvin", out var kelvin))
+            parts.Add($"{(int)kelvin} K");
+        Microsoft.UI.Xaml.Media.SolidColorBrush? brush = null;
+        if (ActionDraftViewModel.TryGetRgb(data, out var rgb))
+            brush = new(global::Windows.UI.Color.FromArgb(255, rgb.R, rgb.G, rgb.B));
+        return (parts.Count > 0 ? " \u00b7 " + string.Join(" \u00b7 ", parts) : "", brush);
+    }
+
     private readonly IRulesStore _store;
     private readonly IRulesEngine _engine;
     private readonly IWindowsStateMonitor _monitor;
@@ -454,10 +708,18 @@ public sealed partial class AutomationsViewModel : ObservableObject
     [RelayCommand]
     private void Save()
     {
+        BuilderError = "";
         if (BuildRule() is not { } rule || !rule.IsValid())
             return;
         var rules = _store.Load().ToList();
         var idx = _editingId is null ? -1 : rules.FindIndex(r => r.Id == _editingId);
+        // Editing while entities are unresolved (e.g. disconnected, renamed) must not
+        // silently drop actions the stored rule still has.
+        if (idx >= 0 && rule.Actions.Count < rules[idx].Actions.Count)
+        {
+            BuilderError = _loc["Au_SaveIncomplete"];
+            return;
+        }
         if (idx >= 0)
             rules[idx] = rule;
         else
@@ -533,7 +795,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
             {
                 AssignEntity(draft, tile);
                 draft.SelectedAction = draft.Actions.FirstOrDefault(a => a.Action == action.Action) ?? draft.SelectedAction;
-                SeedActionData(draft, action);
+                draft.SeedData(action);
             }
             ActionDrafts.Add(draft);
         }
@@ -568,28 +830,6 @@ public sealed partial class AutomationsViewModel : ObservableObject
         return row;
     }
 
-    private static void SeedActionData(ActionDraftViewModel draft, RuleAction action)
-    {
-        if (action.Data is null)
-            return;
-        if (action.Data.TryGetValue("brightness_pct", out var b) && b is not null)
-            draft.DataValue = ToDouble(b);
-        else if (action.Data.TryGetValue("volume_level", out var v) && v is not null)
-            draft.DataValue = Math.Round(ToDouble(v) * 100.0);
-        else if (action.Data.TryGetValue("temperature", out var tp) && tp is not null)
-            draft.DataValue = ToDouble(tp);
-        else if (action.Data.TryGetValue("position", out var p) && p is not null)
-            draft.DataValue = ToDouble(p);
-        else if (action.Data.TryGetValue("percentage", out var pc) && pc is not null)
-            draft.DataValue = ToDouble(pc);
-    }
-
-    private static double ToDouble(object value) => value switch
-    {
-        System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.Number => je.GetDouble(),
-        IConvertible c => c.ToDouble(CultureInfo.InvariantCulture),
-        _ => 0,
-    };
 
     /// <summary>Auto-generated readable name ("PC gesperrt → Wohnzimmer") when the user left it blank.</summary>
     private string DefaultName(AutomationRule rule)
@@ -642,6 +882,7 @@ public sealed partial class AutomationsViewModel : ObservableObject
 
     private void ResetBuilder()
     {
+        BuilderError = "";
         SelectedTrigger = null;
         MinutesParam = 10;
         ProcessParam = "";
@@ -671,10 +912,12 @@ public sealed partial class AutomationsViewModel : ObservableObject
             foreach (var action in rule.Actions)
             {
                 var tile = Catalog.FindTile(action.EntityId);
+                var (dataText, dataBrush) = FormatActionData(action.Data);
                 item.Actions.Add(new RuleActionView(
                     tile?.IconGlyph ?? _icons.DomainGlyph(action.EntityId.Split('.')[0]),
                     tile?.FriendlyName ?? action.EntityId,
-                    _loc["Act_" + action.Action]));
+                    _loc["Act_" + action.Action],
+                    dataText, dataBrush));
             }
             Items.Add(item);
         }

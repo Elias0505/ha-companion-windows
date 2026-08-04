@@ -41,16 +41,6 @@ public static class AutomationActions
     public static bool IsAllowed(string domain, string action) =>
         AllowedFor(domain).Contains(action, StringComparer.Ordinal);
 
-    /// <summary>The service-data key a value-setting verb carries (null for plain verbs).</summary>
-    public static string? DataKey(string action) => action switch
-    {
-        SetVolume => "volume_level",
-        SetTemperature => "temperature",
-        SetPosition => "position",
-        SetPercentage => "percentage",
-        _ => null,
-    };
-
     /// <summary>Map (entity domain, rule action) to the HA service call to make.</summary>
     public static (string Domain, string Service) Resolve(string entityDomain, string action) => (entityDomain, action) switch
     {

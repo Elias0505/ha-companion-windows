@@ -198,6 +198,25 @@ public sealed partial class AutomationsPage : Page
         }
     }
 
+    private void LightModeChips_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ListView list && DraftOf(sender) is { } draft)
+            list.SelectedItem = draft.SelectedLightMode;
+    }
+
+    private void LightModeChips_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ListView list && DraftOf(sender) is { } draft
+            && list.SelectedItem is LightDataModeOption mode)
+            draft.SelectedLightMode = mode;
+    }
+
+    private void Swatch_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ColorSwatchViewModel swatch)
+            swatch.Apply();
+    }
+
     private void RemoveDraft_Click(object sender, RoutedEventArgs e)
     {
         if (DraftOf(sender) is { } draft)

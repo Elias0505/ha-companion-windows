@@ -50,15 +50,6 @@ public class AutomationActionsTests
     }
 
     [Theory]
-    [InlineData(AutomationActions.SetVolume, "volume_level")]
-    [InlineData(AutomationActions.SetTemperature, "temperature")]
-    [InlineData(AutomationActions.SetPosition, "position")]
-    [InlineData(AutomationActions.SetPercentage, "percentage")]
-    [InlineData(AutomationActions.TurnOn, null)]
-    public void DataKey_names_the_service_data_field(string action, string? key) =>
-        Assert.Equal(key, AutomationActions.DataKey(action));
-
-    [Theory]
     [InlineData("sensor")]
     [InlineData("binary_sensor")]
     [InlineData("weather")]

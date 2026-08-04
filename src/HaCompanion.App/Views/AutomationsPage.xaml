@@ -170,8 +170,12 @@
                                                             <FontIcon Glyph="{x:Bind Glyph}" FontFamily="{StaticResource MdiFont}"
                                                                       FontSize="13" Opacity="0.8" VerticalAlignment="Center" />
                                                             <TextBlock FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                                                                <Run Text="{x:Bind Name}" /><Run Text=" · " /><Run Text="{x:Bind ActionLabel}" />
+                                                                <Run Text="{x:Bind Name}" /><Run Text=" · " /><Run Text="{x:Bind ActionLabel}" /><Run Text="{x:Bind DataText}" />
                                                             </TextBlock>
+                                                            <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                                                     Fill="{x:Bind DataBrush}"
+                                                                     Stroke="{ThemeResource ControlStrokeColorDefaultBrush}" StrokeThickness="1"
+                                                                     Visibility="{x:Bind HasDataBrush, Converter={StaticResource BoolToVisibility}}" />
                                                         </StackPanel>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
@@ -479,7 +483,7 @@
                                         <!-- optional action data: a % slider or a raw number -->
                                         <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10"
                                                     Margin="0,4,0,0" VerticalAlignment="Center"
-                                                    Visibility="{x:Bind SupportsData, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                                    Visibility="{x:Bind ShowSimpleData, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
                                             <FontIcon Glyph="&#xE713;" FontSize="12" Opacity="0.6" VerticalAlignment="Center" />
                                             <TextBlock Text="{x:Bind DataLabelText, Mode=OneWay}" FontSize="12" Opacity="0.7"
                                                        VerticalAlignment="Center" MinWidth="90" />
@@ -488,6 +492,64 @@
                                                     Visibility="{x:Bind IsPercent, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
                                             <NumberBox Value="{x:Bind DataValue, Mode=TwoWay}" Width="120" SpinButtonPlacementMode="Compact"
                                                        Visibility="{x:Bind IsPercent, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+                                        </StackPanel>
+
+                                        <!-- light turn_on: data-mode chips (unchanged / brightness / colour / both / colour temp).
+                                             Shares the row with the simple-data panel — the two are mutually exclusive. -->
+                                        <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="6" Margin="0,4,0,0"
+                                                    Visibility="{x:Bind IsLightTurnOn, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                            <ListView ItemsSource="{x:Bind LightModes}" SelectionMode="Single" Height="36"
+                                                      Loaded="LightModeChips_Loaded" SelectionChanged="LightModeChips_SelectionChanged"
+                                                      ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.HorizontalScrollMode="Disabled">
+                                                <ListView.ItemsPanel>
+                                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                                </ListView.ItemsPanel>
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:LightDataModeOption">
+                                                        <TextBlock Text="{x:Bind Label}" FontSize="12" />
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                                        Visibility="{x:Bind ShowBrightness, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{Binding [Au_Brightness], Source={StaticResource Loc}}" FontSize="12"
+                                                           Opacity="0.7" VerticalAlignment="Center" MinWidth="90" />
+                                                <Slider Value="{x:Bind DataValue, Mode=TwoWay}" Minimum="1" Maximum="100" Width="180"
+                                                        VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                                        Visibility="{x:Bind ShowColor, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{Binding [Au_Color], Source={StaticResource Loc}}" FontSize="12"
+                                                           Opacity="0.7" VerticalAlignment="Center" MinWidth="90" />
+                                                <ItemsControl ItemsSource="{x:Bind ColorSwatches}" VerticalAlignment="Center">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" Spacing="6" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:ColorSwatchViewModel">
+                                                            <Button Width="24" Height="24" Padding="0" CornerRadius="12"
+                                                                    Background="{x:Bind Brush}" Click="Swatch_Click"
+                                                                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                                                    BorderThickness="1">
+                                                                <FontIcon Glyph="&#xE73E;" FontSize="10" Foreground="{x:Bind CheckBrush}"
+                                                                          Visibility="{x:Bind IsCurrent, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="10"
+                                                        Visibility="{x:Bind ShowColorTemp, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{Binding [Au_ColorTemp], Source={StaticResource Loc}}" FontSize="12"
+                                                           Opacity="0.7" VerticalAlignment="Center" MinWidth="90" />
+                                                <Slider Value="{x:Bind ColorTempKelvin, Mode=TwoWay}" StepFrequency="50" Width="180"
+                                                        Minimum="{x:Bind MinKelvin, Mode=OneWay}" Maximum="{x:Bind MaxKelvin, Mode=OneWay}"
+                                                        VerticalAlignment="Center" />
+                                                <TextBlock Text="{x:Bind ColorTempKelvinText, Mode=OneWay}" FontSize="12"
+                                                           Opacity="0.7" VerticalAlignment="Center" />
+                                            </StackPanel>
                                         </StackPanel>
                                     </Grid>
                                 </DataTemplate>
@@ -523,6 +585,8 @@
                              PlaceholderText="{Binding [Au_NamePh], Source={StaticResource Loc}}"
                              MaxWidth="640" HorizontalAlignment="Left"
                              Text="{x:Bind ViewModel.RuleName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="{x:Bind ViewModel.BuilderError, Mode=OneWay}" FontSize="12"
+                               Foreground="{ThemeResource SystemFillColorCriticalBrush}" TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
                         <Button Style="{StaticResource AccentButtonStyle}" MinWidth="120"
                                 Content="{Binding [Au_Save], Source={StaticResource Loc}}"

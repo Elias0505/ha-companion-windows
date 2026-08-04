@@ -145,6 +145,31 @@ public class AutomationRuleTests
     }
 
     [Fact]
+    public void Json_round_trip_preserves_action_data_payload()
+    {
+        // The Data dictionary is the automation feature's real cargo (brightness, colour,
+        // hand-added extras) — the earlier round-trip tests never actually inspected it.
+        var rule = new AutomationRule(
+            "lock", null,
+            new[] { new RuleAction("light.buero", AutomationActions.TurnOn,
+                new Dictionary<string, object?>
+                {
+                    ["brightness_pct"] = 60,
+                    ["rgb_color"] = new[] { 255, 0, 0 },
+                    ["transition"] = 2, // a foreign, hand-added key must survive too
+                }) });
+
+        var json = JsonSerializer.Serialize(rule);
+        var back = JsonSerializer.Deserialize<AutomationRule>(json);
+
+        var data = back!.Actions[0].Data!;
+        Assert.Equal(60, ((JsonElement)data["brightness_pct"]!).GetInt32());
+        Assert.Equal(new[] { 255, 0, 0 },
+            ((JsonElement)data["rgb_color"]!).EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal(2, ((JsonElement)data["transition"]!).GetInt32());
+    }
+
+    [Fact]
     public void Legacy_single_condition_migrates_into_effective_conditions()
     {
         // Old files stored a single "Condition"; EffectiveConditions must fold it in.
