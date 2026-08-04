@@ -21,7 +21,13 @@ public sealed partial class DashboardPage : Page
         UpdateEditIcon();
         // Size changes made in the quick panel must re-flow this grid too (shared tiles).
         ViewModel.Catalog.TileSizeChanged += (_, tile) => PinnedGrid.RefreshSpans(tile);
+        // Navigation-cached page: the first-run state must be re-read on every visit,
+        // not just at construction (the user configures HA on the Settings page).
+        Loaded += (_, _) => ViewModel.RefreshConfigurationState();
     }
+
+    private void WelcomeSetup_Click(object sender, RoutedEventArgs e) =>
+        App.MainWindow?.OpenSettings();
 
     private void EditButton_Click(object sender, RoutedEventArgs e)
     {

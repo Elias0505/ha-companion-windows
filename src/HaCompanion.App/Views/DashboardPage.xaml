@@ -67,16 +67,78 @@
 
             <Button Grid.Column="4" x:Name="EditButton" Padding="8"
                     ToolTipService.ToolTip="{Binding [Tip_Edit], Source={StaticResource Loc}}"
-                    AutomationProperties.Name="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click">
+                    AutomationProperties.Name="{Binding [Tip_Edit], Source={StaticResource Loc}}" Click="EditButton_Click"
+                    Visibility="{Binding IsConfigured, Converter={StaticResource BoolToVisibility}}">
                 <FontIcon x:Name="EditIcon" Glyph="&#xE70F;" FontSize="14" />
             </Button>
         </Grid>
 
         <ScrollViewer Grid.Row="1">
             <StackPanel Spacing="24">
+                <!-- First run: nothing configured yet — a guided card instead of a bare hint. -->
+                <Border MaxWidth="440" Margin="0,36,0,0" HorizontalAlignment="Center"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="32"
+                        Visibility="{Binding IsUnconfigured, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Spacing="20">
+                        <Image Source="ms-appx:///Assets/app.ico" Width="64" Height="64" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding [Start_WelcomeTitle], Source={StaticResource Loc}}"
+                                   Style="{StaticResource SubtitleTextBlockStyle}"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+                        <StackPanel Spacing="12">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="24" Height="24" CornerRadius="12" VerticalAlignment="Top"
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                    <TextBlock Text="1" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Grid.Column="1" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Text="{Binding [Start_WelcomeStep1], Source={StaticResource Loc}}" />
+                            </Grid>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="24" Height="24" CornerRadius="12" VerticalAlignment="Top"
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                    <TextBlock Text="2" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Grid.Column="1" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Text="{Binding [Start_WelcomeStep2], Source={StaticResource Loc}}" />
+                            </Grid>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="24" Height="24" CornerRadius="12" VerticalAlignment="Top"
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                    <TextBlock Text="3" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Grid.Column="1" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Text="{Binding [Start_WelcomeStep3], Source={StaticResource Loc}}" />
+                            </Grid>
+                        </StackPanel>
+                        <Button Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center"
+                                Click="WelcomeSetup_Click"
+                                Content="{Binding [Start_WelcomeSetup], Source={StaticResource Loc}}" />
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Text="{Binding [Start_Empty], Source={StaticResource Loc}}"
                            Opacity="0.6" TextWrapping="Wrap"
-                           Visibility="{Binding Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+                           Visibility="{Binding ShowEmptyHint, Converter={StaticResource BoolToVisibility}}" />
 
                 <!-- Favourites -->
                 <StackPanel Spacing="10"
@@ -201,8 +263,11 @@
                 </StackPanel>
 
                 <!-- Category filter: "All" + one chip per domain present (fully dynamic). -->
+                <!-- DataContext is Browser, so the page's catalog needs the ElementName route —
+                     the old direct {Binding Catalog.IsEmpty} silently resolved to nothing and
+                     the bar (its lone "All" chip) showed even on a completely empty page. -->
                 <hc:CategoryFilterBar DataContext="{Binding Browser}"
-                                      Visibility="{Binding Catalog.IsEmpty, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+                                      Visibility="{Binding DataContext.Catalog.IsEmpty, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
 
                 <!-- All devices, auto-grouped and filtered by the bar above. Deliberately
                      non-virtualizing (ItemsControl): nested ItemsRepeaters inside a StackPanel

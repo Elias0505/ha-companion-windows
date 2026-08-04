@@ -185,7 +185,9 @@ public sealed partial class MainWindow : Window
     private void RepairBar_CloseClick(InfoBar sender, object args) => sender.IsOpen = false;
 #pragma warning restore CA1822
 
-    private void RepairOpenSettings_Click(object sender, RoutedEventArgs e)
+    /// <summary>Bring the window up and select the Settings page — used by the repair
+    /// banner and the first-run welcome card.</summary>
+    public void OpenSettings()
     {
         ShowFromTray();
         foreach (var mi in Nav.MenuItems)
@@ -197,6 +199,8 @@ public sealed partial class MainWindow : Window
             }
         }
     }
+
+    private void RepairOpenSettings_Click(object sender, RoutedEventArgs e) => OpenSettings();
 
     private void Tray_Reconnect(object sender, RoutedEventArgs e) =>
         _ = _shell.InitializeAsync(); // re-runs the stored-settings connect
