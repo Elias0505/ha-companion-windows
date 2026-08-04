@@ -74,7 +74,7 @@
                         <PasswordBox x:Name="TokenBox"
                                      Header="{Binding [Set_Token], Source={StaticResource Loc}}"
                                      PasswordChanged="TokenBox_PasswordChanged" />
-                        <ToggleSwitch Header="{Binding [Set_IgnoreCert], Source={StaticResource Loc}}"
+                        <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_IgnoreCert], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.IgnoreCertificateErrors, Mode=TwoWay}" />
                         <Button Content="{Binding [Set_Connect], Source={StaticResource Loc}}"
                                 Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"
@@ -96,9 +96,9 @@
                                 Minimum="320" Maximum="900" StepFrequency="20" TickFrequency="0"
                                 HorizontalAlignment="Stretch"
                                 Value="{x:Bind ViewModel.QuickPanelWidth, Mode=TwoWay}" />
-                        <ToggleSwitch Header="{Binding [Set_AutoHide], Source={StaticResource Loc}}"
+                        <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_AutoHide], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
-                        <ToggleSwitch Header="{Binding [Set_DragResize], Source={StaticResource Loc}}"
+                        <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_DragResize], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.QuickPanelDragResize, Mode=TwoWay}" />
                         <ComboBox Header="{Binding [Set_Hotkey], Source={StaticResource Loc}}"
                                   HorizontalAlignment="Stretch"
@@ -140,9 +140,9 @@
                                   HorizontalAlignment="Stretch" DisplayMemberPath="DisplayName"
                                   ItemsSource="{x:Bind ViewModel.Languages}"
                                   SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}" />
-                        <ToggleSwitch Header="{Binding [Set_Autostart], Source={StaticResource Loc}}"
+                        <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_Autostart], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.Autostart, Mode=TwoWay}" />
-                        <ToggleSwitch Header="{Binding [Set_HaNotify], Source={StaticResource Loc}}"
+                        <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_HaNotify], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.ShowHaNotifications, Mode=TwoWay}" />
                     </StackPanel>
                 </Border>
@@ -151,7 +151,7 @@
                 <Border Style="{StaticResource SettingsCard}">
                     <StackPanel Spacing="12">
                         <TextBlock Text="{Binding [Set_SensorsTitle], Source={StaticResource Loc}}" Style="{StaticResource CardHeader}" />
-                        <ToggleSwitch Header="{Binding [Set_Sensors], Source={StaticResource Loc}}"
+                        <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_Sensors], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.ReportSensors, Mode=TwoWay}" />
                         <TextBlock Text="{Binding [Set_SensorsHint], Source={StaticResource Loc}}"
                                    Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
