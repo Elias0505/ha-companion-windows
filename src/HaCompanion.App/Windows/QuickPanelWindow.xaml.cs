@@ -775,7 +775,7 @@ public sealed partial class QuickPanelWindow : Window
         // No controls for this domain (switch, script, sensor, ...): don't show an empty flyout.
         if (sender is Flyout flyout && flyout.Target is FrameworkElement fe
             && fe.DataContext is EntityTileViewModel tile
-            && !(tile.HasBrightness || tile.HasClimate || tile.HasMedia))
+            && !(tile.HasBrightness || tile.HasColor || tile.HasColorTemp || tile.HasClimate || tile.HasMedia))
             flyout.Hide();
     }
 #pragma warning restore CA1822
@@ -812,6 +812,39 @@ public sealed partial class QuickPanelWindow : Window
     {
         if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
             tile.PlayPause();
+    }
+
+    private void TilePlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        // The inline overlay button; Button swallows the pointer, so the item click
+        // (ToggleCommand) does not fire — same mechanics as the unpin button.
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.PlayPause();
+    }
+
+    private void PrevTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.PreviousTrack();
+    }
+
+    private void NextTrack_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is EntityTileViewModel tile)
+            tile.NextTrack();
+    }
+
+    private void Swatch_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ColorSwatchViewModel swatch)
+            swatch.Apply();
+    }
+
+    private void ColorTempSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        if (sender is Slider slider && slider.FocusState != FocusState.Unfocused
+            && slider.DataContext is EntityTileViewModel tile)
+            tile.SetColorTemp(e.NewValue);
     }
 
     // ----- diagnostics -----

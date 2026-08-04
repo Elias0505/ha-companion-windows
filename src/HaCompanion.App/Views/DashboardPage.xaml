@@ -194,6 +194,38 @@
                                             ValueChanged="BrightnessSlider_ValueChanged" />
                                 </StackPanel>
                                 <StackPanel Spacing="4"
+                                            Visibility="{Binding HasColor, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding [Fly_Color], Source={StaticResource Loc}}"
+                                               FontSize="12" Opacity="0.7" />
+                                    <ItemsControl ItemsSource="{Binding ColorSwatches}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="6" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Width="24" Height="24" Padding="0" CornerRadius="12"
+                                                        Background="{Binding Brush}" Click="Swatch_Click"
+                                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                                        BorderThickness="1">
+                                                    <FontIcon Glyph="&#xE73E;" FontSize="10" Foreground="{Binding CheckBrush}"
+                                                              Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}" />
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                <StackPanel Spacing="4"
+                                            Visibility="{Binding HasColorTemp, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding [Fly_ColorTemp], Source={StaticResource Loc}}"
+                                               FontSize="12" Opacity="0.7" />
+                                    <Slider Minimum="{Binding MinColorTempKelvin}" Maximum="{Binding MaxColorTempKelvin}"
+                                            StepFrequency="50"
+                                            Value="{Binding ColorTempKelvin, Mode=OneWay}"
+                                            ValueChanged="ColorTempSlider_ValueChanged" />
+                                </StackPanel>
+                                <StackPanel Spacing="4"
                                             Visibility="{Binding HasClimate, Converter={StaticResource BoolToVisibility}}">
                                     <TextBlock Text="{Binding [Fly_Temp], Source={StaticResource Loc}}"
                                                FontSize="12" Opacity="0.7" />
@@ -208,13 +240,34 @@
                                 </StackPanel>
                                 <StackPanel Spacing="4"
                                             Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibility}}">
-                                    <Button HorizontalAlignment="Stretch" Click="PlayPause_Click"
-                                            Content="{Binding [Fly_PlayPause], Source={StaticResource Loc}}" />
-                                    <TextBlock Text="{Binding [Fly_Volume], Source={StaticResource Loc}}"
-                                               FontSize="12" Opacity="0.7" />
-                                    <Slider Minimum="0" Maximum="100" StepFrequency="1"
-                                            Value="{Binding VolumePct, Mode=OneWay}"
-                                            ValueChanged="VolumeSlider_ValueChanged" />
+                                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                        <Button Width="44" Click="PrevTrack_Click"
+                                                Visibility="{Binding CanSkip, Converter={StaticResource BoolToVisibility}}"
+                                                ToolTipService.ToolTip="{Binding [Fly_Prev], Source={StaticResource Loc}}"
+                                                AutomationProperties.Name="{Binding [Fly_Prev], Source={StaticResource Loc}}">
+                                            <FontIcon Glyph="&#xE892;" FontSize="14" />
+                                        </Button>
+                                        <Button Width="56" Click="PlayPause_Click"
+                                                Visibility="{Binding CanPlayPause, Converter={StaticResource BoolToVisibility}}"
+                                                ToolTipService.ToolTip="{Binding [Fly_PlayPause], Source={StaticResource Loc}}"
+                                                AutomationProperties.Name="{Binding [Fly_PlayPause], Source={StaticResource Loc}}">
+                                            <FontIcon Glyph="{Binding PlayPauseGlyph}" FontSize="14" />
+                                        </Button>
+                                        <Button Width="44" Click="NextTrack_Click"
+                                                Visibility="{Binding CanSkip, Converter={StaticResource BoolToVisibility}}"
+                                                ToolTipService.ToolTip="{Binding [Fly_Next], Source={StaticResource Loc}}"
+                                                AutomationProperties.Name="{Binding [Fly_Next], Source={StaticResource Loc}}">
+                                            <FontIcon Glyph="&#xE893;" FontSize="14" />
+                                        </Button>
+                                    </StackPanel>
+                                    <StackPanel Spacing="4"
+                                                Visibility="{Binding CanSetVolume, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="{Binding [Fly_Volume], Source={StaticResource Loc}}"
+                                                   FontSize="12" Opacity="0.7" />
+                                        <Slider Minimum="0" Maximum="100" StepFrequency="1"
+                                                Value="{Binding VolumePct, Mode=OneWay}"
+                                                ValueChanged="VolumeSlider_ValueChanged" />
+                                    </StackPanel>
                                 </StackPanel>
                             </StackPanel>
                         </Flyout>
@@ -224,7 +277,7 @@
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                                         <StackPanel Spacing="7" VerticalAlignment="Top">
                                             <Border Width="38" Height="38" CornerRadius="19" HorizontalAlignment="Left"
-                                                    Background="{Binding IsOn, Converter={StaticResource StateBrush}}">
+                                                    Background="{Binding IsActive, Converter={StaticResource StateBrush}}">
                                                 <FontIcon Glyph="{Binding IconGlyph}" FontSize="19"
                                                           FontFamily="{StaticResource MdiFont}"
                                                           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
@@ -256,6 +309,20 @@
                                         <FontIcon Glyph="&#xE740;" FontSize="10"
                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </hc:CornerGrip>
+                                    <!-- Inline play/pause for media tiles; hidden while editing
+                                         (the resize grip owns that corner then). -->
+                                    <Grid HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                          Visibility="{Binding DataContext.Catalog.IsEditing, ElementName=PageRoot, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                                        <Button Width="34" Height="34" Padding="0" CornerRadius="17" Margin="0,0,6,6"
+                                                Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                                Click="TilePlayPause_Click"
+                                                ToolTipService.ToolTip="{Binding [Fly_PlayPause], Source={StaticResource Loc}}"
+                                                AutomationProperties.Name="{Binding [Fly_PlayPause], Source={StaticResource Loc}}"
+                                                Visibility="{Binding ShowInlinePlayPause, Converter={StaticResource BoolToVisibility}}">
+                                            <FontIcon Glyph="{Binding PlayPauseGlyph}" FontSize="12" />
+                                        </Button>
+                                    </Grid>
                                 </Grid>
                             </DataTemplate>
                         </GridView.ItemTemplate>

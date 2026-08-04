@@ -65,4 +65,24 @@ public sealed class HaEntityState
         Attributes.TryGetValue(key, out var v) && v.ValueKind == JsonValueKind.String
             ? v.GetString()
             : null;
+
+    /// <summary>Numeric attribute (e.g. <c>supported_features</c>, <c>color_temp_kelvin</c>), or null.</summary>
+    public double? GetAttributeDouble(string key) =>
+        Attributes.TryGetValue(key, out var v) && v.ValueKind == JsonValueKind.Number
+            ? v.GetDouble()
+            : null;
+
+    /// <summary>String-array attribute (e.g. <c>supported_color_modes</c>); empty when absent.</summary>
+    public IReadOnlyList<string> GetAttributeStringList(string key)
+    {
+        if (!Attributes.TryGetValue(key, out var v) || v.ValueKind != JsonValueKind.Array)
+            return Array.Empty<string>();
+        var list = new List<string>();
+        foreach (var item in v.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String && item.GetString() is { } s)
+                list.Add(s);
+        }
+        return list;
+    }
 }
