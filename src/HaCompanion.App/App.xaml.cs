@@ -110,14 +110,20 @@ public partial class App : Application
                 notifications.Show(n.Title, n.Message);
         };
 
+        // Taskbar jump list (Quick panel / Reconnect); localized, rebuilt on language change.
+        Services.GetRequiredService<JumpListService>().Initialize();
+
         var log = Services.GetRequiredService<ILogger<App>>();
-        var autostarted = Environment.GetCommandLineArgs().Contains(StartupService.AutostartArg);
+        var commandLine = Environment.GetCommandLineArgs();
+        var autostarted = commandLine.Contains(StartupService.AutostartArg);
+        var wantsPanel = commandLine.Contains(JumpListService.QuickPanelArg);
         log.LogInformation("HA Companion {Version} started{Mode}",
             typeof(App).Assembly.GetName().Version, autostarted ? " (autostart, tray only)" : "");
 
         // Launched by the autostart entry: stay silently in the tray (hotkeys/panel active),
-        // don't pop the main window into the user's face at every boot.
-        if (!autostarted)
+        // don't pop the main window into the user's face at every boot. A jump-list
+        // "quick panel" launch behaves the same — the user asked for the panel, not the window.
+        if (!autostarted && !wantsPanel)
             MainWindow.Activate();
 
         // Auto-connect if we already have stored settings.
@@ -128,6 +134,11 @@ public partial class App : Application
         // Win+Ctrl+H must slide in instantly instead of visibly loading in front of the user.
         var ui = Services.GetRequiredService<IUiDispatcher>();
         _ = Task.Delay(1500).ContinueWith(_ => ui.Post(quickPanel.Prewarm));
+
+        // Fresh start via the jump list's "quick panel" entry (the app was not running):
+        // open the panel as soon as the message loop breathes.
+        if (wantsPanel)
+            ui.Post(quickPanel.Toggle);
     }
 
     private static ServiceProvider ConfigureServices()
@@ -153,6 +164,7 @@ public partial class App : Application
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IQuickPanelController, QuickPanelController>();
+        services.AddSingleton<JumpListService>();
         services.AddSingleton<IStartupService, StartupService>();
         services.AddSingleton<IConnectivityWatcher, ConnectivityWatcher>();
         services.AddSingleton<IShortcutStore, ShortcutStore>();
@@ -208,14 +220,31 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// A second launch was redirected to us by <see cref="Program"/>. Bring the existing window
+    /// A second launch was redirected to us by <see cref="Program"/>. With a jump-list argument
+    /// the matching action runs (quick panel / reconnect); otherwise the existing window comes
     /// to the front on the UI thread — the same reliable path as a tray-icon click, so it works
     /// even when the window is currently hidden in the tray.
     /// </summary>
-    public static void OnRedirected()
+    public static void OnRedirected(Microsoft.Windows.AppLifecycle.AppActivationArguments args)
     {
+        // A second launch may carry a jump-list argument — honour it instead of only
+        // resurfacing the window.
+        var launchArguments =
+            args.Kind == Microsoft.Windows.AppLifecycle.ExtendedActivationKind.Launch &&
+            args.Data is global::Windows.ApplicationModel.Activation.ILaunchActivatedEventArgs launch
+                ? launch.Arguments
+                : string.Empty;
+
         var window = MainWindow;
-        window?.DispatcherQueue.TryEnqueue(() => window.OpenCommand.Execute(null));
+        window?.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (launchArguments.Contains(JumpListService.QuickPanelArg, StringComparison.OrdinalIgnoreCase))
+                Services.GetRequiredService<IQuickPanelController>().Toggle();
+            else if (launchArguments.Contains(JumpListService.ReconnectArg, StringComparison.OrdinalIgnoreCase))
+                _ = Services.GetRequiredService<ShellViewModel>().InitializeAsync();
+            else
+                window.OpenCommand.Execute(null);
+        });
     }
 
     /// <summary>

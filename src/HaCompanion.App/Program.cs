@@ -95,7 +95,7 @@ public static class Program
 
         if (keyInstance.IsCurrent)
         {
-            keyInstance.Activated += (_, _) => App.OnRedirected();
+            keyInstance.Activated += (_, e) => App.OnRedirected(e);
             return false;
         }
 
