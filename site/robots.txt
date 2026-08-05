@@ -1,7 +1,7 @@
-# Served at the root of hacompanion.com (Cloudflare Pages), where crawlers
+# Served from GitHub Pages under /ha-companion-windows/, where crawlers
 # actually read it. On the GitHub-Pages mirror it sits in a project subpath
 # and is inert - the mirror's canonical tags point here anyway.
 User-agent: *
 Allow: /
 
-Sitemap: https://hacompanion.com/sitemap.xml
+Sitemap: https://elias0505.github.io/ha-companion-windows/sitemap.xml

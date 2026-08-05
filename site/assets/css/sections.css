@@ -99,6 +99,8 @@
 
   .hero__chip { width: min(100%, 720px); }
   .hero__note { font-size: var(--fs-sm); color: var(--text-muted); max-width: 60ch; }
+  /* Trademark clarity where it is actually read: above the fold, not only in the footer. */
+  .hero__disclaimer { font-size: var(--fs-xs); color: var(--text-muted); max-width: 60ch; margin-top: calc(var(--sp-2) * -1); }
 
   .hero__media {
     position: relative;
