@@ -125,13 +125,49 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             _logger.LogWarning("command_launch rejected: '{App}' is not whitelisted", app);
             return false;
         }
+        if (!TryValidateWhitelistEntry(entry, out var fullPath))
+        {
+            _logger.LogWarning(
+                "command_launch rejected: whitelist entry '{Entry}' is not an existing absolute .exe path", entry);
+            return false;
+        }
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName = entry,
-            UseShellExecute = true,
+            FileName = fullPath,
+            // No shell: a plain CreateProcess on the .exe — no PATH lookup, no
+            // App-Paths aliases, no URL/.lnk/.bat handlers.
+            UseShellExecute = false,
+            WorkingDirectory = System.IO.Path.GetDirectoryName(fullPath)!,
         });
-        _logger.LogInformation("PC command executed: Launch ({Entry})", entry);
+        _logger.LogInformation("PC command executed: Launch ({Entry})", fullPath);
         return true;
+    }
+
+    /// <summary>
+    /// Whitelist entries must be existing absolute .exe paths — no URLs, scripts,
+    /// shortcuts, bare names or anything else the shell would resolve on its own.
+    /// </summary>
+    public static bool TryValidateWhitelistEntry(string entry, out string fullPath)
+    {
+        fullPath = "";
+        try
+        {
+            if (!System.IO.Path.IsPathFullyQualified(entry))
+                return false;
+            var full = System.IO.Path.GetFullPath(entry);
+            if (!string.Equals(System.IO.Path.GetExtension(full), ".exe", StringComparison.OrdinalIgnoreCase)
+                || !System.IO.File.Exists(full))
+            {
+                return false;
+            }
+            fullPath = full;
+            return true;
+        }
+        catch (Exception)
+        {
+            // Invalid path characters etc. — not a launchable entry.
+            return false;
+        }
     }
 
     // ----- volume via Core Audio (no NuGet; interop mirrors AudioPlaybackProbe) -----
