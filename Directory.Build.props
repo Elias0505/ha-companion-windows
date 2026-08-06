@@ -22,6 +22,10 @@
     <NoWarn>$(NoWarn);CA1848;CA1031;CA2007</NoWarn>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <NeutralLanguage>en</NeutralLanguage>
+    <!-- Committed lockfiles + locked restore in CI: the runner can only ever
+         resolve exactly what was reviewed here. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
   </PropertyGroup>
 
   <!-- Package / authorship metadata (single source of truth) -->

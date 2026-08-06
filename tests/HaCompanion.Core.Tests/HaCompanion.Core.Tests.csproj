@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <!-- Snake_case test names are the house style; CA1861 (cache constant arrays) is
          meaningless in test methods that run once; CA1515 (make internal) breaks xunit. -->
