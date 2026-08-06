@@ -151,7 +151,7 @@ Everything is configured in **Settings** — there is no config file to edit. Se
 | **Quick panel** | Global hotkey (default `Win+Ctrl+H`), width, default view, auto-hide, edge-resize. |
 | **Report PC state (PC sensors)** | Opt-in. Publishes this PC to HA as a `mobile_app` device (see below). Off by default. |
 | **Idle threshold** | Minutes of no input before the PC counts as idle. |
-| **PC commands** | Per-command opt-in for HA→PC control (lock / monitor off / volume / mute / sleep / shutdown / launch). The critical ones are **off by default**; `launch` runs only whitelisted apps. |
+| **PC commands** | Per-command opt-in for HA→PC control (lock / monitor off / volume / mute / sleep / shutdown / launch). **All of them are off by default**; `launch` runs only whitelisted absolute `.exe` paths. |
 
 **Backup / restore** and **Diagnostics** (a redacted report for bug reports — never contains the token or webhook) are also in Settings.
 

@@ -214,9 +214,11 @@ public sealed class SettingsStore : ISettingsStore
         public string MobileAppDeviceId { get; set; } = string.Empty;
         public string WebhookIdProtected { get; set; } = string.Empty;
         public int IdleSensorThresholdMinutes { get; set; } = 5;
-        public bool AllowCmdLock { get; set; } = true;
-        public bool AllowCmdMonitorOff { get; set; } = true;
-        public bool AllowCmdVolume { get; set; } = true;
+        // Off-by-default like AppSettings: Save() always writes these keys explicitly,
+        // so existing settings files keep their values — only fresh installs change.
+        public bool AllowCmdLock { get; set; }
+        public bool AllowCmdMonitorOff { get; set; }
+        public bool AllowCmdVolume { get; set; }
         public bool AllowCmdSleep { get; set; }
         public bool AllowCmdShutdown { get; set; }
         public bool AllowCmdLaunch { get; set; }

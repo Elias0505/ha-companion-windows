@@ -59,13 +59,14 @@ public sealed class AppSettings
     public int IdleSensorThresholdMinutes { get; set; } = 5;
 
     // --- PC commands HA may send via notify.mobile_app_<device> (per-command opt-in;
-    //     the critical ones stay off until the user flips them) ---
+    //     ALL commands stay off until the user flips them — existing installs keep
+    //     whatever they saved, these defaults apply to fresh ones only) ---
 
-    public bool AllowCmdLock { get; set; } = true;
+    public bool AllowCmdLock { get; set; }
 
-    public bool AllowCmdMonitorOff { get; set; } = true;
+    public bool AllowCmdMonitorOff { get; set; }
 
-    public bool AllowCmdVolume { get; set; } = true;
+    public bool AllowCmdVolume { get; set; }
 
     public bool AllowCmdSleep { get; set; }
 
