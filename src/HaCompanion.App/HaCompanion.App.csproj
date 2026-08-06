@@ -40,8 +40,12 @@
 
   <ItemGroup>
     <!-- Exact pins only (no wildcards): the release build must be reproducible,
-         and updates arrive reviewed via Dependabot instead of silently at restore. -->
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
+         and updates arrive reviewed via Dependabot instead of silently at restore.
+         Staying on 1.8 until microsoft/WindowsAppSDK#6071 is fixed: in 2.x the
+         self-contained layout is built from the component packages only, and those
+         no longer carry Microsoft.WindowsAppRuntime.Insights.Resource.dll — so
+         AppNotificationManager.Register() throws 0x8007007E and toasts die. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260710003" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.8249" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" />
