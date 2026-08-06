@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Services;
+using HaCompanion.Core.MobileApp;
 using HaCompanion.Core.Notifications;
 
 namespace HaCompanion.App.ViewModels;
@@ -265,7 +266,7 @@ public sealed partial class MyPcViewModel : ObservableObject
         foreach (var entry in LaunchWhitelistText
                      .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            if (PcCommandExecutor.TryValidateWhitelistEntry(entry, out var fullPath))
+            if (LaunchWhitelist.TryValidateEntry(entry, out var fullPath))
                 valid.Add(fullPath);
             else
                 invalid.Add(entry);
