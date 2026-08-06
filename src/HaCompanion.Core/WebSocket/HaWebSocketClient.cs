@@ -26,6 +26,12 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private CancellationTokenSource? _cts;
     private CancellationTokenSource? _backoffSkip; // cancelled by PokeReconnect() to end a wait early
     private bool _sessionReachedConnected;
+
+    // Session generation: Start()/Stop() bump it, and every shared-state write from a
+    // supervisor (Status, _pending, _backoffSkip) checks it first — the tail of an old
+    // session that is still unwinding must never write over the newer session's state
+    // (same reason _activeSocket is cleared with a CompareExchange below).
+    private int _generation;
     private readonly OutageLogGate _outageGate = new();
     private Task? _supervisor;
     private ClientWebSocket? _activeSocket;
@@ -60,7 +66,9 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         _token = token;
         _ignoreCertErrors = ignoreCertErrors;
         _cts = new CancellationTokenSource();
-        _supervisor = Task.Run(() => SuperviseAsync(_cts.Token));
+        var gen = Interlocked.Increment(ref _generation);
+        var ct = _cts.Token;
+        _supervisor = Task.Run(() => SuperviseAsync(gen, ct));
     }
 
     /// <summary>
@@ -139,12 +147,15 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     {
         if (_cts is null)
             return;
+        // Invalidate the running supervisor's generation BEFORE cancelling: its unwinding
+        // tail then loses every shared-state write race against this (authoritative) call.
+        var gen = Interlocked.Increment(ref _generation);
         try { _cts.Cancel(); }
         catch { /* already disposed */ }
         _cts.Dispose();
         _cts = null;
-        FailPending(new OperationCanceledException("Connection stopped."));
-        SetStatus(HaConnectionStatus.Disconnected);
+        FailPending(gen, new OperationCanceledException("Connection stopped."));
+        SetStatus(gen, HaConnectionStatus.Disconnected);
     }
 
     /// <summary>
@@ -185,7 +196,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }
     }
 
-    private async Task SuperviseAsync(CancellationToken ct)
+    private async Task SuperviseAsync(int gen, CancellationToken ct)
     {
         var backoffSeconds = 1.0;
         while (!ct.IsCancellationRequested)
@@ -193,7 +204,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             _sessionReachedConnected = false;
             try
             {
-                await ConnectAndListenAsync(ct).ConfigureAwait(false);
+                await ConnectAndListenAsync(gen, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -205,7 +216,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
                 // exactly like an auth failure (the UI turns it into an actionable hint).
                 if (Status != HaConnectionStatus.AuthFailed
                     && HaRestClient.ClassifyException(ex) == ConnectionCheckStatus.TlsError)
-                    SetStatus(HaConnectionStatus.TlsError);
+                    SetStatus(gen, HaConnectionStatus.TlsError);
 
                 if (_outageGate.OnFailure())
                     _logger.LogWarning(ex, "Home Assistant connection lost");
@@ -217,7 +228,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
                 // _activeSocket is cleared inside ConnectAndListenAsync with a CompareExchange
                 // against ITS OWN socket — clearing it here could clobber the socket of a NEWER
                 // supervisor when Start() is called while an old session is still unwinding.
-                FailPending(new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Session ended."));
+                FailPending(gen, new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Session ended."));
             }
 
             if (ct.IsCancellationRequested)
@@ -233,9 +244,10 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             if (_sessionReachedConnected)
                 backoffSeconds = 1.0;
 
-            SetStatus(HaConnectionStatus.Reconnecting);
+            SetStatus(gen, HaConnectionStatus.Reconnecting);
             using var skip = new CancellationTokenSource();
-            _backoffSkip = skip;
+            if (gen == Volatile.Read(ref _generation))
+                _backoffSkip = skip;
             using var wait = CancellationTokenSource.CreateLinkedTokenSource(ct, skip.Token);
             try
             {
@@ -252,17 +264,18 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             }
             finally
             {
-                _backoffSkip = null;
+                // Clear only OUR skip source — a newer session may already own the field.
+                Interlocked.CompareExchange(ref _backoffSkip, null, skip);
             }
         }
 
         if (Status is not HaConnectionStatus.AuthFailed and not HaConnectionStatus.TlsError)
-            SetStatus(HaConnectionStatus.Disconnected);
+            SetStatus(gen, HaConnectionStatus.Disconnected);
     }
 
-    private async Task ConnectAndListenAsync(CancellationToken ct)
+    private async Task ConnectAndListenAsync(int gen, CancellationToken ct)
     {
-        SetStatus(HaConnectionStatus.Connecting);
+        SetStatus(gen, HaConnectionStatus.Connecting);
 
         using var socket = new ClientWebSocket();
 #pragma warning disable CA5359 // deliberate user opt-in: "ignore certificate errors" for self-signed HTTPS
@@ -272,7 +285,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
 
         await socket.ConnectAsync(_uri, ct).ConfigureAwait(false);
 
-        SetStatus(HaConnectionStatus.Authenticating);
+        SetStatus(gen, HaConnectionStatus.Authenticating);
 
         // 1) server -> auth_required
         using (await ReceiveJsonAsync(socket, ct).ConfigureAwait(false)) { }
@@ -288,7 +301,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             var authType = authDoc.RootElement.TryGetProperty("type", out var t) ? t.GetString() : null;
             if (authType != "auth_ok")
             {
-                SetStatus(HaConnectionStatus.AuthFailed);
+                SetStatus(gen, HaConnectionStatus.AuthFailed);
                 throw new InvalidOperationException($"Home Assistant authentication failed (type='{authType}').");
             }
         }
@@ -296,7 +309,7 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         _activeSocket = socket;
         try
         {
-            SetStatus(HaConnectionStatus.Connected);
+            SetStatus(gen, HaConnectionStatus.Connected);
             _sessionReachedConnected = true;
             if (_outageGate.OnRestored())
                 _logger.LogInformation("Home Assistant connection restored");
@@ -470,8 +483,10 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }
     }
 
-    private void FailPending(Exception exception)
+    private void FailPending(int gen, Exception exception)
     {
+        if (gen != Volatile.Read(ref _generation))
+            return; // stale session tail — the commands in _pending belong to a newer session
         foreach (var key in _pending.Keys)
             if (_pending.TryRemove(key, out var tcs))
                 tcs.TrySetException(exception);
@@ -479,8 +494,10 @@ public sealed class HaWebSocketClient : IAsyncDisposable
 
     private int NextId() => Interlocked.Increment(ref _msgId);
 
-    private void SetStatus(HaConnectionStatus status)
+    private void SetStatus(int gen, HaConnectionStatus status)
     {
+        if (gen != Volatile.Read(ref _generation))
+            return; // stale session tail must not overwrite the newer session's status
         if (Status == status)
             return;
         Status = status;
@@ -501,16 +518,33 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }
     }
 
-    private static async Task<JsonDocument> ReceiveJsonAsync(ClientWebSocket socket, CancellationToken ct)
+    /// <summary>
+    /// Upper bound for one received message. HA's get_states-style payloads reach a few MB
+    /// on attribute-heavy installs; 32 MB is an order of magnitude of headroom while still
+    /// stopping a broken or hostile endpoint long before the MemoryStream eats all RAM.
+    /// Exceeding it throws, which unwinds the session into the normal reconnect path.
+    /// </summary>
+    internal const int MaxMessageBytes = 32 * 1024 * 1024;
+
+    private static Task<JsonDocument> ReceiveJsonAsync(ClientWebSocket socket, CancellationToken ct) =>
+        ReceiveJsonAsync(socket.ReceiveAsync, ct);
+
+    /// <summary>Testable core of the receive loop (the socket is reduced to its receive call).</summary>
+    internal static async Task<JsonDocument> ReceiveJsonAsync(
+        Func<ArraySegment<byte>, CancellationToken, Task<WebSocketReceiveResult>> receiveAsync,
+        CancellationToken ct)
     {
         using var ms = new MemoryStream();
         var buffer = new byte[16 * 1024];
         WebSocketReceiveResult result;
         do
         {
-            result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
+            result = await receiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
             if (result.MessageType == WebSocketMessageType.Close)
                 throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Home Assistant closed the WebSocket.");
+            if (ms.Length + result.Count > MaxMessageBytes)
+                throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely,
+                    $"Message exceeds the {MaxMessageBytes / (1024 * 1024)} MB receive limit.");
             ms.Write(buffer, 0, result.Count);
         }
         while (!result.EndOfMessage);
