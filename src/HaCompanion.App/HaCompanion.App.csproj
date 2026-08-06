@@ -25,6 +25,10 @@
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
+    <!-- Must live HERE, not on the publish command line: with locked-mode restore the
+         crossgen runtime pack is only fetched when restore already sees this property
+         (NETSDK1094 otherwise). Affects publish only, not F5/debug builds. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
 
     <IsPackable>false</IsPackable>
     <DefaultLanguage>en-US</DefaultLanguage>
