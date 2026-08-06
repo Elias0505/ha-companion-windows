@@ -121,6 +121,42 @@ public sealed partial class EntityCatalogViewModel : ObservableObject
             tile.RefreshStateText(); // "On"/"Off" are localized too
     }
 
+    /// <summary>
+    /// Re-read layout.json (pins + spans) after a config import replaced the file and
+    /// rebuild the Pinned collection from it. UI thread only, like every tile mutation.
+    /// </summary>
+    public void ReloadLayout()
+    {
+        _pinnedIds = [.. _layoutStore.LoadPinned()];
+        _spansById.Clear();
+        foreach (var (id, span) in _layoutStore.LoadSpans())
+            _spansById[id] = span;
+
+        _suppressLayoutSave = true; // rebuilding must not write intermediate states back
+        try
+        {
+            Pinned.Clear();
+            foreach (var tile in _tilesById.Values)
+            {
+                tile.IsPinned = false;
+                var (cols, rows) = _spansById.GetValueOrDefault(tile.EntityId, (1, 1));
+                tile.SetSpans(cols, rows);
+            }
+            foreach (var id in _pinnedIds)
+            {
+                if (_tilesById.TryGetValue(id, out var tile))
+                {
+                    tile.IsPinned = true;
+                    Pinned.Add(tile);
+                }
+            }
+        }
+        finally
+        {
+            _suppressLayoutSave = false;
+        }
+    }
+
     /// <summary>Pin or unpin a tile (pin appends at the end).</summary>
     public void TogglePin(EntityTileViewModel tile)
     {

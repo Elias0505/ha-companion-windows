@@ -17,6 +17,9 @@ public interface ITileLayoutStore
     void SavePinned(IReadOnlyList<string> entityIds);
 
     void SaveSpans(IReadOnlyDictionary<string, (int Cols, int Rows)> spans);
+
+    /// <summary>Drop the cache so the next load re-reads layout.json (config import).</summary>
+    void Invalidate();
 }
 
 /// <inheritdoc cref="ITileLayoutStore"/>
@@ -82,6 +85,8 @@ public sealed class TileLayoutStore : ITileLayoutStore
         layout.Sizes = null;
         Write();
     }
+
+    public void Invalidate() => _layout = null; // UI-thread store, like the loads/saves
 
     private Layout GetLayout()
     {

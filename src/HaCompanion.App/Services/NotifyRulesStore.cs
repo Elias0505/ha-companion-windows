@@ -11,6 +11,9 @@ public interface INotifyRulesStore
     IReadOnlyList<NotificationRule> Load();
 
     void Save(IReadOnlyList<NotificationRule> rules);
+
+    /// <summary>Drop the cache so the next <see cref="Load"/> re-reads the file (config import).</summary>
+    void Invalidate();
 }
 
 /// <inheritdoc cref="INotifyRulesStore"/>
@@ -57,6 +60,12 @@ public sealed class NotifyRulesStore : INotifyRulesStore
             File.WriteAllText(tmp, JsonSerializer.Serialize(new Persisted { Rules = _cache }, JsonOptions));
             File.Move(tmp, _file, overwrite: true);
         }
+    }
+
+    public void Invalidate()
+    {
+        lock (_gate)
+            _cache = null;
     }
 
     private sealed class Persisted

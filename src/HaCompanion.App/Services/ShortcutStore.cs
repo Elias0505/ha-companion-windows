@@ -14,6 +14,9 @@ public interface IShortcutStore
     IReadOnlyList<ShortcutBinding> Load();
 
     void Save(IReadOnlyList<ShortcutBinding> shortcuts);
+
+    /// <summary>Drop the cache so the next <see cref="Load"/> re-reads the file (config import).</summary>
+    void Invalidate();
 }
 
 /// <inheritdoc cref="IShortcutStore"/>
@@ -70,6 +73,8 @@ public sealed class ShortcutStore : IShortcutStore
             _logger.LogWarning(ex, "Failed to save shortcuts");
         }
     }
+
+    public void Invalidate() => _cache = null; // UI-thread store, like Load/Save
 
     private sealed class Persisted
     {
