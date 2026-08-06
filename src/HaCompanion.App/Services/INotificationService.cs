@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 namespace HaCompanion.App.Services;
 
+/// <summary>A clicked toast button: the action id plus the HA tag that toast was shown with.</summary>
+public sealed record ToastActionInvokedArgs(string Action, string? Tag);
+
 /// <summary>Native Windows toast notifications (best-effort; may be unavailable in self-contained builds).</summary>
 public interface INotificationService
 {
@@ -9,9 +12,13 @@ public interface INotificationService
 
     void Show(string title, string message);
 
-    /// <summary>Toast with clickable buttons; button clicks raise <see cref="ActionInvoked"/>.</summary>
-    void ShowWithActions(string title, string message, IReadOnlyList<(string Action, string Title)> actions);
+    /// <summary>
+    /// Toast with clickable buttons; button clicks raise <see cref="ActionInvoked"/>.
+    /// <paramref name="haTag"/> travels inside each button's activation arguments so a
+    /// click always reports the tag of ITS OWN toast, not of whichever arrived last.
+    /// </summary>
+    void ShowWithActions(string title, string message, IReadOnlyList<(string Action, string Title)> actions, string? haTag);
 
-    /// <summary>Raised with the action id when the user clicks a toast button.</summary>
-    event EventHandler<string>? ActionInvoked;
+    /// <summary>Raised when the user clicks a toast button.</summary>
+    event EventHandler<ToastActionInvokedArgs>? ActionInvoked;
 }

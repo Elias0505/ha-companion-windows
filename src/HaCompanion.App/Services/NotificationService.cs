@@ -35,7 +35,7 @@ public sealed class NotificationService : INotificationService
         }
     }
 
-    public event EventHandler<string>? ActionInvoked;
+    public event EventHandler<ToastActionInvokedArgs>? ActionInvoked;
 
     public void Show(string title, string message)
     {
@@ -59,7 +59,7 @@ public sealed class NotificationService : INotificationService
         }
     }
 
-    public void ShowWithActions(string title, string message, IReadOnlyList<(string Action, string Title)> actions)
+    public void ShowWithActions(string title, string message, IReadOnlyList<(string Action, string Title)> actions, string? haTag)
     {
         if (!_available)
             return;
@@ -69,7 +69,14 @@ public sealed class NotificationService : INotificationService
                 .AddText(title)
                 .AddText(message);
             foreach (var (action, label) in actions.Take(5)) // Windows caps toast buttons at 5
-                builder.AddButton(new AppNotificationButton(label).AddArgument("action", action));
+            {
+                var button = new AppNotificationButton(label).AddArgument("action", action);
+                // The HA tag rides in the button's own arguments — a click on an old
+                // toast must report that toast's tag, not the most recent one.
+                if (!string.IsNullOrEmpty(haTag))
+                    button.AddArgument("tag", haTag);
+                builder.AddButton(button);
+            }
             var toast = builder.BuildNotification();
             toast.Tag = $"hac-{Interlocked.Increment(ref _toastSeq)}";
             AppNotificationManager.Default.Show(toast);
@@ -83,10 +90,12 @@ public sealed class NotificationService : INotificationService
 
     private void OnNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
     {
-        // A button click carries its action id; a plain body click focuses the app.
+        // A button click carries its action id (+ the originating toast's tag);
+        // a plain body click focuses the app.
         if (args.Arguments.TryGetValue("action", out var action) && !string.IsNullOrEmpty(action))
         {
-            ActionInvoked?.Invoke(this, action);
+            args.Arguments.TryGetValue("tag", out var tag);
+            ActionInvoked?.Invoke(this, new ToastActionInvokedArgs(action, string.IsNullOrEmpty(tag) ? null : tag));
             return;
         }
         var window = App.MainWindow;
