@@ -1,0 +1,12 @@
+# Keeps the exact-pinned NuGet packages and action SHAs moving via PRs
+# instead of floating wildcards in the project files.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

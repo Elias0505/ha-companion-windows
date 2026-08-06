@@ -11,6 +11,9 @@ public interface IRulesStore
     IReadOnlyList<AutomationRule> Load();
 
     void Save(IReadOnlyList<AutomationRule> rules);
+
+    /// <summary>Drop the cache so the next <see cref="Load"/> re-reads the file (config import).</summary>
+    void Invalidate();
 }
 
 /// <inheritdoc cref="IRulesStore"/>
@@ -74,6 +77,12 @@ public sealed class RulesStore : IRulesStore
             _cache = rules.ToList();
             WriteToDisk(_cache);
         }
+    }
+
+    public void Invalidate()
+    {
+        lock (_gate)
+            _cache = null;
     }
 
     private void WriteToDisk(List<AutomationRule> rules)

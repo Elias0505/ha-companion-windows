@@ -22,6 +22,10 @@
     <NoWarn>$(NoWarn);CA1848;CA1031;CA2007</NoWarn>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <NeutralLanguage>en</NeutralLanguage>
+    <!-- Committed lockfiles + locked restore in CI: the runner can only ever
+         resolve exactly what was reviewed here. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
   </PropertyGroup>
 
   <!-- Package / authorship metadata (single source of truth) -->
@@ -33,7 +37,7 @@
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Elias0505/ha-companion-windows</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
 </Project>

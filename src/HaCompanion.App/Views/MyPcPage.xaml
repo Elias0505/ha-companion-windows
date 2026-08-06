@@ -160,6 +160,9 @@
             <TextBox Header="{Binding [Cmd_Whitelist], Source={StaticResource Loc}}"
                      Text="{Binding LaunchWhitelistText, Mode=TwoWay}"
                      Visibility="{Binding AllowLaunch, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding WhitelistError}" TextWrapping="Wrap"
+                       Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                       Visibility="{Binding AllowLaunch, Converter={StaticResource BoolToVisibility}}" />
 
             <!-- ===== received history ===== -->
             <TextBlock Text="{Binding [Rx_Title], Source={StaticResource Loc}}"

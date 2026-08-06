@@ -7,10 +7,12 @@
 #   $env:GH_TOKEN = '<token>'          -> install from a private fork/repo (maintainers/testing)
 #
 # The script downloads the latest GitHub release (self-contained win-x64 build),
+# verifies its SHA-256 against the SHA256SUMS.txt published with the same release,
 # installs it to %LOCALAPPDATA%\Programs\HaCompanion and creates a Start Menu
-# shortcut. Running it again updates an existing installation in place.
-# Your settings are stored separately in %LOCALAPPDATA%\HaCompanion and are
-# never touched by install or update.
+# shortcut. Running it again updates an existing installation in place — the new
+# version is staged and verified first, and the old one is only swapped out after
+# that (with rollback if the swap fails). Your settings are stored separately in
+# %LOCALAPPDATA%\HaCompanion and are never touched by install or update.
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -18,6 +20,24 @@ $ProgressPreference = 'SilentlyContinue'
 
 $repo = 'Elias0505/ha-companion-windows'
 $dest = Join-Path $env:LOCALAPPDATA 'Programs\HaCompanion'
+
+function Test-InDestPath {
+    param([string]$Path)
+    if (-not $Path) { return $false }
+    # Trailing-separator compare: a sibling like ...\Programs\HaCompanionFoo is NOT ours.
+    $clean = $Path.Trim('"').Trim().TrimEnd('\').ToLowerInvariant()
+    $root = $dest.TrimEnd('\').ToLowerInvariant()
+    return ($clean -eq $root) -or $clean.StartsWith($root + '\')
+}
+
+function Move-WithRetry {
+    param([string]$From, [string]$To)
+    for ($i = 0; $i -lt 5; $i++) {
+        try { Move-Item -LiteralPath $From -Destination $To -ErrorAction Stop; return $true }
+        catch { Start-Sleep -Seconds 1 }
+    }
+    return $false
+}
 
 # --- prerequisites -----------------------------------------------------------
 # Windows 10 2004 (build 19041) or newer is required by the Windows App SDK.
@@ -44,59 +64,123 @@ function Test-WebView2 {
     return $false
 }
 
-if (-not (Test-WebView2)) {
-    Write-Host 'WebView2 Runtime is missing - installing it via the official Microsoft bootstrapper (a UAC prompt may appear)...'
-    $wv2 = Join-Path $env:TEMP 'MicrosoftEdgeWebView2Setup.exe'
-    # -UseBasicParsing everywhere: Windows PowerShell 5.1 otherwise reaches for the Internet
-    # Explorer engine, which no longer exists on Windows 11.
-    Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $wv2 -UseBasicParsing
-    Start-Process -FilePath $wv2 -ArgumentList '/install' -Wait
-    Remove-Item -Path $wv2 -Force -ErrorAction SilentlyContinue
+# Everything downloaded lands in a fresh random directory (no predictable %TEMP% names
+# another local process could pre-plant or swap between download and use).
+$tmpRoot = Join-Path $env:TEMP ('hacompanion-install-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $tmpRoot | Out-Null
+$foreign = @()
+try {
     if (-not (Test-WebView2)) {
-        Write-Warning 'WebView2 Runtime could not be verified. The app will still install, but the Lovelace view needs WebView2 (https://developer.microsoft.com/microsoft-edge/webview2/).'
+        Write-Host 'WebView2 Runtime is missing - installing it via the official Microsoft bootstrapper (a UAC prompt may appear)...'
+        $wv2 = Join-Path $tmpRoot 'MicrosoftEdgeWebView2Setup.exe'
+        # -UseBasicParsing everywhere: Windows PowerShell 5.1 otherwise reaches for the Internet
+        # Explorer engine, which no longer exists on Windows 11.
+        Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $wv2 -UseBasicParsing
+        # The bootstrapper runs elevated - never execute it without checking it really is
+        # Microsoft's signed binary.
+        $sig = Get-AuthenticodeSignature -LiteralPath $wv2
+        if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch '(^|,\s*)CN=Microsoft Corporation(,|$)') {
+            throw "The WebView2 bootstrapper failed signature verification (status: $($sig.Status)) - refusing to run it."
+        }
+        Start-Process -FilePath $wv2 -ArgumentList '/install' -Wait
+        if (-not (Test-WebView2)) {
+            Write-Warning 'WebView2 Runtime could not be verified. The app will still install, but the Lovelace view needs WebView2 (https://developer.microsoft.com/microsoft-edge/webview2/).'
+        }
+    }
+    # -------------------------------------------------------------------------
+
+    $headers = @{ 'User-Agent' = 'HaCompanion-Installer' }
+    if ($env:GH_TOKEN) { $headers['Authorization'] = "Bearer $($env:GH_TOKEN)" }
+
+    Write-Host 'Looking up the latest HA Companion release...'
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -Headers $headers
+    $asset = $release.assets | Where-Object { $_.name -like 'HaCompanion-*-win-x64.zip' } | Select-Object -First 1
+    if (-not $asset) {
+        throw "No win-x64 release asset found in $($release.tag_name). Please report this at https://github.com/$repo/issues"
+    }
+
+    # Private repos require the asset API endpoint with octet-stream accept header.
+    $dlHeaders = $headers.Clone()
+    $dlHeaders['Accept'] = 'application/octet-stream'
+    function Save-Asset {
+        param($ReleaseAsset, [string]$To)
+        if ($env:GH_TOKEN) {
+            Invoke-WebRequest -Uri $ReleaseAsset.url -Headers $dlHeaders -OutFile $To -UseBasicParsing
+        } else {
+            Invoke-WebRequest -Uri $ReleaseAsset.browser_download_url -Headers $headers -OutFile $To -UseBasicParsing
+        }
+    }
+
+    $zip = Join-Path $tmpRoot $asset.name
+    Write-Host ("Downloading {0} ({1:N1} MB)..." -f $asset.name, ($asset.size / 1MB))
+    Save-Asset -ReleaseAsset $asset -To $zip
+
+    # --- checksum: the release must carry SHA256SUMS.txt, and the ZIP must match it.
+    # Fail closed - an unverifiable binary is not installed.
+    $sumsAsset = $release.assets | Where-Object { $_.name -eq 'SHA256SUMS.txt' } | Select-Object -First 1
+    if (-not $sumsAsset) {
+        throw "Release $($release.tag_name) carries no SHA256SUMS.txt - refusing to install an unverifiable binary."
+    }
+    $sumsFile = Join-Path $tmpRoot 'SHA256SUMS.txt'
+    Save-Asset -ReleaseAsset $sumsAsset -To $sumsFile
+    $sumsLine = Get-Content -LiteralPath $sumsFile |
+        Where-Object { $_ -match ('\s' + [regex]::Escape($asset.name) + '$') } | Select-Object -First 1
+    if (-not $sumsLine) { throw "SHA256SUMS.txt has no entry for $($asset.name)." }
+    $expected = ($sumsLine -split '\s+')[0].ToUpperInvariant()
+    $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($actual -ne $expected) {
+        throw "Checksum mismatch for $($asset.name): expected $expected, got $actual. Download corrupted or tampered with - nothing was installed."
+    }
+    Write-Host 'SHA-256 checksum verified.'
+
+    # --- stage + sanity-check the new version BEFORE touching the existing install.
+    $staging = Join-Path $tmpRoot 'app'
+    Expand-Archive -Path $zip -DestinationPath $staging -Force
+    if (-not (Test-Path (Join-Path $staging 'HaCompanion.exe'))) {
+        throw 'HaCompanion.exe not found in the release ZIP - the release asset layout changed?'
+    }
+
+    # Every running copy has to go: the app is single-instance, so one started from somewhere
+    # else would swallow the launch of the one we are installing. Remember where those came
+    # from - this installer only manages $dest, and the user deserves to hear about it.
+    $running = @(Get-Process -Name 'HaCompanion' -ErrorAction SilentlyContinue)
+    $foreign = @($running | Where-Object { $_.Path -and -not (Test-InDestPath $_.Path) } |
+                 ForEach-Object { $_.Path } | Select-Object -Unique)
+    if ($running.Count -gt 0) {
+        Write-Host 'Stopping the running HA Companion instance...'
+        $running | Stop-Process -Force
+        Start-Sleep -Milliseconds 800
+    }
+
+    # --- atomic swap with rollback: the old install is moved aside, never deleted,
+    # until the new one is in place.
+    $old = $null
+    if (Test-Path $dest) {
+        $old = $dest + '.old-' + (Get-Date -Format 'yyyyMMddHHmmss')
+        if (-not (Move-WithRetry -From $dest -To $old)) {
+            throw "Could not move the existing installation aside ($dest is in use). Nothing was changed."
+        }
+    }
+    if (-not (Move-WithRetry -From $staging -To $dest)) {
+        if ($old) { Move-WithRetry -From $old -To $dest | Out-Null }  # rollback: old install restored
+        throw 'Could not move the new version into place; the previous installation was restored.'
+    }
+    if ($old) {
+        Remove-Item -Path $old -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $old) {
+            # Something (a WebView2 host, an indexer) still holds a file - let a detached
+            # command retire it once the lock is gone, exactly like the uninstaller does.
+            Start-Process -FilePath 'cmd.exe' `
+                -ArgumentList '/c', ('timeout /t 5 /nobreak >nul & rmdir /s /q "' + $old + '"') `
+                -WindowStyle Hidden
+        }
     }
 }
-# -----------------------------------------------------------------------------
-
-$headers = @{ 'User-Agent' = 'HaCompanion-Installer' }
-if ($env:GH_TOKEN) { $headers['Authorization'] = "Bearer $($env:GH_TOKEN)" }
-
-Write-Host 'Looking up the latest HA Companion release...'
-$release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -Headers $headers
-$asset = $release.assets | Where-Object { $_.name -like 'HaCompanion-*-win-x64.zip' } | Select-Object -First 1
-if (-not $asset) {
-    throw "No win-x64 release asset found in $($release.tag_name). Please report this at https://github.com/$repo/issues"
+finally {
+    Remove-Item -Path $tmpRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
-
-$zip = Join-Path $env:TEMP $asset.name
-Write-Host ("Downloading {0} ({1:N1} MB)..." -f $asset.name, ($asset.size / 1MB))
-if ($env:GH_TOKEN) {
-    # Private repos require the asset API endpoint with octet-stream accept header
-    $dlHeaders = @{ 'User-Agent' = 'HaCompanion-Installer'; 'Authorization' = "Bearer $($env:GH_TOKEN)"; 'Accept' = 'application/octet-stream' }
-    Invoke-WebRequest -Uri $asset.url -Headers $dlHeaders -OutFile $zip -UseBasicParsing
-} else {
-    Invoke-WebRequest -Uri $asset.browser_download_url -Headers $headers -OutFile $zip -UseBasicParsing
-}
-
-# Every running copy has to go: the app is single-instance, so one started from somewhere
-# else would swallow the launch of the one we are installing. Remember where those came
-# from - this installer only manages $dest, and the user deserves to hear about it.
-$running = @(Get-Process -Name 'HaCompanion' -ErrorAction SilentlyContinue)
-$foreign = @($running | Where-Object { $_.Path -and -not $_.Path.ToLowerInvariant().StartsWith($dest.ToLowerInvariant()) } |
-             ForEach-Object { $_.Path } | Select-Object -Unique)
-if ($running.Count -gt 0) {
-    Write-Host 'Stopping the running HA Companion instance...'
-    $running | Stop-Process -Force
-    Start-Sleep -Milliseconds 800
-}
-
-if (Test-Path $dest) { Remove-Item -Path $dest -Recurse -Force }
-New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Expand-Archive -Path $zip -DestinationPath $dest -Force
-Remove-Item -Path $zip -Force
 
 $exe = Join-Path $dest 'HaCompanion.exe'
-if (-not (Test-Path $exe)) { throw "HaCompanion.exe not found after extraction - the release asset layout changed?" }
 
 $shell = New-Object -ComObject WScript.Shell
 $lnkPath = Join-Path $shell.SpecialFolders.Item('Programs') 'HA Companion.lnk'
@@ -166,8 +250,11 @@ function Show-Dialog {
 function Test-InDest {
     param([string]$Path)
     if (-not $Path) { return $false }
-    $clean = $Path.Trim('"').Trim()
-    return $clean.ToLowerInvariant().StartsWith($dest.ToLowerInvariant())
+    # Compare with a trailing separator so a sibling like ...\Programs\HaCompanionFoo
+    # never counts as "inside" the folder this uninstaller owns.
+    $clean = $Path.Trim('"').Trim().TrimEnd('\').ToLowerInvariant()
+    $root = $dest.TrimEnd('\').ToLowerInvariant()
+    return ($clean -eq $root) -or $clean.StartsWith($root + '\')
 }
 
 # --- step 0: run from %TEMP% so we may delete our own program folder ---------

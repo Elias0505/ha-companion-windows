@@ -6,6 +6,7 @@ using HaCompanion.App.Controls;
 using global::Windows.ApplicationModel.DataTransfer;
 using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
+using HaCompanion.Core.Web;
 using HaCompanion.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
@@ -492,16 +493,13 @@ public sealed partial class QuickPanelWindow : Window
             null, userDataFolder, new CoreWebView2EnvironmentOptions());
         await PanelWeb.EnsureCoreWebView2Async(env);
 
-        if (settings.IgnoreCertificateErrors)
-        {
-            PanelWeb.CoreWebView2.ServerCertificateErrorDetected += (_, e) =>
-                e.Action = CoreWebView2ServerCertificateErrorAction.AlwaysAllow;
-        }
+        var baseUri = new Uri(_baseUrl, UriKind.Absolute);
+        WebViewHardening.Apply(PanelWeb.CoreWebView2, baseUri, settings.IgnoreCertificateErrors);
 
         await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
-            HaWebViewHelper.BuildAuthScript(_baseUrl, settings.Token));
+            HaWebViewScripts.BuildAuthScript(baseUri, settings.Token));
         await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
-            HaWebViewHelper.HideChromeScript);
+            HaWebViewScripts.HideChromeScript);
     }
 
     private void OnEscape(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)

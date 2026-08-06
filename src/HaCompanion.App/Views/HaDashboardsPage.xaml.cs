@@ -5,6 +5,7 @@ using System.Text.Json;
 using HaCompanion.App.Services;
 using HaCompanion.Core.Models;
 using HaCompanion.Core.Services;
+using HaCompanion.Core.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -72,15 +73,12 @@ public sealed partial class HaDashboardsPage : Page
                 null, userDataFolder, new CoreWebView2EnvironmentOptions());
             await Web.EnsureCoreWebView2Async(env);
 
-            if (settings.IgnoreCertificateErrors)
-            {
-                Web.CoreWebView2.ServerCertificateErrorDetected += (_, args) =>
-                    args.Action = CoreWebView2ServerCertificateErrorAction.AlwaysAllow;
-            }
+            var baseUri = new Uri(_baseUrl, UriKind.Absolute);
+            WebViewHardening.Apply(Web.CoreWebView2, baseUri, settings.IgnoreCertificateErrors);
 
             // Pre-seed hassTokens so the HA frontend logs in without any prompt.
             await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
-                HaWebViewHelper.BuildAuthScript(_baseUrl, settings.Token));
+                HaWebViewScripts.BuildAuthScript(baseUri, settings.Token));
             // Note: HA's own sidebar stays intact (the ☰ button must keep working);
             // switch dashboards via the native picker above or HA's sidebar.
         }

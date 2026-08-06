@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>HaCompanion.App</RootNamespace>
     <AssemblyName>HaCompanion</AssemblyName>
@@ -25,6 +25,10 @@
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
+    <!-- Must live HERE, not on the publish command line: with locked-mode restore the
+         crossgen runtime pack is only fetched when restore already sees this property
+         (NETSDK1094 otherwise). Affects publish only, not F5/debug builds. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
 
     <IsPackable>false</IsPackable>
     <DefaultLanguage>en-US</DefaultLanguage>
@@ -35,13 +39,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.*" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.*" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.3.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+    <!-- Exact pins only (no wildcards): the release build must be reproducible,
+         and updates arrive reviewed via Dependabot instead of silently at restore.
+         Staying on 1.8 until microsoft/WindowsAppSDK#6071 is fixed: in 2.x the
+         self-contained layout is built from the component packages only, and those
+         no longer carry Microsoft.WindowsAppRuntime.Insights.Resource.dll — so
+         AppNotificationManager.Register() throws 0x8007007E and toasts die. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260710003" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.8249" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.10" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup>

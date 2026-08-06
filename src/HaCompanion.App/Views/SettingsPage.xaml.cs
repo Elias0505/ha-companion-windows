@@ -118,6 +118,9 @@ public sealed partial class SettingsPage : Page
                 App.Services.GetRequiredService<IShortcutManager>().Reload();
                 App.Services.GetRequiredService<IRulesEngine>().Reload();
                 App.Services.GetRequiredService<INotifyRulesEngine>().Reload();
+                // The tile catalog keeps pins/spans in memory — rebuild it from the
+                // imported layout.json (we are on the UI thread here).
+                App.Services.GetRequiredService<EntityCatalogViewModel>().ReloadLayout();
             }
             BackupStatus.Text = Loc[ok ? "Backup_Imported" : "Backup_Invalid"];
         }

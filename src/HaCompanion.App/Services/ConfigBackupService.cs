@@ -47,9 +47,19 @@ public sealed class ConfigBackupService : IConfigBackupService
         "AllowCmdShutdown", "AllowCmdLaunch", "LaunchWhitelist",
     };
 
-    public ConfigBackupService(ISettingsStore settings, ILogger<ConfigBackupService> logger)
+    private readonly IShortcutStore _shortcuts;
+    private readonly IRulesStore _rules;
+    private readonly INotifyRulesStore _notifyRules;
+    private readonly ITileLayoutStore _layout;
+
+    public ConfigBackupService(ISettingsStore settings, IShortcutStore shortcuts, IRulesStore rules,
+        INotifyRulesStore notifyRules, ITileLayoutStore layout, ILogger<ConfigBackupService> logger)
     {
         _settings = settings;
+        _shortcuts = shortcuts;
+        _rules = rules;
+        _notifyRules = notifyRules;
+        _layout = layout;
         _logger = logger;
     }
 
@@ -117,6 +127,14 @@ public sealed class ConfigBackupService : IConfigBackupService
                         continue; // ignore unknown/foreign file names
                     WriteAtomic(Path.Combine(_dir, name), node.ToJsonString(Indented));
                 }
+
+                // Every store caches its file in memory AND writes from that cache — without
+                // dropping the caches the import only shows after a restart, and worse, the
+                // next Save() would overwrite the imported file with pre-import data.
+                _shortcuts.Invalidate();
+                _rules.Invalidate();
+                _notifyRules.Invalidate();
+                _layout.Invalidate();
             }
 
             // Merge portable settings into the existing settings.json (keeps token/webhook).

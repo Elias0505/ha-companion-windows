@@ -316,7 +316,8 @@
     "Reset_ConfirmBody": "Your configuration and the Home Assistant token will be deleted permanently and the app will restart.",
     "Reset_Confirm": "Reset",
     "Reset_Restarting": "Configuration deleted — restarting…",
-    "Reset_Failed": "Reset failed."
+    "Reset_Failed": "Reset failed.",
+    "Cmd_WhitelistInvalid": "Not saved (must be the full path of an existing .exe): {0}"
   },
   "de": {
     "Nav_Start": "Start",
@@ -635,7 +636,8 @@
     "Reset_ConfirmBody": "Deine Konfiguration und der Home-Assistant-Token werden dauerhaft gelöscht und die App startet neu.",
     "Reset_Confirm": "Zurücksetzen",
     "Reset_Restarting": "Konfiguration gelöscht — App startet neu …",
-    "Reset_Failed": "Zurücksetzen fehlgeschlagen."
+    "Reset_Failed": "Zurücksetzen fehlgeschlagen.",
+    "Cmd_WhitelistInvalid": "Nicht gespeichert (muss der vollständige Pfad einer vorhandenen .exe sein): {0}"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -954,7 +956,8 @@
     "Reset_ConfirmBody": "Tu configuración y el token de Home Assistant se eliminarán permanentemente y la aplicación se reiniciará.",
     "Reset_Confirm": "Restablecer",
     "Reset_Restarting": "Configuración eliminada: reiniciando…",
-    "Reset_Failed": "Error al restablecer."
+    "Reset_Failed": "Error al restablecer.",
+    "Cmd_WhitelistInvalid": "No guardado (debe ser la ruta completa de un .exe existente): {0}"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -1273,7 +1276,8 @@
     "Reset_ConfirmBody": "Votre configuration et le jeton Home Assistant seront supprimés définitivement et l'application redémarrera.",
     "Reset_Confirm": "Réinitialiser",
     "Reset_Restarting": "Configuration supprimée — redémarrage…",
-    "Reset_Failed": "Échec de la réinitialisation."
+    "Reset_Failed": "Échec de la réinitialisation.",
+    "Cmd_WhitelistInvalid": "Non enregistré (doit être le chemin complet d'un .exe existant) : {0}"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1592,7 +1596,8 @@
     "Reset_ConfirmBody": "您的配置和 Home Assistant 令牌将被永久删除，应用将重新启动。",
     "Reset_Confirm": "重置",
     "Reset_Restarting": "配置已删除，正在重启…",
-    "Reset_Failed": "重置失败。"
+    "Reset_Failed": "重置失败。",
+    "Cmd_WhitelistInvalid": "未保存（必须是现有 .exe 文件的完整路径）：{0}"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1911,7 +1916,8 @@
     "Reset_ConfirmBody": "आपका कॉन्फ़िगरेशन और Home Assistant टोकन स्थायी रूप से हटा दिए जाएंगे और ऐप पुनः प्रारंभ होगा।",
     "Reset_Confirm": "रीसेट",
     "Reset_Restarting": "कॉन्फ़िगरेशन हटाया गया — पुनः प्रारंभ हो रहा है…",
-    "Reset_Failed": "रीसेट विफल।"
+    "Reset_Failed": "रीसेट विफल।",
+    "Cmd_WhitelistInvalid": "सहेजा नहीं गया (किसी मौजूदा .exe का पूरा पथ होना चाहिए): {0}"
   },
   "ar": {
     "Nav_Start": "البدء",
@@ -2230,6 +2236,7 @@
     "Reset_ConfirmBody": "سيتم حذف التكوين والرمز المميز لـ Home Assistant نهائيا وستتم إعادة تشغيل التطبيق.",
     "Reset_Confirm": "إعادة التعيين",
     "Reset_Restarting": "تم حذف التكوين — جار إعادة التشغيل…",
-    "Reset_Failed": "فشلت إعادة التعيين."
+    "Reset_Failed": "فشلت إعادة التعيين.",
+    "Cmd_WhitelistInvalid": "لم يُحفظ (يجب أن يكون المسار الكامل لملف ‎.exe موجود): {0}"
   }
 }

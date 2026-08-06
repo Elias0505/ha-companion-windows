@@ -41,8 +41,11 @@ function Show-Dialog {
 function Test-InDest {
     param([string]$Path)
     if (-not $Path) { return $false }
-    $clean = $Path.Trim('"').Trim()
-    return $clean.ToLowerInvariant().StartsWith($dest.ToLowerInvariant())
+    # Compare with a trailing separator so a sibling like ...\Programs\HaCompanionFoo
+    # never counts as "inside" the folder this uninstaller owns.
+    $clean = $Path.Trim('"').Trim().TrimEnd('\').ToLowerInvariant()
+    $root = $dest.TrimEnd('\').ToLowerInvariant()
+    return ($clean -eq $root) -or $clean.StartsWith($root + '\')
 }
 
 # --- step 0: run from %TEMP% so we may delete our own program folder ---------

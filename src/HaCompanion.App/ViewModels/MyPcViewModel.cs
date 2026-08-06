@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Services;
+using HaCompanion.Core.MobileApp;
 using HaCompanion.Core.Notifications;
 
 namespace HaCompanion.App.ViewModels;
@@ -83,6 +85,10 @@ public sealed partial class MyPcViewModel : ObservableObject
 
     [ObservableProperty]
     private string _launchWhitelistText = "";
+
+    /// <summary>Names the whitelist entries that were NOT saved (empty = all valid).</summary>
+    [ObservableProperty]
+    private string _whitelistError = "";
 
     /// <summary>notify.mobile_app_&lt;slug&gt; — shown in the mini docs so users can copy it.</summary>
 #pragma warning disable CA1822
@@ -253,9 +259,22 @@ public sealed partial class MyPcViewModel : ObservableObject
         s.AllowCmdSleep = AllowSleep;
         s.AllowCmdShutdown = AllowShutdown;
         s.AllowCmdLaunch = AllowLaunch;
-        s.LaunchWhitelist = LaunchWhitelistText
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
+        // Persist only canonical, existing .exe paths; everything else is named in the
+        // error text instead of silently riding along until command_launch fails.
+        var valid = new List<string>();
+        var invalid = new List<string>();
+        foreach (var entry in LaunchWhitelistText
+                     .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (LaunchWhitelist.TryValidateEntry(entry, out var fullPath))
+                valid.Add(fullPath);
+            else
+                invalid.Add(entry);
+        }
+        s.LaunchWhitelist = valid;
+        WhitelistError = invalid.Count == 0
+            ? ""
+            : string.Format(CultureInfo.CurrentCulture, _loc["Cmd_WhitelistInvalid"], string.Join("; ", invalid));
         _settings.Save(s);
     }
 

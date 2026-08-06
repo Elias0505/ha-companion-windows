@@ -125,12 +125,21 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             _logger.LogWarning("command_launch rejected: '{App}' is not whitelisted", app);
             return false;
         }
+        if (!LaunchWhitelist.TryValidateEntry(entry, out var fullPath))
+        {
+            _logger.LogWarning(
+                "command_launch rejected: whitelist entry '{Entry}' is not an existing absolute .exe path", entry);
+            return false;
+        }
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName = entry,
-            UseShellExecute = true,
+            FileName = fullPath,
+            // No shell: a plain CreateProcess on the .exe — no PATH lookup, no
+            // App-Paths aliases, no URL/.lnk/.bat handlers.
+            UseShellExecute = false,
+            WorkingDirectory = System.IO.Path.GetDirectoryName(fullPath)!,
         });
-        _logger.LogInformation("PC command executed: Launch ({Entry})", entry);
+        _logger.LogInformation("PC command executed: Launch ({Entry})", fullPath);
         return true;
     }
 
