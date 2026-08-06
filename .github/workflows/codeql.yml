@@ -1,0 +1,32 @@
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '30 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL (C#)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+      # build-mode none = source-level extraction; a traced WinUI build would
+      # need windows-latest plus the full WindowsAppSDK toolchain for no gain.
+      - uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          languages: csharp
+          build-mode: none
+      - uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
