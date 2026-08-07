@@ -68,19 +68,31 @@ public static class HaWebViewScripts
 
     /// <summary>
     /// Best-effort: hide HA's top toolbar and sidebar (across shadow roots) for a clean
-    /// chrome-less embed. Re-applies for ~15s after each navigation. Used by the quick
-    /// panel (which navigates via the app's own dashboard picker).
+    /// chrome-less embed. Used by the quick panel (which navigates via the app's own
+    /// dashboard picker). The styles are per shadow root: selectors are matched inside
+    /// each root, so a descendant prefix like <c>ha-drawer .mdc-drawer</c> would never
+    /// match within ha-drawer's own shadow root. The drawer is hidden in EVERY layout
+    /// mode — HA flips between the narrow modal drawer and the docked desktop sidebar
+    /// when the viewport crosses its width threshold (which rapid panel show/hide cycles
+    /// can trigger via DPI-scale changes on the hidden window) — and hiding is applied
+    /// permanently, because HA recreates chrome elements long after load (SPA navigation,
+    /// reconnect, layout flips).
     /// </summary>
     public const string HideChromeScript =
         """
         (function () {
-          const css = `
+          const drawerCss = `
+            .mdc-drawer, .mdc-drawer-scrim { display: none !important; }
+            .mdc-drawer-app-content { margin-inline-start: 0 !important; }
+          `;
+          const mainCss = `
+            ha-sidebar { display: none !important; }
+          `;
+          const chromeCss = `
             .header, .mdc-top-app-bar { display: none !important; }
             .mdc-top-app-bar--fixed-adjust { padding-top: 0 !important; }
-            ha-drawer .mdc-drawer, ha-sidebar { display: none !important; }
-            ha-drawer .mdc-drawer-app-content { margin-inline-start: 0 !important; }
           `;
-          function inject(root) {
+          function inject(root, css) {
             if (!root || root.__hacHidden) return;
             try {
               const s = document.createElement('style');
@@ -93,17 +105,22 @@ public static class HaWebViewScripts
             try {
               const ha = document.querySelector('home-assistant');
               const main = ha && ha.shadowRoot && ha.shadowRoot.querySelector('home-assistant-main');
+              if (main && main.shadowRoot) inject(main.shadowRoot, mainCss);
               const drawer = main && main.shadowRoot && main.shadowRoot.querySelector('ha-drawer');
-              if (drawer && drawer.shadowRoot) inject(drawer.shadowRoot);
+              if (drawer && drawer.shadowRoot) inject(drawer.shadowRoot, drawerCss);
               const ppr = main && main.shadowRoot && main.shadowRoot.querySelector('partial-panel-resolver');
               const lovelace = ppr && ppr.querySelector('ha-panel-lovelace');
               const hui = lovelace && lovelace.shadowRoot && lovelace.shadowRoot.querySelector('hui-root');
-              if (hui && hui.shadowRoot) inject(hui.shadowRoot);
-              inject(document.head);
+              if (hui && hui.shadowRoot) inject(hui.shadowRoot, chromeCss);
+              inject(document.head, chromeCss);
             } catch (e) { }
           }
           let n = 0;
-          const t = setInterval(function () { walk(); if (++n > 60) clearInterval(t); }, 250);
+          const fast = setInterval(function () { walk(); if (++n > 60) clearInterval(fast); }, 250);
+          setInterval(walk, 2000);
+          window.addEventListener('resize', walk, true);
+          document.addEventListener('visibilitychange', walk, true);
+          window.addEventListener('location-changed', walk, true);
           walk();
         })();
         """;

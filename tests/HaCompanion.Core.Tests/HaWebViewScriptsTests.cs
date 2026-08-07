@@ -63,6 +63,33 @@ public class HaWebViewScriptsTests
     }
 
     [Fact]
+    public void Hide_chrome_script_hides_the_drawer_in_every_layout_mode()
+    {
+        var script = HaWebViewScripts.HideChromeScript;
+
+        // Selectors are matched INSIDE each shadow root — a `ha-drawer .mdc-drawer`
+        // descendant prefix never matches within ha-drawer's own shadow root. That
+        // selector once shipped and only LOOKED like it worked because HA's own CSS
+        // hides a closed modal drawer; the docked desktop drawer stayed visible.
+        Assert.DoesNotContain("ha-drawer .mdc-drawer", script, StringComparison.Ordinal);
+        Assert.Contains(".mdc-drawer, .mdc-drawer-scrim { display: none !important; }", script, StringComparison.Ordinal);
+        Assert.Contains("ha-sidebar { display: none !important; }", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Hide_chrome_script_reapplies_permanently()
+    {
+        var script = HaWebViewScripts.HideChromeScript;
+
+        // HA recreates chrome elements long after load (SPA navigation, reconnect,
+        // narrow/docked layout flips) — a hide pass that stops after startup leaves
+        // the sidebar visible from then on.
+        Assert.Contains("setInterval(walk, 2000)", script, StringComparison.Ordinal);
+        Assert.Contains("addEventListener('resize', walk", script, StringComparison.Ordinal);
+        Assert.Contains("addEventListener('visibilitychange', walk", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Auth_script_json_escapes_a_hostile_token()
     {
         var script = HaWebViewScripts.BuildAuthScript(
