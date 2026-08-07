@@ -22,8 +22,10 @@ namespace HaCompanion.App.Windows;
 
 /// <summary>
 /// The Win+Ctrl+H quick panel: a borderless, always-on-top overlay pinned to the
-/// right edge of the work area. The whole opaque panel slides in/out as one unit by
-/// moving the window itself (like the Win11 notification centre), dismisses on focus
+/// right edge of the work area. The panel slides in/out as one unit (like the Win11
+/// notification centre): the window's right edge stays pinned at the monitor edge and
+/// its width animates while the fixed-width content is cropped (see <see cref="MovePx"/> —
+/// the window must never cross onto a neighbouring monitor). Dismisses on focus
 /// loss or Esc, and hosts the editable pinned-tile layout.
 /// </summary>
 /// <remarks>
@@ -190,6 +192,7 @@ public sealed partial class QuickPanelWindow : Window
         else
         {
             ComputeGeometry();
+            LockContentWidth();
             MoveWindowPx(_restX, _winY, _winW, _winH);
             _isOpen = true;
         }
@@ -286,6 +289,7 @@ public sealed partial class QuickPanelWindow : Window
             {
                 _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
                 ComputeGeometry();
+                LockContentWidth();
                 ParkOffscreen(); // primary-DPI park spot — a foreign-DPI monitor next to the
                                  // virtual-screen edge would warm the WebView at the wrong scale
                 _warming = true;
@@ -386,7 +390,8 @@ public sealed partial class QuickPanelWindow : Window
                 _panelWidthDip = settings.QuickPanelWidth;
                 ResizeGrip.Visibility = settings.QuickPanelDragResize ? Visibility.Visible : Visibility.Collapsed;
                 ComputeGeometry();
-                MoveWindowPx(_offX, _winY, _winW, _winH); // park just off the right edge
+                LockContentWidth();
+                MovePx(_offX); // minimal sliver at the edge — never past it (DPI, see MovePx)
                 _windowShown = true;
                 if (!AppWindow.IsVisible)
                     AppWindow.Show(); // re-showing an already-visible (parked) window would
@@ -474,7 +479,37 @@ public sealed partial class QuickPanelWindow : Window
     private void MoveWindowPx(int x, int y, int w, int h) =>
         _ = SetWindowPos(_hwnd, IntPtr.Zero, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
 
-    private void MovePx(int x) => MoveWindowPx(x, _winY, _winW, _winH);
+    /// <summary>
+    /// Slide step: the window's RIGHT edge stays pinned at the primary monitor's edge and
+    /// only the WIDTH animates. Sliding the whole window past the edge (the old model) let
+    /// its rect overlap a neighbouring monitor — with a different display scale there,
+    /// Windows reassigns the window mid-slide (WM_DPICHANGED), the XAML island and the
+    /// WebView re-rasterize, and the embedded HA frontend visibly re-layouts (and, parked
+    /// off-screen afterwards, STAYS at the foreign scale — off-screen windows are never
+    /// reassigned back). Clipping instead of moving keeps the window on the primary monitor
+    /// for its entire life. The content keeps its full panel width (<see cref="LockContentWidth"/>)
+    /// and is merely cropped, so the visual is identical to the old slide.
+    /// </summary>
+    private void MovePx(int x)
+    {
+        var w = Math.Clamp(_offX - x, 1, _winW);
+        MoveWindowPx(_offX - w, _winY, w, _winH);
+        // If the OS enforced a larger minimum width, re-pin the right edge so the rect
+        // can never poke onto the neighbouring monitor.
+        if (GetWindowRect(_hwnd, out var r) && r.Right > _offX)
+            MoveWindowPx(_offX - (r.Right - r.Left), _winY, r.Right - r.Left, _winH);
+    }
+
+    /// <summary>
+    /// Fixes the content root to the full panel width, anchored to the window's left edge:
+    /// the slide then only crops the content instead of re-laying it out — neither XAML nor
+    /// the embedded WebView sees a resize while the window width animates.
+    /// </summary>
+    private void LockContentWidth()
+    {
+        RootGrid.HorizontalAlignment = HorizontalAlignment.Left;
+        RootGrid.Width = _panelWidthDip;
+    }
 
     private int SafePositionX()
     {
@@ -750,6 +785,7 @@ public sealed partial class QuickPanelWindow : Window
         _panelWidthDip = dip;
         _winW = (int)Math.Round(dip * _scale);
         _restX = _offX - _winW; // the right edge stays docked to the monitor edge
+        RootGrid.Width = dip;   // live drag DOES re-flow the content — that's the point here
         MoveWindowPx(_restX, _winY, _winW, _winH);
         e.Handled = true;
     }
