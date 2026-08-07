@@ -37,7 +37,7 @@
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Elias0505/ha-companion-windows</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>1.4.4</Version>
+    <Version>1.4.5</Version>
   </PropertyGroup>
 
 </Project>
