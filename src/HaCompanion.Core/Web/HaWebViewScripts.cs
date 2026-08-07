@@ -67,6 +67,47 @@ public static class HaWebViewScripts
     }
 
     /// <summary>
+    /// Camera stills self-destruct under live resizing: <c>ha-camera-image</c> requests
+    /// <c>/api/camera_proxy/&lt;entity&gt;?width=W&amp;height=H</c> with the element box of the
+    /// moment, the backend returns an image distorted to EXACTLY that box (verified: 500×500
+    /// requested → 500×500 returned), and <c>hui-image</c> (aspect-ratio: auto) then adopts the
+    /// skewed image's ratio permanently — the wrong box drives the next request, forever. The
+    /// race sits inside HA's own resize handling (new width × stale height), so even a single
+    /// re-layout can trip it. Without size parameters the proxy returns the camera's TRUE
+    /// aspect, so this script strips them from every same-origin camera_proxy still URL at the
+    /// img.src / setAttribute layer: distortion becomes impossible, and because the URL is then
+    /// identical on every set, resize-triggered refetch storms collapse into no-ops too.
+    /// </summary>
+    public const string CameraStillFixScript =
+        """
+        (function () {
+          function fixCam(v) {
+            try {
+              if (typeof v !== 'string' || v.indexOf('/api/camera_proxy/') === -1) return v;
+              const u = new URL(v, location.href);
+              if (u.origin !== location.origin) return v;
+              u.searchParams.delete('width');
+              u.searchParams.delete('height');
+              return u.toString();
+            } catch (e) { return v; }
+          }
+          try {
+            const desc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+            Object.defineProperty(HTMLImageElement.prototype, 'src', {
+              configurable: true,
+              get() { return desc.get.call(this); },
+              set(v) { desc.set.call(this, fixCam(v)); }
+            });
+            const setAttr = Element.prototype.setAttribute;
+            Element.prototype.setAttribute = function (name, value) {
+              if (name === 'src' && this instanceof HTMLImageElement) value = fixCam(value);
+              return setAttr.call(this, name, value);
+            };
+          } catch (e) { }
+        })();
+        """;
+
+    /// <summary>
     /// Best-effort: hide HA's top toolbar and sidebar (across shadow roots) for a clean
     /// chrome-less embed. Used by the quick panel (which navigates via the app's own
     /// dashboard picker). The styles are per shadow root: selectors are matched inside

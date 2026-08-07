@@ -79,6 +79,10 @@ public sealed partial class HaDashboardsPage : Page
             // Pre-seed hassTokens so the HA frontend logs in without any prompt.
             await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
                 HaWebViewScripts.BuildAuthScript(baseUri, settings.Token));
+            // Camera stills must never be requested with box-of-the-moment dimensions —
+            // window resizing corrupts their aspect ratio otherwise (see the script's doc).
+            await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+                HaWebViewScripts.CameraStillFixScript);
             // Note: HA's own sidebar stays intact (the ☰ button must keep working);
             // switch dashboards via the native picker above or HA's sidebar.
         }

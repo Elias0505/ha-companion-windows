@@ -97,7 +97,6 @@ public sealed partial class QuickPanelWindow : Window
     private int _dragStartCursorX;
     private int _dragStartWidthPx;
     private int _dragMoveCount;
-    private long _lastLiveContentWidthMs; // throttles content re-layout during the drag
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
@@ -202,14 +201,8 @@ public sealed partial class QuickPanelWindow : Window
         else
         {
             ComputeGeometry();
-            // Same storm protection as the drag grip: the slider fires per tick, and every
-            // content re-layout makes embedded camera cards fetch at transient sizes.
-            RootGrid.HorizontalAlignment = HorizontalAlignment.Left;
-            if (Environment.TickCount64 - _lastLiveContentWidthMs >= 250)
-            {
-                _lastLiveContentWidthMs = Environment.TickCount64;
-                RootGrid.Width = _panelWidthDip;
-            }
+            RootGrid.HorizontalAlignment = HorizontalAlignment.Right;
+            RootGrid.Width = _panelWidthDip;
             MoveWindowPx(_restX, _winY, _winW, _winH);
             _slideX = _restX;
             ClearSlideClip();
@@ -535,14 +528,17 @@ public sealed partial class QuickPanelWindow : Window
         _ = SetWindowRgn(_hwnd, IntPtr.Zero, true);
     }
 
+
     /// <summary>
-    /// Fixes the content root to the full panel width, anchored to the window's left edge,
-    /// so intermediate window widths (live drag-resize between throttle steps) crop the
-    /// content instead of re-laying it out.
+    /// Fixes the content root to the full panel width, anchored to the window's RIGHT edge
+    /// (which is pinned to the monitor edge), so intermediate window widths (live
+    /// drag-resize between throttle steps) crop or reveal at the moving left edge while the
+    /// content itself stands perfectly still — anchored left, the whole dashboard visibly
+    /// rode along with every drag step.
     /// </summary>
     private void LockContentWidth()
     {
-        RootGrid.HorizontalAlignment = HorizontalAlignment.Left;
+        RootGrid.HorizontalAlignment = HorizontalAlignment.Right;
         RootGrid.Width = _panelWidthDip;
     }
 
@@ -686,6 +682,8 @@ public sealed partial class QuickPanelWindow : Window
             HaWebViewScripts.BuildAuthScript(baseUri, settings.Token));
         await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
             HaWebViewScripts.HideChromeScript);
+        await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+            HaWebViewScripts.CameraStillFixScript);
     }
 
     private void OnEscape(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -889,16 +887,7 @@ public sealed partial class QuickPanelWindow : Window
         _panelWidthDip = dip;
         _winW = (int)Math.Round(dip * _scale);
         _restX = _offX - _winW; // the right edge stays docked to the monitor edge
-        // Content follows the drag THROTTLED: a per-pixel resize storm makes the embedded
-        // HA dashboard's camera cards fetch stills at transient element sizes, and the
-        // returned image's skewed aspect ratio then sticks (hui-image sizes itself from
-        // the image). The window edge stays per-frame smooth; the content re-flows at
-        // most every 250 ms and settles once on release (EndDragResize).
-        if (Environment.TickCount64 - _lastLiveContentWidthMs >= 250)
-        {
-            _lastLiveContentWidthMs = Environment.TickCount64;
-            RootGrid.Width = dip;
-        }
+        RootGrid.Width = dip;   // native content re-flows per move — instant
         MoveWindowPx(_restX, _winY, _winW, _winH);
         e.Handled = true;
     }
@@ -914,7 +903,7 @@ public sealed partial class QuickPanelWindow : Window
         _dragResizing = false;
         if (sender is UIElement grip)
             grip.ReleasePointerCapture(e.Pointer);
-        RootGrid.Width = _panelWidthDip; // exactly one settled re-layout at the final width
+        RootGrid.Width = _panelWidthDip;
         Log($"grip released moves={_dragMoveCount} finalWpx={_winW} dip={_panelWidthDip}");
 
         // Persist the new width so it survives reopening and the Settings slider reflects it.

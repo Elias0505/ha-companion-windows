@@ -90,6 +90,25 @@ public class HaWebViewScriptsTests
     }
 
     [Fact]
+    public void Camera_still_fix_strips_size_parameters_same_origin_only()
+    {
+        var script = HaWebViewScripts.CameraStillFixScript;
+
+        // camera_proxy distorts the snapshot to EXACTLY the requested width×height, and
+        // hui-image adopts the returned image's aspect ratio — a still requested at a
+        // transient element box corrupts the card permanently. The fix strips the size
+        // parameters (the proxy then serves the true aspect) and must never touch
+        // foreign-origin URLs.
+        Assert.Contains("/api/camera_proxy/", script, StringComparison.Ordinal);
+        Assert.Contains("searchParams.delete('width')", script, StringComparison.Ordinal);
+        Assert.Contains("searchParams.delete('height')", script, StringComparison.Ordinal);
+        Assert.Contains("u.origin !== location.origin", script, StringComparison.Ordinal);
+        // Both write paths HA's frontend uses must be covered.
+        Assert.Contains("HTMLImageElement.prototype, 'src'", script, StringComparison.Ordinal);
+        Assert.Contains("Element.prototype.setAttribute", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Auth_script_json_escapes_a_hostile_token()
     {
         var script = HaWebViewScripts.BuildAuthScript(
