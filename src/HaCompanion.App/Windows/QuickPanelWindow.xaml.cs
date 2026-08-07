@@ -91,6 +91,7 @@ public sealed partial class QuickPanelWindow : Window
     private int _dragStartCursorX;
     private int _dragStartWidthPx;
     private int _dragMoveCount;
+    private long _lastLiveContentWidthMs; // throttles content re-layout during the drag
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
     {
@@ -141,6 +142,7 @@ public sealed partial class QuickPanelWindow : Window
         {
             _previewTimer.Stop();
             _previewing = false;
+            RootGrid.Width = _panelWidthDip; // settle on the final previewed width
             HideAnimated();
         };
 
@@ -192,7 +194,14 @@ public sealed partial class QuickPanelWindow : Window
         else
         {
             ComputeGeometry();
-            LockContentWidth();
+            // Same storm protection as the drag grip: the slider fires per tick, and every
+            // content re-layout makes embedded camera cards fetch at transient sizes.
+            RootGrid.HorizontalAlignment = HorizontalAlignment.Left;
+            if (Environment.TickCount64 - _lastLiveContentWidthMs >= 250)
+            {
+                _lastLiveContentWidthMs = Environment.TickCount64;
+                RootGrid.Width = _panelWidthDip;
+            }
             MoveWindowPx(_restX, _winY, _winW, _winH);
             _isOpen = true;
         }
@@ -785,7 +794,16 @@ public sealed partial class QuickPanelWindow : Window
         _panelWidthDip = dip;
         _winW = (int)Math.Round(dip * _scale);
         _restX = _offX - _winW; // the right edge stays docked to the monitor edge
-        RootGrid.Width = dip;   // live drag DOES re-flow the content — that's the point here
+        // Content follows the drag THROTTLED: a per-pixel resize storm makes the embedded
+        // HA dashboard's camera cards fetch stills at transient element sizes, and the
+        // returned image's skewed aspect ratio then sticks (hui-image sizes itself from
+        // the image). The window edge stays per-frame smooth; the content re-flows at
+        // most every 250 ms and settles once on release (EndDragResize).
+        if (Environment.TickCount64 - _lastLiveContentWidthMs >= 250)
+        {
+            _lastLiveContentWidthMs = Environment.TickCount64;
+            RootGrid.Width = dip;
+        }
         MoveWindowPx(_restX, _winY, _winW, _winH);
         e.Handled = true;
     }
@@ -801,6 +819,7 @@ public sealed partial class QuickPanelWindow : Window
         _dragResizing = false;
         if (sender is UIElement grip)
             grip.ReleasePointerCapture(e.Pointer);
+        RootGrid.Width = _panelWidthDip; // exactly one settled re-layout at the final width
         Log($"grip released moves={_dragMoveCount} finalWpx={_winW} dip={_panelWidthDip}");
 
         // Persist the new width so it survives reopening and the Settings slider reflects it.
