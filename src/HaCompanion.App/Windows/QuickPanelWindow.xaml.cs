@@ -51,6 +51,7 @@ public sealed partial class QuickPanelWindow : Window
     private const int MaxPanelWidthDip = 900;
 
     private const uint MONITOR_DEFAULTTOPRIMARY = 1;
+    private const uint MONITOR_DEFAULTTONULL = 0;
     private const int MDT_EFFECTIVE_DPI = 0;
     private const int SM_XVIRTUALSCREEN = 76;
     private const int SM_CXVIRTUALSCREEN = 78;
@@ -72,6 +73,7 @@ public sealed partial class QuickPanelWindow : Window
     private bool _inSetup;       // reentrancy guard around the message-pumping Show()/Activate()
     private bool _previewing;
     private bool _prewarmStarted;
+    private bool _firstOpenVeiled; // the once-per-process activation scale dance is masked once
     private bool _warming;       // window is shown only off-screen for a warm pass, not open
     private Task _warmChain = Task.CompletedTask;
 
@@ -266,11 +268,12 @@ public sealed partial class QuickPanelWindow : Window
     }
 
     /// <summary>
-    /// Runs <paramref name="work"/> with the window shown but parked beyond the right edge of
-    /// the entire virtual screen: WebView2 initialization needs a shown window, and parking it
-    /// past every monitor keeps the pass invisible without stealing focus. Passes are chained
-    /// so they never overlap; the hidden state is restored afterwards unless the user opened
-    /// the panel mid-warm (SetTarget then upgrades the warm window with a full setup).
+    /// Runs <paramref name="work"/> with the window shown but parked off-screen (see
+    /// <see cref="ParkOffscreen"/>): WebView2 initialization needs a shown window, and the
+    /// primary-DPI park spot keeps the pass invisible without stealing focus or warming the
+    /// WebView at a foreign monitor's scale. Passes are chained so they never overlap; the
+    /// parked state is restored afterwards unless the user opened the panel mid-warm
+    /// (SetTarget then upgrades the warm window with a full setup).
     /// </summary>
     private Task WarmHiddenAsync(Func<Task> work)
     {
@@ -283,7 +286,8 @@ public sealed partial class QuickPanelWindow : Window
             {
                 _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
                 ComputeGeometry();
-                MoveWindowPx(VirtualScreenRightPx() + 200, _winY, _winW, _winH);
+                ParkOffscreen(); // primary-DPI park spot — a foreign-DPI monitor next to the
+                                 // virtual-screen edge would warm the WebView at the wrong scale
                 _warming = true;
                 _windowShown = true;
                 AppWindow.Show(activateWindow: false);
@@ -298,7 +302,7 @@ public sealed partial class QuickPanelWindow : Window
                 if (!wasShown && !_isOpen)
                 {
                     _windowShown = false;
-                    AppWindow.Hide();
+                    ParkOffscreen(); // keep the island alive — see ParkOffscreen
                 }
                 Log($"warm pass done shown={_windowShown} dash={ViewModel.ShowDashboard}");
             }
@@ -309,6 +313,46 @@ public sealed partial class QuickPanelWindow : Window
 
     private static int VirtualScreenRightPx() =>
         GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+
+    /// <summary>
+    /// The very first Activate() of the process completes the XAML island's composition
+    /// and briefly re-evaluates the rasterization scale — the embedded web content then
+    /// visibly "zoom-pops" for a few frames. Masking the WebView for the first slide-in
+    /// hides that once-per-process dance; every later open is glitch-free (the parked
+    /// window keeps its scale, see <see cref="ParkOffscreen"/>).
+    /// </summary>
+    private void VeilFirstActivation()
+    {
+        if (_firstOpenVeiled)
+            return;
+        _firstOpenVeiled = true;
+        PanelWeb.Opacity = 0;
+        var t = DispatcherQueue.CreateTimer();
+        t.Interval = TimeSpan.FromMilliseconds(300);
+        t.IsRepeating = false;
+        t.Tick += (_, _) => PanelWeb.Opacity = 1;
+        t.Start();
+    }
+
+    /// <summary>
+    /// Closed state: park the still-shown window off-screen instead of AppWindow.Hide().
+    /// Hiding detaches the XAML island and resets the WebView's rasterization scale to
+    /// 1.0 — the next open then painted the first ~150 ms at 100%-scale metrics, which
+    /// pushed the embedded HA frontend across its wide-layout threshold and produced a
+    /// visible re-layout flicker while the panel slid in. Parking keeps the metrics
+    /// alive. Preferred spot is below the primary monitor (nearest monitor stays the
+    /// primary, so its DPI keeps applying); if a display actually lives there, fall
+    /// back to beyond the right edge of the whole virtual screen.
+    /// </summary>
+    private void ParkOffscreen()
+    {
+        var y = _winY + _winH + 200;
+        var below = new RECT { Left = _restX, Top = y, Right = _restX + _winW, Bottom = y + _winH };
+        if (MonitorFromRect(ref below, MONITOR_DEFAULTTONULL) == IntPtr.Zero)
+            MoveWindowPx(_restX, y, _winW, _winH);
+        else
+            MoveWindowPx(VirtualScreenRightPx() + 200, _winY, _winW, _winH);
+    }
 
     /// <summary>
     /// Sets the desired open/closed state and drives the panel toward it. Safe to call at any
@@ -344,7 +388,10 @@ public sealed partial class QuickPanelWindow : Window
                 ComputeGeometry();
                 MoveWindowPx(_offX, _winY, _winW, _winH); // park just off the right edge
                 _windowShown = true;
-                AppWindow.Show();
+                if (!AppWindow.IsVisible)
+                    AppWindow.Show(); // re-showing an already-visible (parked) window would
+                                      // re-evaluate the island scale and flash a mis-scaled frame
+                VeilFirstActivation();
                 Activate();
                 ApplyNoBorder();
             }
@@ -409,9 +456,9 @@ public sealed partial class QuickPanelWindow : Window
         if (!_isOpen)
         {
             _windowShown = false;
-            AppWindow.Hide();
+            ParkOffscreen();
         }
-        Log($"settled open={_isOpen} x={_animToX} hidden={!_isOpen}");
+        Log($"settled open={_isOpen} x={_animToX} parked={!_isOpen}");
     }
 
     private void ApplyNoBorder()
@@ -884,6 +931,9 @@ public sealed partial class QuickPanelWindow : Window
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
 
     [DllImport("user32.dll")]
     private static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFO lpmi);
