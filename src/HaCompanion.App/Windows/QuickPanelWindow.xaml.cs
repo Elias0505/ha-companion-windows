@@ -515,9 +515,11 @@ public sealed partial class QuickPanelWindow : Window
         _slideX = Math.Clamp(x, _restX, _offX);
         var hidden = _slideX - _restX; // px of the sheet pushed off past the monitor edge
         _slideTransform.X = hidden / _scale;
-        // SetWindowRgn takes ownership of the region handle on success.
+        // SetWindowRgn takes ownership of the region handle on success. redraw:false —
+        // the composition renders every frame anyway; a forced synchronous redraw per
+        // 6 ms tick would just burn the slide's frame budget.
         var rgn = CreateRectRgn(hidden, 0, _winW, _winH);
-        if (SetWindowRgn(_hwnd, rgn, true) == 0)
+        if (SetWindowRgn(_hwnd, rgn, false) == 0)
             _ = DeleteObject(rgn);
     }
 

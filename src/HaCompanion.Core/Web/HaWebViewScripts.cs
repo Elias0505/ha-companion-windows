@@ -74,20 +74,45 @@ public static class HaWebViewScripts
     /// skewed image's ratio permanently — the wrong box drives the next request, forever. The
     /// race sits inside HA's own resize handling (new width × stale height), so even a single
     /// re-layout can trip it. Without size parameters the proxy returns the camera's TRUE
-    /// aspect, so this script strips them from every same-origin camera_proxy still URL at the
-    /// img.src / setAttribute layer: distortion becomes impossible, and because the URL is then
-    /// identical on every set, resize-triggered refetch storms collapse into no-ops too.
+    /// aspect, so this script rewrites every same-origin camera_proxy still URL at the
+    /// img.src / setAttribute layer: the first load goes parameter-less (native size reveals
+    /// the true ratio), every later one requests a fixed small box in that learned ratio —
+    /// distortion becomes impossible, stills stay cheap to decode, and identical URLs turn
+    /// resize-triggered refetch storms into no-ops.
     /// </summary>
     public const string CameraStillFixScript =
         """
         (function () {
-          function fixCam(v) {
+          // True aspect ratio per camera path, learned from the first (parameter-less,
+          // native-size) still. Requesting a FIXED small box in the true ratio afterwards
+          // keeps stills cheap to decode/paint (a permanent full-res still made live
+          // resizing visibly laggy) while remaining distortion-proof — and because the
+          // rewritten URL is byte-identical on every set, resize-triggered refetch storms
+          // collapse into no-ops.
+          const ratios = new Map();
+          function fixCam(img, v) {
             try {
               if (typeof v !== 'string' || v.indexOf('/api/camera_proxy/') === -1) return v;
               const u = new URL(v, location.href);
               if (u.origin !== location.origin) return v;
-              u.searchParams.delete('width');
-              u.searchParams.delete('height');
+              if (img && !img.__hacCamHook) {
+                img.__hacCamHook = true;
+                img.addEventListener('load', function () {
+                  try {
+                    if (img.naturalWidth > 0)
+                      ratios.set(new URL(img.currentSrc || img.src, location.href).pathname,
+                                 img.naturalHeight / img.naturalWidth);
+                  } catch (e) { }
+                });
+              }
+              const r = ratios.get(u.pathname);
+              if (r) {
+                u.searchParams.set('width', '512');
+                u.searchParams.set('height', String(Math.max(1, Math.round(512 * r))));
+              } else {
+                u.searchParams.delete('width');
+                u.searchParams.delete('height');
+              }
               return u.toString();
             } catch (e) { return v; }
           }
@@ -96,11 +121,11 @@ public static class HaWebViewScripts
             Object.defineProperty(HTMLImageElement.prototype, 'src', {
               configurable: true,
               get() { return desc.get.call(this); },
-              set(v) { desc.set.call(this, fixCam(v)); }
+              set(v) { desc.set.call(this, fixCam(this, v)); }
             });
             const setAttr = Element.prototype.setAttribute;
             Element.prototype.setAttribute = function (name, value) {
-              if (name === 'src' && this instanceof HTMLImageElement) value = fixCam(value);
+              if (name === 'src' && this instanceof HTMLImageElement) value = fixCam(this, value);
               return setAttr.call(this, name, value);
             };
           } catch (e) { }

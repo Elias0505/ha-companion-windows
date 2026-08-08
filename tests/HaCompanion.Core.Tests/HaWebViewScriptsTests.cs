@@ -102,6 +102,9 @@ public class HaWebViewScriptsTests
         Assert.Contains("/api/camera_proxy/", script, StringComparison.Ordinal);
         Assert.Contains("searchParams.delete('width')", script, StringComparison.Ordinal);
         Assert.Contains("searchParams.delete('height')", script, StringComparison.Ordinal);
+        // After the ratio is learned, stills are requested as a fixed SMALL box in the
+        // true ratio — a permanent full-res still made live resizing visibly laggy.
+        Assert.Contains("searchParams.set('width', '512')", script, StringComparison.Ordinal);
         Assert.Contains("u.origin !== location.origin", script, StringComparison.Ordinal);
         // Both write paths HA's frontend uses must be covered.
         Assert.Contains("HTMLImageElement.prototype, 'src'", script, StringComparison.Ordinal);
