@@ -100,6 +100,10 @@
                                       IsOn="{x:Bind ViewModel.AutoHideQuickPanel, Mode=TwoWay}" />
                         <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_DragResize], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.QuickPanelDragResize, Mode=TwoWay}" />
+                        <ComboBox Header="{Binding [Set_Monitor], Source={StaticResource Loc}}"
+                                  HorizontalAlignment="Stretch" DisplayMemberPath="Label"
+                                  ItemsSource="{x:Bind ViewModel.MonitorOptions}"
+                                  SelectedItem="{x:Bind ViewModel.SelectedMonitor, Mode=TwoWay}" />
                         <ComboBox Header="{Binding [Set_Hotkey], Source={StaticResource Loc}}"
                                   HorizontalAlignment="Stretch"
                                   ItemsSource="{x:Bind ViewModel.HotkeyPresets}"

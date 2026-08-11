@@ -14,6 +14,9 @@ namespace HaCompanion.App.ViewModels;
 /// <summary>An entry in the "default view when the panel opens" picker.</summary>
 public sealed record StartViewOption(string Value, string Label);
 
+/// <summary>An entry in the "which display docks the panel" picker.</summary>
+public sealed record MonitorOption(string Value, string Label);
+
 /// <summary>Backing view model for the settings page: connection, hotkey and panel behaviour.</summary>
 public sealed partial class SettingsViewModel : ObservableObject
 {
@@ -64,6 +67,12 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _quickPanelDragResize = true;
+
+    /// <summary>Choices for which display docks the quick panel (primary + each monitor).</summary>
+    public ObservableCollection<MonitorOption> MonitorOptions { get; } = new();
+
+    [ObservableProperty]
+    private MonitorOption? _selectedMonitor;
 
     /// <summary>Start with Windows — backed directly by the registry Run key (not settings.json).</summary>
     [ObservableProperty]
@@ -119,6 +128,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             RefreshHotkeyStatus();
             RebuildStartViewOptions(_settingsStore.Load().QuickPanelStartView);
+            RebuildMonitorOptions(_settingsStore.Load().QuickPanelMonitor);
             _ = LoadStartViewDashboardsAsync();
         };
         _ = LoadStartViewDashboardsAsync();
@@ -145,9 +155,46 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!HotkeyPresets.Contains(Hotkey))
             HotkeyPresets.Insert(0, Hotkey);
         RebuildStartViewOptions(settings.QuickPanelStartView);
+        RebuildMonitorOptions(settings.QuickPanelMonitor);
         _loading = false;
         RefreshHotkeyStatus();
     }
+
+    /// <summary>
+    /// (Re)build the display picker: "primary display" plus every attached monitor.
+    /// A stored display that is currently absent selects the primary entry — the
+    /// runtime falls back the same way, and re-attaching the screen brings the entry
+    /// back on the next settings visit (<see cref="RefreshMonitorOptions"/>).
+    /// </summary>
+    private void RebuildMonitorOptions(string currentValue)
+    {
+        var wasLoading = _loading;
+        _loading = true;
+        try
+        {
+            MonitorOptions.Clear();
+            MonitorOptions.Add(new MonitorOption(MonitorCatalog.PrimaryKey, _localization["Set_MonitorPrimary"]));
+            foreach (var m in MonitorCatalog.Enumerate())
+            {
+                // \\.\DISPLAY3 -> "3"; fall back to the raw device name if the shape changes.
+                var number = m.DeviceKey.StartsWith(@"\\.\DISPLAY", StringComparison.OrdinalIgnoreCase)
+                    ? m.DeviceKey[@"\\.\DISPLAY".Length..]
+                    : m.DeviceKey;
+                MonitorOptions.Add(new MonitorOption(m.DeviceKey,
+                    string.Format(CultureInfo.CurrentCulture, _localization["Set_MonitorItem"],
+                        number, $"{m.Width}×{m.Height}")));
+            }
+            SelectedMonitor = MonitorOptions.FirstOrDefault(o => o.Value == currentValue) ?? MonitorOptions[0];
+        }
+        finally
+        {
+            _loading = wasLoading;
+        }
+    }
+
+    /// <summary>Re-enumerate displays (topology may have changed while the page was cached).</summary>
+    public void RefreshMonitorOptions() =>
+        RebuildMonitorOptions(_settingsStore.Load().QuickPanelMonitor);
 
     /// <summary>
     /// (Re)build the "default view" picker: last / favourites, plus the stored dashboard value
@@ -217,6 +264,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.QuickPanelWidth = (int)QuickPanelWidth;
         settings.Language = SelectedLanguage?.Code ?? "en";
         settings.QuickPanelStartView = SelectedStartView?.Value ?? "last";
+        settings.QuickPanelMonitor = SelectedMonitor?.Value ?? MonitorCatalog.PrimaryKey;
         settings.QuickPanelDragResize = QuickPanelDragResize;
         settings.ShowHaNotifications = ShowHaNotifications;
         return settings;
@@ -240,6 +288,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (!_loading && value is not null)
             _settingsStore.Save(BuildSettings());
+    }
+
+    partial void OnSelectedMonitorChanged(MonitorOption? value)
+    {
+        if (_loading || value is null)
+            return;
+        _settingsStore.Save(BuildSettings());
+        _quickPanel.PreviewWidth(); // slide the panel in on the newly chosen display
     }
 
     partial void OnShowHaNotificationsChanged(bool value)

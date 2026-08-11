@@ -42,6 +42,12 @@ public sealed class AppSettings
     /// <summary>Sort quick-panel favourites by category (start-page order) instead of manual order.</summary>
     public bool QuickPanelSortByCategory { get; set; }
 
+    /// <summary>
+    /// Which display docks the quick panel: "primary" (default) or a GDI device name
+    /// (\\.\DISPLAYn). Unknown/vanished displays fall back to the primary at runtime.
+    /// </summary>
+    public string QuickPanelMonitor { get; set; } = "primary";
+
     /// <summary>Show Home Assistant persistent notifications as native Windows toasts.</summary>
     public bool ShowHaNotifications { get; set; } = true;
 

@@ -68,6 +68,7 @@ public sealed class SettingsStore : ISettingsStore
                 QuickPanelLastView = string.IsNullOrEmpty(persisted.QuickPanelLastView) ? "favorites" : persisted.QuickPanelLastView,
                 QuickPanelDragResize = persisted.QuickPanelDragResize,
                 QuickPanelSortByCategory = persisted.QuickPanelSortByCategory,
+                QuickPanelMonitor = string.IsNullOrWhiteSpace(persisted.QuickPanelMonitor) ? "primary" : persisted.QuickPanelMonitor,
                 ShowHaNotifications = persisted.ShowHaNotifications,
                 ReportSensors = persisted.ReportSensors,
                 MobileAppDeviceId = persisted.MobileAppDeviceId,
@@ -115,6 +116,7 @@ public sealed class SettingsStore : ISettingsStore
             QuickPanelLastView = settings.QuickPanelLastView,
             QuickPanelDragResize = settings.QuickPanelDragResize,
             QuickPanelSortByCategory = settings.QuickPanelSortByCategory,
+            QuickPanelMonitor = settings.QuickPanelMonitor,
             ShowHaNotifications = settings.ShowHaNotifications,
             ReportSensors = settings.ReportSensors,
             MobileAppDeviceId = settings.MobileAppDeviceId,
@@ -150,6 +152,7 @@ public sealed class SettingsStore : ISettingsStore
         QuickPanelLastView = s.QuickPanelLastView,
         QuickPanelDragResize = s.QuickPanelDragResize,
         QuickPanelSortByCategory = s.QuickPanelSortByCategory,
+        QuickPanelMonitor = s.QuickPanelMonitor,
         ShowHaNotifications = s.ShowHaNotifications,
         ReportSensors = s.ReportSensors,
         MobileAppDeviceId = s.MobileAppDeviceId,
@@ -209,6 +212,7 @@ public sealed class SettingsStore : ISettingsStore
         public string QuickPanelLastView { get; set; } = string.Empty;
         public bool QuickPanelDragResize { get; set; } = true;
         public bool QuickPanelSortByCategory { get; set; }
+        public string QuickPanelMonitor { get; set; } = "primary";
         public bool ShowHaNotifications { get; set; } = true;
         public bool ReportSensors { get; set; }
         public string MobileAppDeviceId { get; set; } = string.Empty;

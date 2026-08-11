@@ -175,14 +175,17 @@ public sealed partial class QuickPanelWindow : Window
     }
 
     /// <summary>
-    /// Recomputes the slide geometry from the primary display (the user's "main" monitor), using
-    /// that monitor's effective DPI. Absolute screen pixels; the target monitor is fixed (never
-    /// derived from the window's own, possibly drifted, position), so the panel always opens on
-    /// the main display and repeated opens can't walk across displays.
+    /// Recomputes the slide geometry from the configured display (QuickPanelMonitor;
+    /// primary by default, and the fallback when the stored display is gone), using that
+    /// monitor's effective DPI. Absolute screen pixels; the target monitor is fixed (never
+    /// derived from the window's own, possibly drifted, position), so the panel always
+    /// opens on the chosen display and repeated opens can't walk across displays.
     /// </summary>
     private void ComputeGeometry()
     {
-        var mon = MonitorFromPoint(default, MONITOR_DEFAULTTOPRIMARY);
+        var mon = MonitorCatalog.Resolve(_settingsStore.Load().QuickPanelMonitor);
+        if (mon == IntPtr.Zero)
+            mon = MonitorFromPoint(default, MONITOR_DEFAULTTOPRIMARY);
         var mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
         if (!GetMonitorInfoW(mon, ref mi))
         {
@@ -199,7 +202,7 @@ public sealed partial class QuickPanelWindow : Window
         _winW = (int)Math.Round(_panelWidthDip * _scale);
         _winY = mi.rcWork.Top;
         _winH = mi.rcWork.Bottom - mi.rcWork.Top;
-        _restX = mi.rcWork.Right - _winW; // flush to the right edge of the primary display
+        _restX = mi.rcWork.Right - _winW; // flush to the right edge of the chosen display
         _offX = mi.rcWork.Right;          // just off that right edge
     }
 
