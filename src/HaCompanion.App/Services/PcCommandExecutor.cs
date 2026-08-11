@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using HaCompanion.Core.MobileApp;
+using static HaCompanion.App.Services.CoreAudioInterop;
 using Microsoft.Extensions.Logging;
 
 // Load every P/Invoke target from System32 only. The app installs into a user-writable
@@ -167,7 +168,7 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
         return PcCommandResult.Ok;
     }
 
-    // ----- volume via Core Audio (no NuGet; interop mirrors AudioPlaybackProbe) -----
+    // ----- volume via Core Audio (declarations shared via CoreAudioInterop) -----
 
     private static void SetMasterVolume(float level)
     {
@@ -235,54 +236,4 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    private class MMDeviceEnumeratorComObject
-    {
-    }
-
-    [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IMMDeviceEnumerator
-    {
-        int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices);
-
-        void GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice device);
-    }
-
-    [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IMMDevice
-    {
-        void Activate(ref Guid iid, int clsCtx, IntPtr activationParams,
-            [MarshalAs(UnmanagedType.IUnknown)] out object activated);
-    }
-
-    [ComImport, Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IAudioEndpointVolume
-    {
-        int RegisterControlChangeNotify(IntPtr client);
-
-        int UnregisterControlChangeNotify(IntPtr client);
-
-        int GetChannelCount(out uint count);
-
-        int SetMasterVolumeLevel(float levelDb, ref Guid eventContext);
-
-        int SetMasterVolumeLevelScalar(float level, ref Guid eventContext);
-
-        int GetMasterVolumeLevel(out float levelDb);
-
-        int GetMasterVolumeLevelScalar(out float level);
-
-        int SetChannelVolumeLevel(uint channel, float levelDb, ref Guid eventContext);
-
-        int SetChannelVolumeLevelScalar(uint channel, float level, ref Guid eventContext);
-
-        int GetChannelVolumeLevel(uint channel, out float levelDb);
-
-        int GetChannelVolumeLevelScalar(uint channel, out float level);
-
-        int SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid eventContext);
-
-        int GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
-    }
 }

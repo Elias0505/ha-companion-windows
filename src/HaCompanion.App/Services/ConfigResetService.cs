@@ -21,6 +21,10 @@ public interface IConfigResetService
 
     /// <summary>Finish the parts of a reset only a fresh process can do. Call once at startup.</summary>
     void CompletePending();
+
+    /// <summary>Remove WebView storage left behind by versions with persistent profiles —
+    /// it holds the HA token in cleartext. Call once at startup, before any WebView.</summary>
+    void PurgeLegacyWebViewProfiles();
 }
 
 /// <inheritdoc cref="IConfigResetService"/>
@@ -90,6 +94,37 @@ public sealed class ConfigResetService : IConfigResetService
         _settings.Invalidate();
 
         return complete;
+    }
+
+    /// <summary>
+    /// One-time cleanup for installations upgraded from a version whose WebView2 profiles
+    /// were PERSISTENT: those wrote the seeded hassTokens localStorage entry to disk in
+    /// cleartext. The profiles are in-private now, so nothing of value lives there — but the
+    /// old files (and the old token inside them) would linger forever. Called at startup,
+    /// before any WebView exists, so nothing holds the folders open.
+    /// </summary>
+    public void PurgeLegacyWebViewProfiles()
+    {
+        foreach (var folder in Folders)
+        {
+            // The WHOLE profile, not just localStorage: the HTTP cache holds responses and
+            // signed URLs that carry the token too. In-private profiles keep nothing worth
+            // preserving, so this is a clean sweep — and after the first run there is
+            // almost nothing left to delete.
+            var profile = Path.Combine(_dir, folder, "EBWebView");
+            if (!Directory.Exists(profile))
+                continue;
+            try
+            {
+                Directory.Delete(profile, recursive: true);
+                _logger.LogInformation("Removed legacy WebView profile in {Folder} (held the token in cleartext)", folder);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Locked by a shutting-down browser process — retried on the next start.
+                _logger.LogWarning(ex, "Could not remove legacy WebView profile in {Folder}", folder);
+            }
+        }
     }
 
     public void CompletePending()

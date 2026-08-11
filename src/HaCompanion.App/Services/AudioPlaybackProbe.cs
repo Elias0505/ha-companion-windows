@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Runtime.InteropServices;
+using static HaCompanion.App.Services.CoreAudioInterop;
 
 namespace HaCompanion.App.Services;
 
@@ -56,30 +57,4 @@ public sealed class AudioPlaybackProbe : IDisposable
     }
 
     public void Dispose() => Release();
-
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    private class MMDeviceEnumeratorComObject
-    {
-    }
-
-    [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IMMDeviceEnumerator
-    {
-        int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices);
-
-        void GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice device);
-    }
-
-    [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IMMDevice
-    {
-        void Activate(ref Guid iid, int clsCtx, IntPtr activationParams,
-            [MarshalAs(UnmanagedType.IUnknown)] out object activated);
-    }
-
-    [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IAudioMeterInformation
-    {
-        void GetPeakValue(out float peak);
-    }
 }

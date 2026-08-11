@@ -94,8 +94,12 @@ public partial class App : Application
         Services.GetRequiredService<IStartupService>().SelfHeal();
 
         // A factory reset cannot delete the WebView2 profiles while they are open — finish
-        // that here, before anything touches them again.
-        Services.GetRequiredService<IConfigResetService>().CompletePending();
+        // that here, before anything touches them again. The same window is the only safe
+        // moment to drop storage left by older versions, whose persistent WebView profiles
+        // wrote the HA token to disk in cleartext.
+        var reset = Services.GetRequiredService<IConfigResetService>();
+        reset.CompletePending();
+        reset.PurgeLegacyWebViewProfiles();
 
         // Retry the connection immediately when the network returns or the machine resumes.
         Services.GetRequiredService<IConnectivityWatcher>().Initialize();
