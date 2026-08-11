@@ -43,7 +43,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - **Windows → HA automations** — an *Automations* tab that manages your rules: **WHEN** a Windows event fires (lock/unlock, sign-in/out, sleep/resume, shutdown, display on/off, idle ≥ N min, a program becomes active, fullscreen, microphone/camera/audio, **or a time-of-day schedule on chosen weekdays**) → optional **conditions** (any number, all must hold: a time window, a **PC state** like *locked/fullscreen/mic in use*, a **numeric sensor comparison** like *temperature < 18*, or an HA entity on/off) → **THEN** one or more HA actions, optionally with **data** — for lights an explicit mode per action: *unchanged* (default — no forced values), brightness, **colour (swatches)**, brightness + colour, or colour temperature; plus media volume, target temperature, cover position, fan speed. Hand-added extra keys in `automations.json` survive editing, and the rule list shows each action's values (including a colour dot). Rules are **named, editable, duplicable and testable** ("run now"), remember when they last ran, and quick-start templates get you going in a click. Live dot shows when a trigger's state currently holds.
 - **PC as an HA device** — opt-in, reports this PC to Home Assistant as a `mobile_app` device (locked, session, idle, active program, fullscreen, microphone, camera, display, audio, last start) so you can automate *in HA* on your PC's state. Privacy-first: off by default, one toggle.
 - **My PC tab** — live PC status, **local notification rules** ("notify me when the front door opens / a light turns on" — no HA automation needed), HA→PC **command permissions**, and a received-notifications history.
-- **HA → PC** — Home Assistant can push notifications to your PC (with **clickable action buttons** that fire events back to HA) and send **commands** (`notify.mobile_app_<pc>` with `command_lock` / `command_sleep` / `command_shutdown` / `command_monitor_off` / `command_volume` / `command_mute` / `command_launch`). Every command is individually opt-in; the risky ones (shutdown, sleep, launch) stay off until you enable them, and `command_launch` only starts programs from your whitelist.
+- **HA → PC** — Home Assistant can push notifications to your PC (with **clickable action buttons** that fire events back to HA) and send **commands** (`notify.mobile_app_<pc>` with `command_lock` / `command_sleep` / `command_shutdown` / `command_monitor_off` / `command_volume` (target in `data.level`, 0–100) / `command_mute` / `command_launch`). Every command is individually opt-in; the risky ones (shutdown, sleep, launch) stay off until you enable them, and `command_launch` only starts programs from your whitelist.
 - **Backup** — export/import your whole configuration (layout, shortcuts, automations, notification rules, settings) as one portable JSON — no secrets included.
 - **HA notifications** — persistent notifications appear as native Windows toasts (optional).
 - **Robust connection** — instant reconnect on network change / resume from sleep; exponential backoff resets after healthy sessions.
@@ -148,7 +148,7 @@ Everything is configured in **Settings** — there is no config file to edit. Se
 | **Language** | UI language (English, German, Spanish, French, Chinese, Hindi, Arabic — Arabic mirrors the layout right-to-left). |
 | **Start with Windows** | Adds an autostart entry; the app then starts hidden in the tray. |
 | **Show HA notifications** | Mirror Home Assistant persistent notifications as Windows toasts. |
-| **Quick panel** | Global hotkey (default `Win+Ctrl+H`), width, default view, auto-hide, edge-resize. |
+| **Quick panel** | Global hotkey (default `Win+Ctrl+H`), width, default view, auto-hide, edge-resize, which display it docks on. |
 | **Report PC state (PC sensors)** | Opt-in. Publishes this PC to HA as a `mobile_app` device (see below). Off by default. |
 | **Idle threshold** | Minutes of no input before the PC counts as idle. |
 | **PC commands** | Per-command opt-in for HA→PC control (lock / monitor off / volume / mute / sleep / shutdown / launch). **All of them are off by default**; `launch` runs only whitelisted absolute `.exe` paths. |
@@ -193,6 +193,15 @@ Send a notification **to** the PC (a toast, optionally with action buttons), or 
 - service: notify.mobile_app_my_pc
   data:
     message: "command_lock"
+
+# Set the master volume to 40 % (requires the "volume" command to be enabled).
+# The level goes in data.level (0–100); "40", 40.5 and "40%" all work, and the
+# Android-style `command_volume_level` with the level in `title` is accepted too.
+- service: notify.mobile_app_my_pc
+  data:
+    message: "command_volume"
+    data:
+      level: 40
 ```
 
 ## Troubleshooting

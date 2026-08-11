@@ -409,7 +409,7 @@ data:
     actions:
       - action: "OPEN"
         title: "Unlock"</code></pre>
-          <p>Toasts with action buttons come back as HA events. <code>command_lock</code>, <code>command_sleep</code> and five more control the PC — each behind a permission switch in My PC (volume and mute share one), and the risky ones (sleep, shutdown, launch) stay off until you enable them.</p>
+          <p>Toasts with action buttons come back as HA events. <code>command_lock</code>, <code>command_sleep</code> and five more control the PC — each behind a permission switch in My PC (volume and mute share one; <code>command_volume</code> takes the target in <code>data.level</code>, 0–100), and the risky ones (sleep, shutdown, launch) stay off until you enable them.</p>
         </div>
       </article>
     </div>

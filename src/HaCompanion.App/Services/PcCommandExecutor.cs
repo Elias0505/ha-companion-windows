@@ -1,10 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-using System.Globalization;
 using System.Runtime.InteropServices;
 using HaCompanion.Core.MobileApp;
 using Microsoft.Extensions.Logging;
 
 namespace HaCompanion.App.Services;
+
+/// <summary>
+/// Why a PC command did (not) run. The received-log renders each case with its own
+/// text — a single boolean once made every failure read as "blocked (not enabled)",
+/// which sent users hunting through the permission toggles when the actual problem
+/// was a missing data.level (issue #6).
+/// </summary>
+public enum PcCommandResult
+{
+    Ok,
+    NotEnabled,
+    BadParameter,
+    Failed,
+}
 
 /// <summary>
 /// Executes PC commands sent from Home Assistant via notify.mobile_app_&lt;device&gt;.
@@ -13,8 +26,8 @@ namespace HaCompanion.App.Services;
 /// </summary>
 public interface IPcCommandExecutor
 {
-    /// <summary>True when the command was allowed and executed.</summary>
-    bool Execute(PcCommand command, string? param);
+    /// <summary>Runs the command if allowed and reports why it did (not) run.</summary>
+    PcCommandResult Execute(PcCommand command, string? param);
 
     /// <summary>Whether the settings currently allow this command (for the UI + receiver).</summary>
     bool IsAllowed(PcCommand command);
@@ -47,12 +60,12 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
         };
     }
 
-    public bool Execute(PcCommand command, string? param)
+    public PcCommandResult Execute(PcCommand command, string? param)
     {
         if (!IsAllowed(command))
         {
             _logger.LogWarning("PC command {Command} rejected: not enabled in settings", command);
-            return false;
+            return PcCommandResult.NotEnabled;
         }
 
         try
@@ -85,12 +98,12 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
                     break;
 
                 case PcCommand.Volume:
-                    if (!int.TryParse(param, CultureInfo.InvariantCulture, out var level))
+                    if (!PcCommands.TryParseLevel(param, out var level))
                     {
-                        _logger.LogWarning("command_volume without a numeric data.level");
-                        return false;
+                        _logger.LogWarning("command_volume without a usable level (got '{Param}')", param);
+                        return PcCommandResult.BadParameter;
                     }
-                    SetMasterVolume(Math.Clamp(level, 0, 100) / 100f);
+                    SetMasterVolume(level / 100f);
                     break;
 
                 case PcCommand.Mute:
@@ -102,19 +115,19 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             }
             _logger.LogInformation("PC command executed: {Command}{Param}", command,
                 param is null ? "" : $" ({param})");
-            return true;
+            return PcCommandResult.Ok;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "PC command {Command} failed", command);
-            return false;
+            return PcCommandResult.Failed;
         }
     }
 
-    private bool LaunchWhitelisted(string? app)
+    private PcCommandResult LaunchWhitelisted(string? app)
     {
         if (string.IsNullOrWhiteSpace(app))
-            return false;
+            return PcCommandResult.BadParameter;
         // Match against the whitelist by full path or by file name — but always START the
         // whitelist entry, never the received string (no argument/path smuggling).
         var entry = _settings.Load().LaunchWhitelist.FirstOrDefault(w =>
@@ -123,13 +136,13 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
         if (entry is null)
         {
             _logger.LogWarning("command_launch rejected: '{App}' is not whitelisted", app);
-            return false;
+            return PcCommandResult.BadParameter;
         }
         if (!LaunchWhitelist.TryValidateEntry(entry, out var fullPath))
         {
             _logger.LogWarning(
                 "command_launch rejected: whitelist entry '{Entry}' is not an existing absolute .exe path", entry);
-            return false;
+            return PcCommandResult.Failed;
         }
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
@@ -140,7 +153,7 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             WorkingDirectory = System.IO.Path.GetDirectoryName(fullPath)!,
         });
         _logger.LogInformation("PC command executed: Launch ({Entry})", fullPath);
-        return true;
+        return PcCommandResult.Ok;
     }
 
     // ----- volume via Core Audio (no NuGet; interop mirrors AudioPlaybackProbe) -----

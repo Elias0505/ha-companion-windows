@@ -137,11 +137,23 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
             var param = PcCommands.ParamField(command) is { } field
                 ? PushMessageParser.DataString(payload, field)
                 : null;
-            var ok = _executor.Execute(command, param);
-            AddHistory(new ReceivedItem(DateTimeOffset.Now,
-                _loc["Pc_CmdReceived"],
-                _loc["Cmd_" + PcCommands.ToKey(command)] + (ok ? "" : $" — {_loc["Pc_CmdBlocked"]}"),
-                IsCommand: true));
+            // The HA Android companion's command_volume_level carries the level in the
+            // TITLE — honor that too so examples copied from the HA docs just work.
+            if (command == PcCommand.Volume && string.IsNullOrWhiteSpace(param))
+                param = message.Title;
+
+            var result = _executor.Execute(command, param);
+            var text = _loc["Cmd_" + PcCommands.ToKey(command)];
+            if (!string.IsNullOrWhiteSpace(param))
+                text += $" {param}";
+            text += result switch
+            {
+                PcCommandResult.Ok => "",
+                PcCommandResult.NotEnabled => $" — {_loc["Pc_CmdBlocked"]}",
+                PcCommandResult.BadParameter => $" — {_loc["Pc_CmdBadParam"]}",
+                _ => $" — {_loc["Pc_CmdFailed"]}",
+            };
+            AddHistory(new ReceivedItem(DateTimeOffset.Now, _loc["Pc_CmdReceived"], text, IsCommand: true));
             return;
         }
 

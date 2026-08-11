@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using System.Text.Json;
 
 namespace HaCompanion.Core.MobileApp;
@@ -101,6 +102,9 @@ public static class PcCommands
             case "command_shutdown": command = PcCommand.Shutdown; return true;
             case "command_monitor_off": command = PcCommand.MonitorOff; return true;
             case "command_volume": command = PcCommand.Volume; return true;
+            // HA's Android companion calls this command_volume_level (level in title or
+            // data) — accepting the alias makes examples copied from the HA docs work.
+            case "command_volume_level": command = PcCommand.Volume; return true;
             case "command_mute": command = PcCommand.Mute; return true;
             case "command_launch": command = PcCommand.Launch; return true;
             default: command = default; return false;
@@ -130,4 +134,23 @@ public static class PcCommands
         PcCommand.Launch => "app",
         _ => null,
     };
+
+    /// <summary>
+    /// Parses a 0–100 volume level leniently: integers, decimals (rounded), a decimal
+    /// comma and an optional trailing '%' are all accepted — HA templates render levels
+    /// in several of these shapes, and a strict integer parse made valid automations
+    /// look "blocked" (issue #6). Out-of-range values clamp instead of failing.
+    /// </summary>
+    public static bool TryParseLevel(string? raw, out int level)
+    {
+        level = 0;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+        var s = raw.Trim().TrimEnd('%').Trim().Replace(',', '.');
+        if (!double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            || double.IsNaN(value) || double.IsInfinity(value))
+            return false;
+        level = Math.Clamp((int)Math.Round(value), 0, 100);
+        return true;
+    }
 }

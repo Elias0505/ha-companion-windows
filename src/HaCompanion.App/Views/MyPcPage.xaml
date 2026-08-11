@@ -128,6 +128,10 @@
                 <Run Text="{Binding [Cmd_Hint], Source={StaticResource Loc}}" />
                 <Run Text="{x:Bind ViewModel.NotifyServiceName}" FontFamily="Consolas" />
             </TextBlock>
+            <TextBlock FontSize="13" Opacity="0.7" TextWrapping="Wrap">
+                <Run Text="{Binding [Cmd_VolumeHint], Source={StaticResource Loc}}" />
+                <Run Text="{}message: command_volume, data: {&quot;level&quot;: 40}" FontFamily="Consolas" />
+            </TextBlock>
             <TextBlock Text="{Binding [Cmd_NeedsDevice], Source={StaticResource Loc}}"
                        FontSize="13" TextWrapping="Wrap"
                        Foreground="{ThemeResource SystemFillColorCautionBrush}"

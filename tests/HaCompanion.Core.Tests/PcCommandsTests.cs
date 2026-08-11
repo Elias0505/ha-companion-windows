@@ -46,4 +46,37 @@ public class PcCommandsTests
     [InlineData(PcCommand.Lock, null)]
     public void Param_fields_are_declared(PcCommand cmd, string? field) =>
         Assert.Equal(field, PcCommands.ParamField(cmd));
+
+    [Fact]
+    public void Android_style_volume_alias_parses_to_volume()
+    {
+        // The HA docs' Android examples use command_volume_level — copy-paste must work.
+        Assert.True(PcCommands.TryParse("command_volume_level", out var cmd));
+        Assert.Equal(PcCommand.Volume, cmd);
+        // The canonical key stays command_volume (history/i18n round-trips through it).
+        Assert.Equal("command_volume", PcCommands.ToKey(cmd));
+    }
+
+    [Theory]
+    [InlineData("40", 40)]
+    [InlineData(" 55 ", 55)]
+    [InlineData("40.6", 41)]   // decimals round
+    [InlineData("40,4", 40)]   // decimal comma accepted
+    [InlineData("85%", 85)]    // percent suffix stripped
+    [InlineData("120", 100)]   // clamps instead of failing
+    [InlineData("-5", 0)]
+    public void Volume_levels_parse_leniently(string raw, int expected)
+    {
+        Assert.True(PcCommands.TryParseLevel(raw, out var level));
+        Assert.Equal(expected, level);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("loud")]
+    [InlineData("NaN")]
+    public void Garbage_levels_are_rejected(string? raw) =>
+        Assert.False(PcCommands.TryParseLevel(raw, out _));
 }
