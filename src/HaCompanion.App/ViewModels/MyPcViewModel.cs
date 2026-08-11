@@ -234,6 +234,10 @@ public sealed partial class MyPcViewModel : ObservableObject
 
     // ----- command permissions -----
 
+    /// <summary>Re-read the command permissions from the store (e.g. after a config import
+    /// rewrote them) so the toggles never show a stale state.</summary>
+    public void ReloadPermissions() => LoadPermissions();
+
     private void LoadPermissions()
     {
         _loading = true;

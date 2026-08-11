@@ -21,6 +21,16 @@ public sealed record PushMessage(
 /// <summary>Parses the event payload of the push channel. Tolerant — HA only guarantees "message".</summary>
 public static class PushMessageParser
 {
+    // Push fields are attacker-influenced and land in the dedup set, the history list and
+    // the diagnostics report. Cap them so a hostile sender can't retain multi-MB strings
+    // (the dedup set and history bound their COUNT, not their byte size) or bloat a shared
+    // bug report. Generous enough for any real HA notification.
+    private const int MaxMessageLen = 4096;
+    private const int MaxFieldLen = 512;
+
+    private static string? Cap(string? s, int max) =>
+        s is not null && s.Length > max ? s[..max] : s;
+
     public static bool TryParse(JsonElement payload, out PushMessage message)
     {
         message = null!;
@@ -31,11 +41,11 @@ public static class PushMessageParser
 
         string? title = null;
         if (payload.TryGetProperty("title", out var titleEl) && titleEl.ValueKind == JsonValueKind.String)
-            title = titleEl.GetString();
+            title = Cap(titleEl.GetString(), MaxFieldLen);
 
         string? confirmId = null;
         if (payload.TryGetProperty("hass_confirm_id", out var confirmEl) && confirmEl.ValueKind == JsonValueKind.String)
-            confirmId = confirmEl.GetString();
+            confirmId = Cap(confirmEl.GetString(), MaxFieldLen);
 
         string? tag = null;
         var actions = new List<PushAction>();
@@ -55,7 +65,7 @@ public static class PushMessageParser
             }
         }
 
-        message = new PushMessage(title, msgEl.GetString()!, confirmId, actions, tag);
+        message = new PushMessage(title, Cap(msgEl.GetString(), MaxMessageLen)!, confirmId, actions, tag);
         return true;
     }
 
@@ -69,8 +79,8 @@ public static class PushMessageParser
         {
             return el.ValueKind switch
             {
-                JsonValueKind.String => el.GetString(),
-                JsonValueKind.Number => el.GetRawText(),
+                JsonValueKind.String => Cap(el.GetString(), MaxFieldLen),
+                JsonValueKind.Number => Cap(el.GetRawText(), MaxFieldLen),
                 _ => null,
             };
         }
@@ -136,6 +146,23 @@ public static class PcCommands
     };
 
     /// <summary>
+    /// Makes an attacker-influenced value safe to put on a log line: newlines and control
+    /// characters become spaces, and the result is truncated. Without this, a crafted
+    /// <c>data.app</c> containing CRLF forges whole log entries — which then travel verbatim
+    /// into the user-shareable diagnostics report.
+    /// </summary>
+    public static string ForLog(string? value, int max = 120)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+        var chars = value.Length > max ? value[..max].ToCharArray() : value.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+            if (char.IsControl(chars[i]))
+                chars[i] = ' ';
+        return new string(chars);
+    }
+
+    /// <summary>
     /// Parses a 0–100 volume level leniently: integers, decimals (rounded), a decimal
     /// comma and an optional trailing '%' are all accepted — HA templates render levels
     /// in several of these shapes, and a strict integer parse made valid automations
@@ -150,7 +177,10 @@ public static class PcCommands
         if (!double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
             || double.IsNaN(value) || double.IsInfinity(value))
             return false;
-        level = Math.Clamp((int)Math.Round(value), 0, 100);
+        // Clamp in double space BEFORE the cast: a finite-but-huge value like 1e30 casts to
+        // int.MinValue (unspecified overflow), which Math.Clamp would turn into 0 — silently
+        // muting instead of rejecting. Clamping first keeps the result in range for any input.
+        level = (int)Math.Round(Math.Clamp(value, 0, 100));
         return true;
     }
 }

@@ -14,26 +14,43 @@ namespace HaCompanion.App.Services;
 /// </summary>
 public static class WebViewHardening
 {
-    public static void Apply(CoreWebView2 core, Uri baseUri, bool allowCertErrorsForBase)
+    // Handing a link to the real browser is a user-visible action, so it must originate
+    // from a user gesture. Without this, a hostile Lovelace iframe card could loop
+    // `top.location = …` / `window.open(…)` and drive the user's actual browser (with its
+    // cookies) to arbitrary pages, unattended. The debounce additionally caps a burst that
+    // slips through with genuine gestures.
+    private static readonly TimeSpan MinExternalInterval = TimeSpan.FromSeconds(2);
+    private static long _lastExternalMs;
+
+    /// <param name="currentBaseUri">
+    /// Read on every event, never captured: the user can change the HA URL at runtime, and a
+    /// frozen origin would then treat the NEW instance as foreign (bouncing it to the system
+    /// browser) while still trusting the OLD one's certificate.
+    /// </param>
+    public static void Apply(CoreWebView2 core, Func<Uri> currentBaseUri, bool allowCertErrorsForBase)
     {
         core.NavigationStarting += (_, args) =>
         {
-            if (HaWebViewScripts.IsAllowedTopLevelNavigation(args.Uri, baseUri))
+            if (HaWebViewScripts.IsAllowedTopLevelNavigation(args.Uri, currentBaseUri()))
                 return;
+            // Foreign navigation is always cancelled; only a user-initiated one is handed
+            // to the browser. A scripted redirect is simply dropped.
             args.Cancel = true;
-            OpenExternally(args.Uri);
+            if (args.IsUserInitiated)
+                OpenExternally(args.Uri);
         };
 
         core.NewWindowRequested += (_, args) =>
         {
             args.Handled = true;
-            OpenExternally(args.Uri);
+            if (args.IsUserInitiated)
+                OpenExternally(args.Uri);
         };
 
         if (allowCertErrorsForBase)
         {
             core.ServerCertificateErrorDetected += (_, args) =>
-                args.Action = HaWebViewScripts.IsSameOrigin(args.RequestUri, baseUri)
+                args.Action = HaWebViewScripts.IsSameOrigin(args.RequestUri, currentBaseUri())
                     ? CoreWebView2ServerCertificateErrorAction.AlwaysAllow
                     : CoreWebView2ServerCertificateErrorAction.Default;
         }
@@ -47,6 +64,11 @@ public static class WebViewHardening
         {
             return;
         }
+
+        var now = Environment.TickCount64;
+        if (now - _lastExternalMs < MinExternalInterval.TotalMilliseconds)
+            return;
+        _lastExternalMs = now;
 
         try
         {

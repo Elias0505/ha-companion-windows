@@ -28,5 +28,7 @@ public sealed class QuickPanelController : IQuickPanelController
 
     public void PreviewWidth() => Window.PreviewWidth();
 
+    public void ResetWebView() => _window?.ResetWebView();
+
     public void Prewarm() => Window.Prewarm();
 }

@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.IO;
 using System.Runtime.InteropServices;
 using HaCompanion.Core.MobileApp;
 using Microsoft.Extensions.Logging;
+
+// Load every P/Invoke target from System32 only. The app installs into a user-writable
+// directory, which is searched before System32 by default — a planted powrprof.dll or
+// user32.dll would otherwise be loaded by a command coming from Home Assistant.
+[assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
 
 namespace HaCompanion.App.Services;
 
@@ -83,10 +89,14 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
 
                 case PcCommand.Shutdown:
                     // short grace period so a mistaken automation can still be cancelled
-                    // (shutdown /a) and open apps get their save prompts
+                    // (shutdown /a) and open apps get their save prompts.
+                    // Absolute path on purpose: with UseShellExecute=false and a bare name,
+                    // CreateProcess searches the app's own directory and the working
+                    // directory FIRST — both are user-writable (%LOCALAPPDATA%\Programs\…),
+                    // so a planted shutdown.exe would run instead of Windows'.
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
-                        FileName = "shutdown",
+                        FileName = Path.Combine(Environment.SystemDirectory, "shutdown.exe"),
                         Arguments = "/s /t 10",
                         CreateNoWindow = true,
                         UseShellExecute = false,
@@ -100,7 +110,8 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
                 case PcCommand.Volume:
                     if (!PcCommands.TryParseLevel(param, out var level))
                     {
-                        _logger.LogWarning("command_volume without a usable level (got '{Param}')", param);
+                        _logger.LogWarning("command_volume without a usable level (got '{Param}')",
+                            PcCommands.ForLog(param));
                         return PcCommandResult.BadParameter;
                     }
                     SetMasterVolume(level / 100f);
@@ -114,7 +125,7 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
                     return LaunchWhitelisted(param);
             }
             _logger.LogInformation("PC command executed: {Command}{Param}", command,
-                param is null ? "" : $" ({param})");
+                param is null ? "" : $" ({PcCommands.ForLog(param)})");
             return PcCommandResult.Ok;
         }
         catch (Exception ex)
@@ -135,7 +146,7 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             || string.Equals(System.IO.Path.GetFileNameWithoutExtension(w), app, StringComparison.OrdinalIgnoreCase));
         if (entry is null)
         {
-            _logger.LogWarning("command_launch rejected: '{App}' is not whitelisted", app);
+            _logger.LogWarning("command_launch rejected: '{App}' is not whitelisted", PcCommands.ForLog(app));
             return PcCommandResult.BadParameter;
         }
         if (!LaunchWhitelist.TryValidateEntry(entry, out var fullPath))

@@ -71,10 +71,17 @@ public sealed partial class HaDashboardsPage : Page
                 "HaCompanion", "WebView2");
             var env = await CoreWebView2Environment.CreateWithOptionsAsync(
                 null, userDataFolder, new CoreWebView2EnvironmentOptions());
-            await Web.EnsureCoreWebView2Async(env);
+            // InPrivate: the auth script seeds the token into localStorage on every
+            // document, and a PERSISTENT profile flushes that localStorage to disk in
+            // cleartext — defeating the DPAPI protection of settings.json and outliving
+            // token rotation. An in-memory profile keeps auto-login working (the token is
+            // re-seeded each time) without ever writing the secret to disk.
+            var controllerOptions = env.CreateCoreWebView2ControllerOptions();
+            controllerOptions.IsInPrivateModeEnabled = true;
+            await Web.EnsureCoreWebView2Async(env, controllerOptions);
 
             var baseUri = new Uri(_baseUrl, UriKind.Absolute);
-            WebViewHardening.Apply(Web.CoreWebView2, baseUri, settings.IgnoreCertificateErrors);
+            WebViewHardening.Apply(Web.CoreWebView2, CurrentBaseUri, settings.IgnoreCertificateErrors);
 
             // Pre-seed hassTokens so the HA frontend logs in without any prompt.
             await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
@@ -95,6 +102,16 @@ public sealed partial class HaDashboardsPage : Page
         _initialized = true;
         Info.IsOpen = false;
         await LoadDashboardListAsync();
+    }
+
+    /// <summary>The configured HA origin as of right now (never a captured snapshot) — the
+    /// user can change the URL while this cached page keeps its initialized WebView.</summary>
+    private Uri CurrentBaseUri()
+    {
+        var url = _settingsStore.Load().BaseUrl.TrimEnd('/');
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            ? uri
+            : new Uri(_baseUrl, UriKind.Absolute);
     }
 
     private async Task LoadDashboardListAsync()

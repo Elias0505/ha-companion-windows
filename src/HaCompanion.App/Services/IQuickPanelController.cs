@@ -15,6 +15,13 @@ public interface IQuickPanelController
     void PreviewWidth();
 
     /// <summary>
+    /// Drop the embedded WebView so the next open rebuilds it. Call after the HA URL,
+    /// token or certificate setting changed — otherwise the existing WebView keeps
+    /// enforcing the OLD origin/certificate rules and carries the OLD token until restart.
+    /// </summary>
+    void ResetWebView();
+
+    /// <summary>
     /// Build the panel window and pre-load its start view (incl. the embedded dashboard)
     /// invisibly so the first hotkey press slides in an already-rendered panel.
     /// </summary>

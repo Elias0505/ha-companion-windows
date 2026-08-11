@@ -50,10 +50,45 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
     private readonly BoundedIdSet _seenConfirmIds = new(128);
 
     // Single-reader queue: commands and toasts are handled strictly one at a time,
-    // in arrival order, off the WebSocket dispatch thread.
+    // in arrival order, off the WebSocket dispatch thread. BOUNDED on purpose — each
+    // queued item holds a private clone of the payload (up to the 32 MB receive cap),
+    // and the WebSocket producer never waits for this reader, so an unbounded queue let
+    // a push flood grow to gigabytes. Oldest entries are dropped under flood.
+    private const int QueueCap = 64;
+
     private readonly Channel<(JsonElement Payload, PushMessage Message)> _queue =
-        Channel.CreateUnbounded<(JsonElement, PushMessage)>(
-            new UnboundedChannelOptions { SingleReader = true });
+        Channel.CreateBounded<(JsonElement, PushMessage)>(
+            new BoundedChannelOptions(QueueCap)
+            {
+                SingleReader = true,
+                FullMode = BoundedChannelFullMode.DropOldest,
+            });
+
+    // Rate limits per command kind: a caller who can invoke notify.mobile_app_<device> in
+    // a loop must not be able to spawn processes without bound. Volume/mute stay responsive
+    // (a slider drags through many values), the destructive ones are throttled hard.
+    private static readonly Dictionary<PcCommand, TimeSpan> MinInterval = new()
+    {
+        [PcCommand.Launch] = TimeSpan.FromSeconds(5),
+        [PcCommand.Shutdown] = TimeSpan.FromSeconds(60),
+        [PcCommand.Sleep] = TimeSpan.FromSeconds(10),
+        [PcCommand.Lock] = TimeSpan.FromSeconds(2),
+        [PcCommand.MonitorOff] = TimeSpan.FromSeconds(2),
+    };
+
+    private readonly Dictionary<PcCommand, long> _lastRun = new();
+
+    /// <summary>False when this command came too soon after the previous one of its kind.</summary>
+    private bool RateLimitAllows(PcCommand command)
+    {
+        if (!MinInterval.TryGetValue(command, out var minimum))
+            return true; // volume/mute: not destructive, never throttled
+        var now = Environment.TickCount64;
+        if (_lastRun.TryGetValue(command, out var last) && now - last < minimum.TotalMilliseconds)
+            return false;
+        _lastRun[command] = now;
+        return true;
+    }
 
     public ObservableCollection<ReceivedItem> History { get; } = new();
 
@@ -142,10 +177,18 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
             if (command == PcCommand.Volume && string.IsNullOrWhiteSpace(param))
                 param = message.Title;
 
+            if (!RateLimitAllows(command))
+            {
+                _logger.LogWarning("PC command {Command} rate-limited", command);
+                AddHistory(new ReceivedItem(DateTimeOffset.Now, _loc["Pc_CmdReceived"],
+                    $"{_loc["Cmd_" + PcCommands.ToKey(command)]} — {_loc["Pc_CmdThrottled"]}", IsCommand: true));
+                return;
+            }
+
             var result = _executor.Execute(command, param);
             var text = _loc["Cmd_" + PcCommands.ToKey(command)];
             if (!string.IsNullOrWhiteSpace(param))
-                text += $" {param}";
+                text += $" {PcCommands.ForLog(param, 60)}"; // control chars out, length capped
             text += result switch
             {
                 PcCommandResult.Ok => "",

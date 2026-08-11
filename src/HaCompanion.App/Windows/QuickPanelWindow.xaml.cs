@@ -567,6 +567,27 @@ public sealed partial class QuickPanelWindow : Window
         }
     }
 
+    /// <summary>
+    /// Forget the initialized WebView so the next dashboard view rebuilds it from current
+    /// settings. Needed when the HA URL/token/certificate option changes: the cached
+    /// CoreWebView2 keeps the OLD origin in its navigation + certificate handlers and the
+    /// OLD token in its injected script, which would otherwise persist until app restart.
+    /// </summary>
+    public void ResetWebView()
+    {
+        _webInitTask = null;
+        ViewModel.ApplyStartView();
+    }
+
+    /// <summary>The configured HA origin as of right now (never a captured snapshot).</summary>
+    private Uri CurrentBaseUri()
+    {
+        var url = _settingsStore.Load().BaseUrl.TrimEnd('/');
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            ? uri
+            : new Uri(_baseUrl, UriKind.Absolute); // settings became unusable — keep the init-time origin
+    }
+
     private async Task InitWebAsync()
     {
         var settings = _settingsStore.Load();
@@ -577,10 +598,16 @@ public sealed partial class QuickPanelWindow : Window
             "HaCompanion", "WebView2Panel");
         var env = await CoreWebView2Environment.CreateWithOptionsAsync(
             null, userDataFolder, new CoreWebView2EnvironmentOptions());
-        await PanelWeb.EnsureCoreWebView2Async(env);
+        // InPrivate: a persistent profile would flush the seeded hassTokens localStorage
+        // entry to disk in cleartext, defeating the DPAPI protection of settings.json and
+        // outliving token rotation. The auth script re-seeds the token per document, so an
+        // in-memory profile keeps auto-login working with nothing written to disk.
+        var controllerOptions = env.CreateCoreWebView2ControllerOptions();
+        controllerOptions.IsInPrivateModeEnabled = true;
+        await PanelWeb.EnsureCoreWebView2Async(env, controllerOptions);
 
         var baseUri = new Uri(_baseUrl, UriKind.Absolute);
-        WebViewHardening.Apply(PanelWeb.CoreWebView2, baseUri, settings.IgnoreCertificateErrors);
+        WebViewHardening.Apply(PanelWeb.CoreWebView2, CurrentBaseUri, settings.IgnoreCertificateErrors);
 
         await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
             HaWebViewScripts.BuildAuthScript(baseUri, settings.Token));

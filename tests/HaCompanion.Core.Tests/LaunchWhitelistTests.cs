@@ -63,4 +63,18 @@ public class LaunchWhitelistTests : IDisposable
         LaunchWhitelist.TryValidateEntry("notepad", out var full);
         Assert.Equal("", full);
     }
+
+    [Theory]
+    [InlineData(@"\\server\share\app.exe")] // UNC — remote share the attacker controls
+    [InlineData(@"\\?\C:\Windows\System32\calc.exe")] // verbatim/device namespace
+    [InlineData(@"\\.\C:\Windows\System32\calc.exe")]
+    public void Unc_and_device_paths_are_rejected(string entry) =>
+        Assert.False(LaunchWhitelist.TryValidateEntry(entry, out _));
+
+    [Fact]
+    public void Alternate_data_stream_suffix_is_rejected()
+    {
+        // C:\real.exe:evil.exe reports extension ".exe" but is an NTFS ADS — not launchable.
+        Assert.False(LaunchWhitelist.TryValidateEntry(_exe + ":evil.exe", out _));
+    }
 }

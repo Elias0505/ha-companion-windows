@@ -65,6 +65,8 @@ public class PcCommandsTests
     [InlineData("85%", 85)]    // percent suffix stripped
     [InlineData("120", 100)]   // clamps instead of failing
     [InlineData("-5", 0)]
+    [InlineData("1e30", 100)]  // finite-but-huge clamps in double space, never casts to MinValue
+    [InlineData("1e30%", 100)]
     public void Volume_levels_parse_leniently(string raw, int expected)
     {
         Assert.True(PcCommands.TryParseLevel(raw, out var level));
@@ -79,4 +81,25 @@ public class PcCommandsTests
     [InlineData("NaN")]
     public void Garbage_levels_are_rejected(string? raw) =>
         Assert.False(PcCommands.TryParseLevel(raw, out _));
+
+    [Fact]
+    public void ForLog_strips_control_characters()
+    {
+        // A crafted data.app with CRLF used to forge whole log lines, which then travelled
+        // verbatim into the shareable diagnostics report.
+        var forged = "app\r\n[2026-01-01 00:00:00.000] INFO: PC command executed: Launch (cmd.exe)";
+        var safe = PcCommands.ForLog(forged);
+        Assert.DoesNotContain('\r', safe);
+        Assert.DoesNotContain('\n', safe);
+        Assert.StartsWith("app ", safe, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ForLog_truncates_and_tolerates_empty()
+    {
+        Assert.Equal(120, PcCommands.ForLog(new string('x', 5000)).Length);
+        Assert.Equal(10, PcCommands.ForLog(new string('x', 5000), 10).Length);
+        Assert.Equal("", PcCommands.ForLog(null));
+        Assert.Equal("", PcCommands.ForLog(""));
+    }
 }

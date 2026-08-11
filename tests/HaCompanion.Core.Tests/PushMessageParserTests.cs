@@ -70,4 +70,21 @@ public class PushMessageParserTests
     [InlineData("""{"message":"m"}""", "level", null)]
     public void DataString_reads_string_and_number_params(string json, string field, string? expected) =>
         Assert.Equal(expected, PushMessageParser.DataString(Json(json), field));
+
+    [Fact]
+    public void Oversized_fields_are_capped()
+    {
+        // These values are retained by the dedup set and the history list, which bound
+        // their COUNT but not their size — an unbounded field would let a hostile sender
+        // pin megabytes in memory and bloat the diagnostics report.
+        var huge = new string('a', 100_000);
+        var payload = Json("{\"message\":\"" + huge + "\",\"title\":\"" + huge
+            + "\",\"hass_confirm_id\":\"" + huge + "\",\"data\":{\"app\":\"" + huge + "\"}}");
+
+        Assert.True(PushMessageParser.TryParse(payload, out var msg));
+        Assert.Equal(4096, msg.Message.Length);
+        Assert.Equal(512, msg.Title!.Length);
+        Assert.Equal(512, msg.ConfirmId!.Length);
+        Assert.Equal(512, PushMessageParser.DataString(payload, "app")!.Length);
+    }
 }

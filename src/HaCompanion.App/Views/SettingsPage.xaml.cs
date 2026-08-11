@@ -126,6 +126,11 @@ public sealed partial class SettingsPage : Page
                 // The tile catalog keeps pins/spans in memory — rebuild it from the
                 // imported layout.json (we are on the UI thread here).
                 App.Services.GetRequiredService<EntityCatalogViewModel>().ReloadLayout();
+                // The settings + My-PC view models cache the store too — reload them so the
+                // command toggles and connection fields never display a pre-import state
+                // while the executor already reads the new values live.
+                ViewModel.ReloadFromSettings();
+                App.Services.GetRequiredService<MyPcViewModel>().ReloadPermissions();
             }
             BackupStatus.Text = Loc[ok ? "Backup_Imported" : "Backup_Invalid"];
         }

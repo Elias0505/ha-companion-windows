@@ -37,15 +37,49 @@ public sealed class ConfigBackupService : IConfigBackupService
         "layout.json", "shortcuts.json", "automations.json", "notify_rules.json",
     };
 
-    // Settings keys that are safe to carry across machines (NOT the token/webhook/device id).
+    // Settings keys carried in an exported bundle. Cosmetic/behavioural only.
+    //
+    // Deliberately EXCLUDED, and never re-added: the token/webhook/device id (secrets),
+    // and every SECURITY DECISION — IgnoreCertificateErrors, all AllowCmd* toggles and
+    // LaunchWhitelist. A shared config file must not be able to disable TLS validation,
+    // enable HA→PC commands, or seed a launch whitelist behind the user's back; those are
+    // choices the user makes locally, not something an import turns on. BaseUrl is kept
+    // (convenient on a new PC) but triggers a credential reset on import when it changes,
+    // so it can never redirect the stored token to a foreign host. QuickPanelMonitor is
+    // device-specific and intentionally not portable.
     private static readonly string[] PortableSettingKeys =
     {
-        "BaseUrl", "IgnoreCertificateErrors", "Hotkey", "AutoHideQuickPanel", "QuickPanelWidth",
+        "BaseUrl", "Hotkey", "AutoHideQuickPanel", "QuickPanelWidth",
         "Language", "QuickPanelStartView", "QuickPanelLastView", "QuickPanelDragResize",
         "QuickPanelSortByCategory", "ShowHaNotifications", "IdleSensorThresholdMinutes",
-        "AllowCmdLock", "AllowCmdMonitorOff", "AllowCmdVolume", "AllowCmdSleep",
-        "AllowCmdShutdown", "AllowCmdLaunch", "LaunchWhitelist",
     };
+
+    /// <summary>Expected JSON kind per portable key — an import that disagrees is rejected
+    /// whole, so a type-confused bundle can't corrupt settings.json (and, via the load-time
+    /// fallback, destroy the stored token).</summary>
+    private static bool PortableTypesValid(JsonObject imported)
+    {
+        foreach (var key in PortableSettingKeys)
+        {
+            if (!imported.TryGetPropertyValue(key, out var node) || node is null)
+                continue;
+            var kind = node.GetValueKind();
+            var ok = key switch
+            {
+                "BaseUrl" or "Hotkey" or "Language" or "QuickPanelStartView" or "QuickPanelLastView"
+                    => kind == JsonValueKind.String,
+                "AutoHideQuickPanel" or "QuickPanelDragResize" or "QuickPanelSortByCategory"
+                    or "ShowHaNotifications"
+                    => kind is JsonValueKind.True or JsonValueKind.False,
+                "QuickPanelWidth" or "IdleSensorThresholdMinutes"
+                    => kind == JsonValueKind.Number,
+                _ => true,
+            };
+            if (!ok)
+                return false;
+        }
+        return true;
+    }
 
     private readonly IShortcutStore _shortcuts;
     private readonly IRulesStore _rules;
@@ -117,6 +151,17 @@ public sealed class ConfigBackupService : IConfigBackupService
                 return false;
             }
 
+            // Validate EVERYTHING before writing anything — a half-applied bundle (files in,
+            // settings rejected) could leave the config inconsistent, and a type-confused
+            // settings value would make settings.json unparseable, which the load-time
+            // fallback then overwrites with defaults (destroying the stored token).
+            var imported = bundle["settings"]?.AsObject();
+            if (imported is not null && !PortableTypesValid(imported))
+            {
+                _logger.LogWarning("Import rejected: a setting has the wrong type");
+                return false;
+            }
+
             Directory.CreateDirectory(_dir);
 
             if (bundle["files"]?.AsObject() is { } files)
@@ -138,15 +183,29 @@ public sealed class ConfigBackupService : IConfigBackupService
             }
 
             // Merge portable settings into the existing settings.json (keeps token/webhook).
-            if (bundle["settings"]?.AsObject() is { } imported)
+            if (imported is not null)
             {
                 var settingsPath = Path.Combine(_dir, "settings.json");
                 var current = File.Exists(settingsPath)
                     ? JsonNode.Parse(File.ReadAllText(settingsPath))?.AsObject() ?? new JsonObject()
                     : new JsonObject();
+
+                var oldBaseUrl = current["BaseUrl"]?.GetValue<string>() ?? string.Empty;
                 foreach (var key in PortableSettingKeys)
                     if (imported.TryGetPropertyValue(key, out var val))
                         current[key] = val?.DeepClone();
+
+                // A changed BaseUrl must never reunite the stored token with a different host:
+                // drop the credentials so the user re-authenticates against the imported URL
+                // instead of silently leaking the token to it on the next connect.
+                var newBaseUrl = current["BaseUrl"]?.GetValue<string>() ?? string.Empty;
+                if (!string.Equals(oldBaseUrl.TrimEnd('/'), newBaseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+                {
+                    current.Remove("TokenProtected");
+                    current.Remove("WebhookIdProtected");
+                    current.Remove("MobileAppDeviceId");
+                }
+
                 WriteAtomic(settingsPath, current.ToJsonString(Indented));
                 // Drop the store's cache so the next Load() re-reads the just-written file.
                 // (Save(Load()) would re-serialize the STALE cache over the imported values.)

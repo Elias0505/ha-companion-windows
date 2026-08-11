@@ -134,6 +134,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         _ = LoadStartViewDashboardsAsync();
     }
 
+    /// <summary>Re-read all settings from the store (e.g. after a config import) so the
+    /// page never shows values that no longer match settings.json.</summary>
+    public void ReloadFromSettings() => Load();
+
     private void Load()
     {
         _loading = true;
@@ -395,6 +399,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         _settingsStore.Save(settings);
+        // The quick panel's WebView captured the previous URL/token in its navigation,
+        // certificate and auth handlers — rebuild it, or it keeps enforcing the old
+        // origin's rules (and carrying the old token) until the app restarts.
+        _quickPanel.ResetWebView();
         var result = await _shell.ConnectAsync(settings);
         StatusMessage = FormatCheck(result);
         IsBusy = false;

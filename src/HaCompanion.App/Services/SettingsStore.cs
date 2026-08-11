@@ -87,7 +87,23 @@ public sealed class SettingsStore : ISettingsStore
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load settings; using defaults");
+            // An unreadable settings.json used to degrade silently to defaults — and the
+            // next Save() then wrote those defaults back, overwriting the DPAPI-protected
+            // token for good. Move the broken file aside first: the user still loses the
+            // session's settings, but the encrypted token survives in the .bad copy and
+            // the failure is visible instead of silent.
+            _logger.LogError(ex, "settings.json is unreadable; moving it aside and starting from defaults");
+            try
+            {
+                var bad = _file + ".bad";
+                File.Delete(bad);
+                File.Move(_file, bad);
+                _logger.LogWarning("Previous settings kept at {Path}", bad);
+            }
+            catch (Exception moveEx)
+            {
+                _logger.LogWarning(moveEx, "Could not preserve the unreadable settings file");
+            }
             return new AppSettings();
         }
     }
