@@ -43,7 +43,16 @@ public sealed class HaRestClient : IDisposable
         _http?.Dispose();
         var handler = new HttpClientHandler();
         if (ignoreCertErrors)
-            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+        {
+            // Scoped to the configured host only — the blanket validator would also skip
+            // validation for any REDIRECT target, and webhook posts carry their secret in
+            // the URL path, which a redirect takes along. Everything else keeps normal
+            // certificate checking even while the self-signed opt-in is active.
+            var trustedHost = _baseUri.IdnHost;
+            handler.ServerCertificateCustomValidationCallback = (request, _, _, errors) =>
+                errors == System.Net.Security.SslPolicyErrors.None
+                || string.Equals(request.RequestUri?.IdnHost, trustedHost, StringComparison.OrdinalIgnoreCase);
+        }
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
     }
 

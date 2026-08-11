@@ -16,7 +16,11 @@
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+# Assign, never OR: Windows PowerShell 5.1 often defaults to Ssl3+Tls1.0, and
+# OR-ing would keep offering those in the ClientHello. TLS 1.3 where available.
+$tls = [Net.SecurityProtocolType]::Tls12
+if ([Enum]::IsDefined([Net.SecurityProtocolType], 'Tls13')) { $tls = $tls -bor [Net.SecurityProtocolType]::Tls13 }
+[Net.ServicePointManager]::SecurityProtocol = $tls
 
 $repo = 'Elias0505/ha-companion-windows'
 $dest = Join-Path $env:LOCALAPPDATA 'Programs\HaCompanion'
@@ -170,7 +174,7 @@ try {
         if (Test-Path $old) {
             # Something (a WebView2 host, an indexer) still holds a file - let a detached
             # command retire it once the lock is gone, exactly like the uninstaller does.
-            Start-Process -FilePath 'cmd.exe' `
+            Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\cmd.exe') `
                 -ArgumentList '/c', ('timeout /t 5 /nobreak >nul & rmdir /s /q "' + $old + '"') `
                 -WindowStyle Hidden
         }
@@ -259,7 +263,13 @@ function Test-InDest {
 
 # --- step 0: run from %TEMP% so we may delete our own program folder ---------
 if (-not $FromTemp) {
-    $tempCopy = Join-Path $env:TEMP 'hacompanion-uninstall.ps1'
+    # Fresh GUID directory, never a predictable name: a fixed %TEMP%\<name>.ps1 can be
+    # pre-planted (as a file, hardlink or symlink) by another process running as this user
+    # and swapped between the copy and the launch below - which then runs it with
+    # -ExecutionPolicy Bypass. Same reasoning as the installer's download directory.
+    $tempDir = Join-Path $env:TEMP ('hacompanion-uninstall-' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $tempDir -ErrorAction Stop | Out-Null
+    $tempCopy = Join-Path $tempDir 'uninstall.ps1'
     Copy-Item -LiteralPath $PSCommandPath -Destination $tempCopy -Force
     # Windows PowerShell by absolute path - $PSHOME would be pwsh.exe's folder if someone
     # started this script from PowerShell 7, and powershell.exe does not live there.
@@ -361,7 +371,7 @@ if (Test-Path $dest) {
     $stale = $dest + '.old-' + (Get-Date -Format 'yyyyMMddHHmmss')
     try {
         Rename-Item -Path $dest -NewName (Split-Path $stale -Leaf) -ErrorAction Stop
-        Start-Process -FilePath 'cmd.exe' `
+        Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\cmd.exe') `
             -ArgumentList '/c', 'timeout /t 5 /nobreak >nul & rmdir /s /q "' + $stale + '"' `
             -WindowStyle Hidden
     } catch {

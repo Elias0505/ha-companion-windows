@@ -76,8 +76,13 @@ jobs:
           path: publish
       - name: Zip + checksums
         shell: pwsh
+        # The tag name goes in via env, never interpolated into the script body: git ref
+        # names may contain $ ( ) & ; — expanding one straight into a pwsh string would
+        # execute it in a job that holds contents: write.
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          $zip = "HaCompanion-${{ github.ref_name }}-win-x64.zip"
+          $zip = "HaCompanion-$env:TAG-win-x64.zip"
           Compress-Archive -Path publish/* -DestinationPath $zip
           $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToUpperInvariant()
           "$hash  $zip" | Out-File SHA256SUMS.txt -Encoding ascii

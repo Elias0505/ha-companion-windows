@@ -67,6 +67,39 @@ public class DiagnosticsRedactorTests
         Assert.Equal("äbc", DiagnosticsRedactor.Decode(bytes, skipLeadingPartial: false));
     }
 
+    [Fact]
+    public void A_rotated_token_is_still_redacted_by_shape()
+    {
+        // The exact-value pass only knows the CURRENT secrets. An older log tail can hold
+        // a token that has since been rotated — the report must not leak it either.
+        var oldToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhYmNkZWYwMTIzNDU2Nzg5"
+                       + "IiwiaWF0IjoxNzAwMDAwMDAwfQ.Zm9vYmFyYmF6cXV4c2lnbmF0dXJl";
+        var text = $"connect failed with token {oldToken} — retrying";
+
+        var redacted = DiagnosticsRedactor.Redact(text, new[] { "current-token" });
+
+        Assert.DoesNotContain(oldToken, redacted, StringComparison.Ordinal);
+        Assert.Contains(DiagnosticsRedactor.Redacted, redacted, StringComparison.Ordinal);
+        Assert.Contains("retrying", redacted, StringComparison.Ordinal); // context survives
+    }
+
+    [Fact]
+    public void A_webhook_id_shape_is_redacted()
+    {
+        var text = "POST /api/webhook/0123456789abcdef0123456789abcdef01234567 -> 200";
+        var redacted = DiagnosticsRedactor.Redact(text, Array.Empty<string?>());
+        Assert.DoesNotContain("0123456789abcdef", redacted, StringComparison.Ordinal);
+        Assert.Contains("-> 200", redacted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ordinary_text_survives_the_shape_pass()
+    {
+        // Short hex (colours, ids) and normal words must not be mangled.
+        const string text = "theme #ff8800, entity light.kitchen, build 1.6.0, 8 devices";
+        Assert.Equal(text, DiagnosticsRedactor.Redact(text, Array.Empty<string?>()));
+    }
+
     private static int CountOf(string text, string needle)
     {
         var count = 0;

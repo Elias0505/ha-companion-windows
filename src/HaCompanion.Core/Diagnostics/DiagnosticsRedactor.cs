@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HaCompanion.Core.Diagnostics;
 
@@ -11,12 +12,40 @@ public static class DiagnosticsRedactor
 {
     public const string Redacted = "<redacted>";
 
-    /// <summary>Replace every occurrence of the given secrets with a placeholder.</summary>
+    // Home Assistant long-lived access tokens are JWTs: three base64url segments split by
+    // dots, the first starting with the encoded '{"' header. Matching the SHAPE catches
+    // secrets an exact-value pass cannot — above all a token the user has ROTATED since,
+    // which may still sit in the rolled-over log tails the report bundles up.
+    private static readonly Regex JwtLike = new(
+        @"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b",
+        RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+
+    // mobile_app webhook ids are long hex strings; they authenticate the webhook URL.
+    private static readonly Regex WebhookLike = new(
+        @"\b[0-9a-f]{32,}\b",
+        RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+
+    /// <summary>
+    /// Replace every occurrence of the given secrets with a placeholder, then redact
+    /// anything merely SHAPED like a token or webhook id — the exact-value pass only knows
+    /// the secrets currently in settings, not the ones that were valid when an older log
+    /// line was written.
+    /// </summary>
     public static string Redact(string text, IEnumerable<string?> secrets)
     {
         foreach (var secret in secrets)
             if (!string.IsNullOrEmpty(secret))
                 text = text.Replace(secret, Redacted, StringComparison.Ordinal);
+        try
+        {
+            text = JwtLike.Replace(text, Redacted);
+            text = WebhookLike.Replace(text, Redacted);
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Pathological input: the exact-value redaction above already ran, and the
+            // report is still usable — better than failing the export outright.
+        }
         return text;
     }
 
