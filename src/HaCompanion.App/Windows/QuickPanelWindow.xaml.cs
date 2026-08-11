@@ -23,12 +23,10 @@ namespace HaCompanion.App.Windows;
 /// <summary>
 /// The Win+Ctrl+H quick panel: a borderless, always-on-top overlay pinned to the
 /// right edge of the work area. The panel slides in/out as one unit (like the Win11
-/// notification centre), but the WINDOW itself never moves or resizes during the
-/// slide: the sheet effect is a GPU content translate plus a window region cropping
-/// the vacated strip (see <see cref="ApplySlideClip"/> for why). A DPI guard
-/// (<see cref="HandleMessage"/>) and a scale doctor (<see cref="EnsureIslandScale"/>)
-/// keep neighbouring monitors' scales out. Dismisses on focus loss or Esc, and
-/// hosts the editable pinned-tile layout.
+/// notification centre) by moving the whole window — plain per-tick moves at constant
+/// size, the only slide mechanism that stays butter-smooth with an embedded WebView
+/// (region- and width-based variants both stalled the UI thread; see <see cref="MovePx"/>).
+/// Dismisses on focus loss or Esc, and hosts the editable pinned-tile layout.
 /// </summary>
 /// <remarks>
 /// Animation model: a single desired-state field (<see cref="_isOpen"/>) is the sole
@@ -55,9 +53,6 @@ public sealed partial class QuickPanelWindow : Window
     private const int MaxPanelWidthDip = 900;
 
     private const uint MONITOR_DEFAULTTOPRIMARY = 1;
-    private const uint MONITOR_DEFAULTTONULL = 0;
-    private const uint WM_DPICHANGED = 0x02E0;
-    private const int GWLP_WNDPROC = -4;
     private const int MDT_EFFECTIVE_DPI = 0;
     private const int SM_XVIRTUALSCREEN = 76;
     private const int SM_CXVIRTUALSCREEN = 78;
@@ -89,8 +84,32 @@ public sealed partial class QuickPanelWindow : Window
     private int _animFromX, _animToX;
     private long _animStartMs;
     private bool _timerBoosted;
-    private int _slideX;         // virtual slide position (window-x semantics; window is static)
-    private readonly TranslateTransform _slideTransform = new();
+    // Lightweight jank telemetry: inter-event gaps on the UI thread reveal where frame
+    // budget is burned (layout/render starves input); logged per slide / per drag.
+    private long _perfLastMs;
+    private int _perfEvents, _perfLate;
+    private long _perfMaxGapMs;
+
+    private void PerfReset()
+    {
+        _perfLastMs = 0;
+        _perfEvents = 0;
+        _perfLate = 0;
+        _perfMaxGapMs = 0;
+    }
+
+    private void PerfSample()
+    {
+        var now = Environment.TickCount64;
+        if (_perfLastMs > 0)
+        {
+            var gap = now - _perfLastMs;
+            if (gap > _perfMaxGapMs) _perfMaxGapMs = gap;
+            if (gap > 25) _perfLate++;
+        }
+        _perfLastMs = now;
+        _perfEvents++;
+    }
 
     // Live drag-to-resize state (grip on the left edge).
     private bool _dragResizing;
@@ -104,7 +123,6 @@ public sealed partial class QuickPanelWindow : Window
         _settingsStore = App.Services.GetRequiredService<ISettingsStore>();
         InitializeComponent();
         RootGrid.DataContext = viewModel;
-        RootGrid.RenderTransform = _slideTransform;
 
         var loc = App.Services.GetRequiredService<LocalizationService>();
         ApplyFlowDirection(loc);
@@ -124,7 +142,6 @@ public sealed partial class QuickPanelWindow : Window
 
         Title = "HA Companion — Quick Panel";
         _hwnd = WindowNative.GetWindowHandle(this);
-        InstallDpiGuard();
 
         var presenter = OverlappedPresenter.Create();
         presenter.IsResizable = false;
@@ -204,8 +221,6 @@ public sealed partial class QuickPanelWindow : Window
             RootGrid.HorizontalAlignment = HorizontalAlignment.Right;
             RootGrid.Width = _panelWidthDip;
             MoveWindowPx(_restX, _winY, _winW, _winH);
-            _slideX = _restX;
-            ClearSlideClip();
             _isOpen = true;
         }
         _previewTimer.Stop();
@@ -283,12 +298,11 @@ public sealed partial class QuickPanelWindow : Window
     }
 
     /// <summary>
-    /// Runs <paramref name="work"/> with the window shown but parked off-screen (see
-    /// <see cref="ParkOffscreen"/>): WebView2 initialization needs a shown window, and the
-    /// primary-DPI park spot keeps the pass invisible without stealing focus or warming the
-    /// WebView at a foreign monitor's scale. Passes are chained so they never overlap; the
-    /// parked state is restored afterwards unless the user opened the panel mid-warm
-    /// (SetTarget then upgrades the warm window with a full setup).
+    /// Runs <paramref name="work"/> with the window shown but parked beyond the right edge of
+    /// the entire virtual screen: WebView2 initialization needs a shown window, and parking it
+    /// past every monitor keeps the pass invisible without stealing focus. Passes are chained
+    /// so they never overlap; the hidden state is restored afterwards unless the user opened
+    /// the panel mid-warm (SetTarget then upgrades the warm window with a full setup).
     /// </summary>
     private Task WarmHiddenAsync(Func<Task> work)
     {
@@ -302,8 +316,7 @@ public sealed partial class QuickPanelWindow : Window
                 _panelWidthDip = _settingsStore.Load().QuickPanelWidth;
                 ComputeGeometry();
                 LockContentWidth();
-                ParkOffscreen(); // primary-DPI park spot — a foreign-DPI monitor next to the
-                                 // virtual-screen edge would warm the WebView at the wrong scale
+                MoveWindowPx(VirtualScreenRightPx() + 200, _winY, _winW, _winH);
                 _warming = true;
                 _windowShown = true;
                 AppWindow.Show(activateWindow: false);
@@ -318,7 +331,7 @@ public sealed partial class QuickPanelWindow : Window
                 if (!wasShown && !_isOpen)
                 {
                     _windowShown = false;
-                    ParkOffscreen(); // keep the island alive — see ParkOffscreen
+                    AppWindow.Hide();
                 }
                 Log($"warm pass done shown={_windowShown} dash={ViewModel.ShowDashboard}");
             }
@@ -334,8 +347,7 @@ public sealed partial class QuickPanelWindow : Window
     /// The very first Activate() of the process completes the XAML island's composition
     /// and briefly re-evaluates the rasterization scale — the embedded web content then
     /// visibly "zoom-pops" for a few frames. Masking the WebView for the first slide-in
-    /// hides that once-per-process dance; every later open is glitch-free (the parked
-    /// window keeps its scale, see <see cref="ParkOffscreen"/>).
+    /// hides that once-per-process dance.
     /// </summary>
     private void VeilFirstActivation()
     {
@@ -348,26 +360,6 @@ public sealed partial class QuickPanelWindow : Window
         t.IsRepeating = false;
         t.Tick += (_, _) => PanelWeb.Opacity = 1;
         t.Start();
-    }
-
-    /// <summary>
-    /// Closed state: park the still-shown window off-screen instead of AppWindow.Hide().
-    /// Hiding detaches the XAML island and resets the WebView's rasterization scale to
-    /// 1.0 — the next open then painted the first ~150 ms at 100%-scale metrics, which
-    /// pushed the embedded HA frontend across its wide-layout threshold and produced a
-    /// visible re-layout flicker while the panel slid in. Parking keeps the metrics
-    /// alive. Preferred spot is below the primary monitor (nearest monitor stays the
-    /// primary, so its DPI keeps applying); if a display actually lives there, fall
-    /// back to beyond the right edge of the whole virtual screen.
-    /// </summary>
-    private void ParkOffscreen()
-    {
-        var y = _winY + _winH + 200;
-        var below = new RECT { Left = _restX, Top = y, Right = _restX + _winW, Bottom = y + _winH };
-        if (MonitorFromRect(ref below, MONITOR_DEFAULTTONULL) == IntPtr.Zero)
-            MoveWindowPx(_restX, y, _winW, _winH);
-        else
-            MoveWindowPx(VirtualScreenRightPx() + 200, _winY, _winW, _winH);
     }
 
     /// <summary>
@@ -403,13 +395,9 @@ public sealed partial class QuickPanelWindow : Window
                 ResizeGrip.Visibility = settings.QuickPanelDragResize ? Visibility.Visible : Visibility.Collapsed;
                 ComputeGeometry();
                 LockContentWidth();
-                EnsureIslandScale(); // heal a mis-initialized island BEFORE anything is visible
-                ApplySlideClip(_offX);                       // fully cropped = invisible
-                MoveWindowPx(_restX, _winY, _winW, _winH);   // static at the rest position
+                MovePx(_offX); // park just off the right edge
                 _windowShown = true;
-                if (!AppWindow.IsVisible)
-                    AppWindow.Show(); // re-showing an already-visible (parked) window would
-                                      // re-evaluate the island scale and flash a mis-scaled frame
+                AppWindow.Show();
                 VeilFirstActivation();
                 Activate();
                 ApplyNoBorder();
@@ -440,8 +428,10 @@ public sealed partial class QuickPanelWindow : Window
     private void StartOrRetargetSlide()
     {
         _animToX = _isOpen ? _restX : _offX;
-        _animFromX = _slideX;
+        _animFromX = SafePositionX();
         _animStartMs = Environment.TickCount64;
+        if (!_animTimer.IsRunning)
+            PerfReset();
         if (!_timerBoosted)
         {
             _ = TimeBeginPeriod(1); // request 1 ms timer cadence for a smooth slide
@@ -457,7 +447,8 @@ public sealed partial class QuickPanelWindow : Window
         var t = Math.Clamp(elapsed / (double)AnimDurationMs, 0.0, 1.0);
         var eased = 1.0 - Math.Pow(1.0 - t, 3.0); // ease-out cubic
         var x = (int)Math.Round(_animFromX + (_animToX - _animFromX) * eased);
-        ApplySlideClip(x);
+        MovePx(x);
+        PerfSample();
 
         if (t < 1.0)
             return;
@@ -471,19 +462,13 @@ public sealed partial class QuickPanelWindow : Window
             _timerBoosted = false;
         }
 
-        if (_isOpen)
+        MovePx(_animToX);
+        if (!_isOpen)
         {
-            _slideX = _restX;
-            ClearSlideClip();
-        }
-        else
-        {
-            _slideX = _offX;
             _windowShown = false;
-            ParkOffscreen();
-            ClearSlideClip(); // parked off-screen; next open re-crops BEFORE moving to rest
+            AppWindow.Hide();
         }
-        Log($"settled open={_isOpen} x={_slideX} parked={!_isOpen}");
+        Log($"settled open={_isOpen} x={_animToX} parked={!_isOpen} perf: ticks={_perfEvents} late={_perfLate} maxGap={_perfMaxGapMs}ms");
     }
 
     private void ApplyNoBorder()
@@ -500,35 +485,18 @@ public sealed partial class QuickPanelWindow : Window
         _ = SetWindowPos(_hwnd, IntPtr.Zero, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
 
     /// <summary>
-    /// Slide step: the WINDOW does not move at all — it sits fixed at the rest position and
-    /// the sheet effect comes from a GPU content translate plus a window region that crops
-    /// (and click-throughs) the vacated strip. The two rejected alternatives, for the record:
-    /// moving the window past the monitor edge makes Windows AND the WebView's own monitor
-    /// tracker (ShouldDetectMonitorScaleChanges) re-rasterize mid-slide next to a
-    /// differently-scaled monitor (zoom-pop, HA layout flips, stuck scales), and animating
-    /// the window WIDTH instead rebuilds the island swapchain per 6 ms tick and visibly
-    /// hangs the slide. <paramref name="x"/> keeps the historical window-x semantics
-    /// (_restX = fully open, _offX = fully hidden).
+    /// Slide step: a plain MOVE at constant size — measured on the target machine, this is
+    /// the only slide mechanism whose ticks stay on budget with an embedded WebView.
+    /// For the record, both "cleverer" variants were built and reverted: animating the
+    /// window WIDTH rebuilds the island swapchain per 6 ms tick (visible hang), and a
+    /// static window with content-translate + SetWindowRgn cropping stalled the UI thread
+    /// 250+ ms per slide, as did intercepting WM_DPICHANGED (it fights the island's own
+    /// monitor tracking — repeated full re-rasterizations). Moving across the monitor edge
+    /// can make a differently-scaled neighbour briefly re-rasterize the web content
+    /// mid-slide; the all-mode sidebar CSS and the camera-URL normalization keep that
+    /// residue harmless — smoothness wins the remaining trade-off (user decision).
     /// </summary>
-    private void ApplySlideClip(int x)
-    {
-        _slideX = Math.Clamp(x, _restX, _offX);
-        var hidden = _slideX - _restX; // px of the sheet pushed off past the monitor edge
-        _slideTransform.X = hidden / _scale;
-        // SetWindowRgn takes ownership of the region handle on success. redraw:false —
-        // the composition renders every frame anyway; a forced synchronous redraw per
-        // 6 ms tick would just burn the slide's frame budget.
-        var rgn = CreateRectRgn(hidden, 0, _winW, _winH);
-        if (SetWindowRgn(_hwnd, rgn, false) == 0)
-            _ = DeleteObject(rgn);
-    }
-
-    /// <summary>Settled fully open: drop the region entirely (no per-frame clip cost).</summary>
-    private void ClearSlideClip()
-    {
-        _slideTransform.X = 0;
-        _ = SetWindowRgn(_hwnd, IntPtr.Zero, true);
-    }
+    private void MovePx(int x) => MoveWindowPx(x, _winY, _winW, _winH);
 
 
     /// <summary>
@@ -542,75 +510,6 @@ public sealed partial class QuickPanelWindow : Window
     {
         RootGrid.HorizontalAlignment = HorizontalAlignment.Right;
         RootGrid.Width = _panelWidthDip;
-    }
-
-    // ----- DPI guard -----------------------------------------------------------------
-    //
-    // The slide moves the whole window past the primary monitor's right edge. On a rig
-    // with a differently-scaled monitor in that direction (e.g. 4K@150% primary,
-    // 1080p@100% to its right), Windows reassigns the window to the neighbour the moment
-    // the majority of its rect crosses over and sends WM_DPICHANGED — the XAML island and
-    // the WebView then re-rasterize MID-SLIDE (visible zoom-pop, and the embedded HA
-    // frontend crosses its wide-layout threshold: sidebar flip, camera-card distortion).
-    // Worse: parked off-screen afterwards, no DPICHANGED ever corrects it back, so the
-    // wrong scale sticks. The panel only ever meaningfully shows on the primary monitor,
-    // so a foreign monitor's DPI is never the right answer for it: swallow those
-    // transit-induced messages and let only genuine primary-scale changes through.
-
-    private WndProc? _dpiGuardProc; // held to prevent GC of the delegate
-    private IntPtr _dpiGuardOldProc;
-
-    private delegate IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    private void InstallDpiGuard()
-    {
-        _dpiGuardProc = HandleMessage;
-        _dpiGuardOldProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC,
-            Marshal.GetFunctionPointerForDelegate(_dpiGuardProc));
-    }
-
-    /// <summary>
-    /// The island's rasterization scale can initialize wrong while the window sits parked
-    /// off-screen (observed racing between the primary's scale and 1.0 across app starts;
-    /// no WM_DPICHANGED arrives to correct it because the monitor ASSIGNMENT never changes).
-    /// Called on every open while still invisible: when the island's scale disagrees with
-    /// the primary monitor's, synthesize the WM_DPICHANGED it missed — suggested rect =
-    /// the current rect, so nothing moves, WinUI just re-rasterizes to the right scale.
-    /// </summary>
-    private void EnsureIslandScale()
-    {
-        var have = RootGrid.XamlRoot?.RasterizationScale ?? 0;
-        if (have <= 0 || Math.Abs(have - _scale) < 0.01)
-            return;
-        if (!GetWindowRect(_hwnd, out var rect))
-            return;
-        var dpi = (uint)Math.Round(_scale * 96.0);
-        var handle = GCHandle.Alloc(rect, GCHandleType.Pinned);
-        try
-        {
-            _ = SendMessageW(_hwnd, WM_DPICHANGED, (IntPtr)((dpi << 16) | dpi), handle.AddrOfPinnedObject());
-        }
-        finally
-        {
-            handle.Free();
-        }
-        Log($"island scale corrected {have:0.##} -> {_scale:0.##}");
-    }
-
-    private IntPtr HandleMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
-    {
-        if (msg == WM_DPICHANGED)
-        {
-            var newDpi = (uint)((wParam.ToInt64() >> 16) & 0xFFFF);
-            var mon = MonitorFromPoint(default, MONITOR_DEFAULTTOPRIMARY);
-            var primaryDpi = 96u;
-            if (GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 && dpiX > 0)
-                primaryDpi = dpiX;
-            Log($"dpichanged new={newDpi} primary={primaryDpi} swallow={newDpi != primaryDpi} x={SafePositionX()}");
-            if (newDpi != primaryDpi)
-                return IntPtr.Zero; // transit artefact from a neighbouring monitor — ignore
-        }
-        return CallWindowProc(_dpiGuardOldProc, hWnd, msg, wParam, lParam);
     }
 
     private int SafePositionX()
@@ -871,6 +770,7 @@ public sealed partial class QuickPanelWindow : Window
         _dragStartCursorX = pt.X;
         _dragStartWidthPx = _winW;
         _dragMoveCount = 0;
+        PerfReset();
         _dragResizing = grip.CapturePointer(e.Pointer);
         Log($"grip pressed captured={_dragResizing} startWpx={_dragStartWidthPx} cursorX={pt.X}");
         e.Handled = true;
@@ -891,6 +791,7 @@ public sealed partial class QuickPanelWindow : Window
         _restX = _offX - _winW; // the right edge stays docked to the monitor edge
         RootGrid.Width = dip;   // native content re-flows per move — instant
         MoveWindowPx(_restX, _winY, _winW, _winH);
+        PerfSample();
         e.Handled = true;
     }
 
@@ -906,7 +807,7 @@ public sealed partial class QuickPanelWindow : Window
         if (sender is UIElement grip)
             grip.ReleasePointerCapture(e.Pointer);
         RootGrid.Width = _panelWidthDip;
-        Log($"grip released moves={_dragMoveCount} finalWpx={_winW} dip={_panelWidthDip}");
+        Log($"grip released moves={_dragMoveCount} finalWpx={_winW} dip={_panelWidthDip} perf: moves={_perfEvents} late={_perfLate} maxGap={_perfMaxGapMs}ms");
 
         // Persist the new width so it survives reopening and the Settings slider reflects it.
         var settings = _settingsStore.Load();
@@ -1073,26 +974,6 @@ public sealed partial class QuickPanelWindow : Window
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
-
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
-    private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
-
-    [DllImport("user32.dll", EntryPoint = "CallWindowProcW")]
-    private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll", EntryPoint = "SendMessageW")]
-    private static extern IntPtr SendMessageW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool redraw);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr hObject);
 
     [DllImport("user32.dll")]
     private static extern bool GetMonitorInfoW(IntPtr hMonitor, ref MONITORINFO lpmi);
