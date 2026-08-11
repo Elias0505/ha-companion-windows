@@ -226,8 +226,14 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                 {
                     _pushChannelReady = true;
                     var webhookId = _settings.Load().MobileAppWebhookId;
-                    await _client.UpdateRegistrationAsync(webhookId,
-                        BuildRegistrationRequest(_settings.Load().MobileAppDeviceId)).ConfigureAwait(false);
+                    // update_registration accepts only a subset of the registration keys —
+                    // sending the full request made HA reject (and silently drop) the update.
+                    var update = MobileAppRegistrationUpdate.FromRegistration(
+                        BuildRegistrationRequest(_settings.Load().MobileAppDeviceId));
+                    var updateResult = await _client.UpdateRegistrationAsync(webhookId, update).ConfigureAwait(false);
+                    if (updateResult.Outcome != WebhookOutcome.Success)
+                        _logger.LogWarning("update_registration failed: {Outcome} (HTTP {Status})",
+                            updateResult.Outcome, updateResult.StatusCode);
                     _connection.EnablePushChannel(webhookId);
                 }
 

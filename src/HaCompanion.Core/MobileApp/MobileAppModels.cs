@@ -27,6 +27,26 @@ public sealed record MobileAppRegistrationRequest(
         new Dictionary<string, object> { ["push_websocket_channel"] = true };
 }
 
+/// <summary>Payload of the <c>update_registration</c> webhook. HA's UPDATE schema only
+/// permits these six keys — identity fields from the initial registration (app_id,
+/// app_name, device_id, os_name, supports_encryption) are rejected with "extra keys
+/// not allowed" and, because HA answers schema errors with an empty 200, the update
+/// silently never applies. Deliberately a separate record from
+/// <see cref="MobileAppRegistrationRequest"/> so the two schemas cannot drift together.</summary>
+public sealed record MobileAppRegistrationUpdate(
+    [property: JsonPropertyName("app_version")] string AppVersion,
+    [property: JsonPropertyName("device_name")] string DeviceName,
+    [property: JsonPropertyName("manufacturer")] string Manufacturer,
+    [property: JsonPropertyName("model")] string Model,
+    [property: JsonPropertyName("os_version")] string OsVersion,
+    [property: JsonPropertyName("app_data")] IReadOnlyDictionary<string, object>? AppData = null)
+{
+    /// <summary>The update view of a full registration request — same values, legal keys only.</summary>
+    public static MobileAppRegistrationUpdate FromRegistration(MobileAppRegistrationRequest request) =>
+        new(request.AppVersion, request.DeviceName, request.Manufacturer, request.Model,
+            request.OsVersion, request.AppData);
+}
+
 public sealed record MobileAppRegistrationResult(
     [property: JsonPropertyName("webhook_id")] string WebhookId);
 

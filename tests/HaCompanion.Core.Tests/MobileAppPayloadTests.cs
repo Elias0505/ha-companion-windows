@@ -98,10 +98,22 @@ public class MobileAppPayloadTests
             "deadbeef", "hacompanion.windows", "HA Companion", "0.9.0",
             "ELIAS-PC", "Custom", "Desktop", "Windows", "11", false,
             MobileAppRegistrationRequest.WebsocketPushAppData);
-        var json = JsonSerializer.Serialize(new WebhookEnvelope("update_registration", req), Web);
+        var update = MobileAppRegistrationUpdate.FromRegistration(req);
+        var json = JsonSerializer.Serialize(new WebhookEnvelope("update_registration", update), Web);
         Assert.Contains("\"type\":\"update_registration\"", json);
         Assert.Contains("\"data\":{", json);
         Assert.Contains("\"push_websocket_channel\":true", json);
+        Assert.Contains("\"app_version\":\"0.9.0\"", json);
+        Assert.Contains("\"device_name\":\"ELIAS-PC\"", json);
+
+        // HA's update_registration schema rejects the initial-registration identity keys
+        // with "extra keys not allowed" — and answers with an empty 200, so the update
+        // silently never applies (issue #7). These must never reappear in the payload.
+        Assert.DoesNotContain("\"app_id\"", json);
+        Assert.DoesNotContain("\"app_name\"", json);
+        Assert.DoesNotContain("\"device_id\"", json);
+        Assert.DoesNotContain("\"os_name\"", json);
+        Assert.DoesNotContain("\"supports_encryption\"", json);
     }
 
     [Fact]

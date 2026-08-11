@@ -12,7 +12,7 @@ public interface IMobileAppClient
     Task<WebhookPostResult> RegisterSensorsAsync(string webhookId, IEnumerable<SensorDefinition> sensors, CancellationToken ct = default);
 
     /// <summary>Upgrade an existing registration in place (e.g. add app_data for websocket push).</summary>
-    Task<WebhookPostResult> UpdateRegistrationAsync(string webhookId, MobileAppRegistrationRequest request, CancellationToken ct = default);
+    Task<WebhookPostResult> UpdateRegistrationAsync(string webhookId, MobileAppRegistrationUpdate request, CancellationToken ct = default);
 
     Task<WebhookPostResult> UpdateStatesAsync(string webhookId, IEnumerable<SensorState> states, CancellationToken ct = default);
 }
@@ -43,6 +43,6 @@ public sealed class MobileAppClient : IMobileAppClient
     public Task<WebhookPostResult> UpdateStatesAsync(string webhookId, IEnumerable<SensorState> states, CancellationToken ct = default) =>
         _rest.PostWebhookAsync(webhookId, new WebhookEnvelope("update_sensor_states", states.ToList()), ct);
 
-    public Task<WebhookPostResult> UpdateRegistrationAsync(string webhookId, MobileAppRegistrationRequest request, CancellationToken ct = default) =>
+    public Task<WebhookPostResult> UpdateRegistrationAsync(string webhookId, MobileAppRegistrationUpdate request, CancellationToken ct = default) =>
         _rest.PostWebhookAsync(webhookId, new WebhookEnvelope("update_registration", request), ct);
 }
