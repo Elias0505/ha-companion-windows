@@ -24,6 +24,11 @@ Areas worth extra scrutiny:
 - Remote PC commands received via the mobile_app push channel
 - The WebSocket / REST connection layer, including the
   "ignore certificate errors" opt-out
+- **Config backup import** — a backup is a file a user may receive from someone
+  else. By design an import cannot change any *security decision*: it never
+  toggles certificate handling, never enables an HA→PC command, and never seeds
+  the launch whitelist; and if it changes the HA URL, the stored token and
+  webhook id are dropped so they can never be sent to a different host.
 
 Out of scope: issues that require the attacker to already control the local
 Windows user account (the app runs unprivileged and per-user by design), and
