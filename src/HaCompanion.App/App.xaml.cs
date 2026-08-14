@@ -65,11 +65,30 @@ public partial class App : Application
 
         MainWindow = Services.GetRequiredService<MainWindow>();
 
+        // BEFORE the hotkey goes live: a factory reset cannot delete the WebView2 profiles while
+        // they are open, and the same window is the only safe moment to drop storage left by
+        // older versions (whose persistent profiles wrote the HA token to disk in cleartext).
+        // Registering the hotkey first would let a queued WM_HOTKEY open the panel — and create
+        // the very profile folder being deleted — during any message pump in between.
+        var reset = Services.GetRequiredService<IConfigResetService>();
+        reset.CompletePending();
+        reset.PurgeLegacyWebViewProfiles();
+
         var hotkeys = Services.GetRequiredService<IHotkeyService>();
         var quickPanel = Services.GetRequiredService<IQuickPanelController>();
         hotkeys.Initialize(MainWindow);
         var storedHotkey = Services.GetRequiredService<ISettingsStore>().Load().Hotkey;
-        hotkeys.Register(string.IsNullOrWhiteSpace(storedHotkey) ? "Win+Ctrl+H" : storedHotkey);
+        var combo = string.IsNullOrWhiteSpace(storedHotkey) ? "Win+Ctrl+H" : storedHotkey;
+        if (!hotkeys.Register(combo))
+        {
+            // Another app owning the combo means the quick panel simply never opens. Only the
+            // settings page showed that, so the failure was invisible to anyone who did not go
+            // looking — say it once, where the user actually is.
+            var loc = Services.GetRequiredService<LocalizationService>();
+            Services.GetRequiredService<INotificationService>().Show(
+                "HA Companion",
+                string.Format(CultureInfo.CurrentCulture, loc["Set_HotkeyFailed"], combo));
+        }
         hotkeys.HotkeyPressed += (_, _) => quickPanel.Toggle();
 
         // Entity shortcuts: register the stored hotkey->entity bindings (needs the hooked window).
@@ -92,14 +111,6 @@ public partial class App : Application
 
         // Keep an existing autostart entry pointing at the current exe (path may change on update).
         Services.GetRequiredService<IStartupService>().SelfHeal();
-
-        // A factory reset cannot delete the WebView2 profiles while they are open — finish
-        // that here, before anything touches them again. The same window is the only safe
-        // moment to drop storage left by older versions, whose persistent WebView profiles
-        // wrote the HA token to disk in cleartext.
-        var reset = Services.GetRequiredService<IConfigResetService>();
-        reset.CompletePending();
-        reset.PurgeLegacyWebViewProfiles();
 
         // Retry the connection immediately when the network returns or the machine resumes.
         Services.GetRequiredService<IConnectivityWatcher>().Initialize();

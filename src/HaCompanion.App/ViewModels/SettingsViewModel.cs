@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Infrastructure;
 using HaCompanion.App.Models;
 using HaCompanion.App.Services;
+using HaCompanion.App.Views;
+using HaCompanion.Core.Configuration;
 using HaCompanion.Core.Rest;
 using HaCompanion.Core.Services;
 
@@ -29,7 +31,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IUiDispatcher _ui;
     private readonly IStartupService _startup;
     private readonly ISensorPublisher _sensors;
+    private readonly INotificationService _notifications;
     private bool _loading;
+
+    // The URL/token as they were loaded from the store. Needed to tell "the user typed a NEW
+    // token for the new host" (keep it) from "this is the token stored for the OLD host"
+    // (must be dropped before we talk to a different origin).
+    private string _loadedBaseUrl = string.Empty;
+    private string _loadedToken = string.Empty;
 
     [ObservableProperty]
     private string _baseUrl = string.Empty;
@@ -85,6 +94,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _reportSensors;
 
+    /// <summary>Device name shown in HA; empty = this PC's computer name (#8).</summary>
+    [ObservableProperty]
+    private string _haDeviceName = string.Empty;
+
+    /// <summary>Placeholder for the device-name box — what "empty" resolves to.</summary>
+#pragma warning disable CA1822 // bound from XAML; must be an instance property
+    public string DeviceNamePlaceholder => Environment.MachineName;
+#pragma warning restore CA1822
+
+    /// <summary>Opt-in: device tracker "home" while connected, "not_home" on lock/suspend (#11).</summary>
+    [ObservableProperty]
+    private bool _reportTrackerHome;
+
+    /// <summary>Heading (attribution) of Windows toasts; empty = "HA Companion" (#9).</summary>
+    [ObservableProperty]
+    private string _toastAppName = string.Empty;
+
     [ObservableProperty]
     private double _idleSensorMinutes = 5;
 
@@ -110,8 +136,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         "Win+Ctrl+H", "Ctrl+Alt+H", "Ctrl+Shift+H", "Ctrl+Alt+Space", "Win+Ctrl+Space", "Ctrl+Alt+A",
     };
 
-    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel, IHaConnection connection, IUiDispatcher ui, IStartupService startup, ISensorPublisher sensors)
+    public SettingsViewModel(ISettingsStore settingsStore, ShellViewModel shell, IHotkeyService hotkeys, LocalizationService localization, IQuickPanelController quickPanel, IHaConnection connection, IUiDispatcher ui, IStartupService startup, ISensorPublisher sensors, INotificationService notifications)
     {
+        _notifications = notifications;
         _settingsStore = settingsStore;
         _shell = shell;
         _hotkeys = hotkeys;
@@ -144,6 +171,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         var settings = _settingsStore.Load();
         BaseUrl = settings.BaseUrl;
         Token = settings.Token;
+        _loadedBaseUrl = settings.BaseUrl;
+        _loadedToken = settings.Token;
         IgnoreCertificateErrors = settings.IgnoreCertificateErrors;
         Hotkey = string.IsNullOrWhiteSpace(settings.Hotkey) ? "Win+Ctrl+H" : settings.Hotkey;
         AutoHideQuickPanel = settings.AutoHideQuickPanel;
@@ -152,6 +181,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         Autostart = _startup.IsEnabled;
         ShowHaNotifications = settings.ShowHaNotifications;
         ReportSensors = settings.ReportSensors;
+        HaDeviceName = settings.HaDeviceName;
+        ReportTrackerHome = settings.ReportTrackerHome;
+        ToastAppName = settings.ToastAppName;
         IdleSensorMinutes = settings.IdleSensorThresholdMinutes;
         SensorStatus = _sensors.StatusText;
         SelectedLanguage = _localization.Languages.FirstOrDefault(l => l.Code == settings.Language)
@@ -255,57 +287,56 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The candidate connection settings for "Save &amp; Connect" — the ONLY fields this page
+    /// owns as a group. Everything else is persisted field-by-field by its own handler.
+    ///
+    /// This used to write every page field from view-model state, which silently reverted
+    /// settings the view model had never reloaded: a panel width the user had dragged (the
+    /// panel stores it directly), or the chosen display after undocking, where the picker
+    /// falls back to "primary" because the stored display is momentarily absent.
+    /// </summary>
     private AppSettings BuildSettings()
     {
-        // Start from the stored settings and overwrite only what this page owns — fields
-        // managed elsewhere (e.g. the panel's sort toggle) must survive a settings save.
         var settings = _settingsStore.Load();
         settings.BaseUrl = BaseUrl.Trim();
         settings.Token = Token.Trim();
         settings.IgnoreCertificateErrors = IgnoreCertificateErrors;
-        settings.Hotkey = Hotkey;
-        settings.AutoHideQuickPanel = AutoHideQuickPanel;
-        settings.QuickPanelWidth = (int)QuickPanelWidth;
-        settings.Language = SelectedLanguage?.Code ?? "en";
-        settings.QuickPanelStartView = SelectedStartView?.Value ?? "last";
-        settings.QuickPanelMonitor = SelectedMonitor?.Value ?? MonitorCatalog.PrimaryKey;
-        settings.QuickPanelDragResize = QuickPanelDragResize;
-        settings.ShowHaNotifications = ShowHaNotifications;
         return settings;
     }
 
     partial void OnAutoHideQuickPanelChanged(bool value)
     {
         if (!_loading)
-            _settingsStore.Save(BuildSettings());
+            _settingsStore.Update(s => s.AutoHideQuickPanel = value);
     }
 
     partial void OnQuickPanelWidthChanged(double value)
     {
         if (_loading)
             return;
-        _settingsStore.Save(BuildSettings());
+        _settingsStore.Update(s => s.QuickPanelWidth = (int)value);
         _quickPanel.PreviewWidth(); // show the panel live so the user sees the size
     }
 
     partial void OnSelectedStartViewChanged(StartViewOption? value)
     {
         if (!_loading && value is not null)
-            _settingsStore.Save(BuildSettings());
+            _settingsStore.Update(s => s.QuickPanelStartView = value.Value);
     }
 
     partial void OnSelectedMonitorChanged(MonitorOption? value)
     {
         if (_loading || value is null)
             return;
-        _settingsStore.Save(BuildSettings());
+        _settingsStore.Update(s => s.QuickPanelMonitor = value.Value);
         _quickPanel.PreviewWidth(); // slide the panel in on the newly chosen display
     }
 
     partial void OnShowHaNotificationsChanged(bool value)
     {
         if (!_loading)
-            _settingsStore.Save(BuildSettings());
+            _settingsStore.Update(s => s.ShowHaNotifications = value);
     }
 
     partial void OnAutostartChanged(bool value)
@@ -329,15 +360,42 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (_loading)
             return;
-        var settings = _settingsStore.Load();
-        settings.IdleSensorThresholdMinutes = (int)value;
-        _settingsStore.Save(settings);
+        _settingsStore.Update(s => s.IdleSensorThresholdMinutes = (int)value);
+    }
+
+    partial void OnHaDeviceNameChanged(string value)
+    {
+        if (_loading)
+            return;
+        _settingsStore.Update(s => s.HaDeviceName = value);
+        // Push the rename to HA right away (update_registration carries device_name);
+        // without this it would only arrive on the next re-registration.
+        if (ReportSensors)
+            _ = _sensors.RefreshRegistrationAsync();
+    }
+
+    partial void OnReportTrackerHomeChanged(bool value)
+    {
+        if (_loading)
+            return;
+        _settingsStore.Update(s => s.ReportTrackerHome = value);
+        // Turning it ON should mark "home" promptly rather than at the next heartbeat.
+        if (value && ReportSensors)
+            _ = _sensors.RefreshRegistrationAsync();
+    }
+
+    partial void OnToastAppNameChanged(string value)
+    {
+        if (_loading)
+            return;
+        _settingsStore.Update(s => s.ToastAppName = value);
+        _notifications.ApplyDisplayName(value); // re-registers; applies to NEW toasts
     }
 
     partial void OnQuickPanelDragResizeChanged(bool value)
     {
         if (!_loading)
-            _settingsStore.Save(BuildSettings());
+            _settingsStore.Update(s => s.QuickPanelDragResize = value);
     }
 
     partial void OnSelectedLanguageChanged(LanguageOption? value)
@@ -345,7 +403,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (_loading || value is null)
             return;
         _localization.SetLanguage(value.Code);
-        _settingsStore.Save(BuildSettings());
+        _settingsStore.Update(s => s.Language = value.Code);
     }
 
     partial void OnHotkeyChanged(string value)
@@ -354,7 +412,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             return;
         if (!HotkeyPresets.Contains(value))
             HotkeyPresets.Insert(0, value); // keep a captured custom combo visible in the dropdown
-        _settingsStore.Save(BuildSettings());
+        _settingsStore.Update(s => s.Hotkey = value);
         _hotkeys.Register(value);
         RefreshHotkeyStatus();
     }
@@ -385,35 +443,133 @@ public sealed partial class SettingsViewModel : ObservableObject
             return;
         }
 
-        IsBusy = true;
-        StatusMessage = _localization["St_Connecting"];
-
-        // test-before-configure: probe the candidate settings first — on failure NOTHING
-        // is persisted and the previously working connection stays untouched.
-        var check = await _connection.CheckAsync(settings.ToConnectionSettings());
-        if (!check.IsOk)
+        // Check the URL shape BEFORE anything touches it: HaConnection.CheckAsync throws on a
+        // schemeless value ("homeassistant.local:8123"), which used to escape into the global
+        // handler and leave the page stuck on "Connecting…" forever.
+        if (!HaConnectionSettings.IsUsableBaseUrl(settings.BaseUrl))
         {
-            StatusMessage = FormatCheck(check);
-            IsBusy = false;
+            StatusMessage = _localization["Set_MsgBadUrl"];
             return;
         }
 
-        _settingsStore.Save(settings);
-        // The quick panel's WebView captured the previous URL/token in its navigation,
-        // certificate and auth handlers — rebuild it, or it keeps enforcing the old
-        // origin's rules (and carrying the old token) until the app restarts.
-        _quickPanel.ResetWebView();
-        var result = await _shell.ConnectAsync(settings);
-        StatusMessage = FormatCheck(result);
-        IsBusy = false;
-        if (result.IsOk)
-            _ = LoadStartViewDashboardsAsync(); // the default-view picker can now list real dashboards
+        // A different origin means a different Home Assistant. The stored token belongs to the
+        // OLD one, so it must never ride along on the probe — that single request is how a
+        // spoofed LAN instance (or a mistyped host) would capture it. The webhook id and device
+        // id are host-scoped credentials too and go with it.
+        // The loaded snapshot can be empty for the wrong reason: a transient read failure while
+        // the page loaded handed out defaults. Re-read before judging, or saving the SAME host
+        // again would look like an origin change and needlessly drop webhook/device identity.
+        if (string.IsNullOrEmpty(_loadedBaseUrl))
+        {
+            var stored = _settingsStore.Load();
+            _loadedBaseUrl = stored.BaseUrl;
+            if (string.IsNullOrEmpty(_loadedToken))
+                _loadedToken = stored.Token;
+        }
+
+        // An http→https upgrade of the same host is strictly safer and keeps the credentials;
+        // anything else that changes scheme/host/port is a different Home Assistant.
+        var originChanged = !HaConnectionSettings.IsSameOrigin(_loadedBaseUrl, settings.BaseUrl)
+                            && !HaConnectionSettings.IsSchemeUpgrade(_loadedBaseUrl, settings.BaseUrl);
+        if (originChanged && string.Equals(settings.Token, _loadedToken.Trim(), StringComparison.Ordinal))
+        {
+            // The token field still holds the previous host's secret. Refuse to send it — that
+            // single probe request is how a spoofed LAN instance (or a typo'd host) would
+            // capture it — but destroy NOTHING: a typo is fixed by correcting the URL, with the
+            // stored setup intact. Connecting to a genuinely new instance requires pasting the
+            // token that belongs to it.
+            StatusMessage = _localization["Set_MsgHostChanged"];
+            return;
+        }
+        // (A changed origin with a NEWLY typed token is allowed through; the webhook/device
+        // identity of the old host is dropped when the new settings are persisted below.)
+
+        IsBusy = true;
+        StatusMessage = _localization["St_Connecting"];
+        try
+        {
+            // test-before-configure: probe the candidate settings first — on failure NOTHING
+            // is persisted and the previously working connection stays untouched.
+            var check = await _connection.CheckAsync(settings.ToConnectionSettings());
+            if (!check.IsOk)
+            {
+                StatusMessage = FormatCheck(check);
+                return;
+            }
+
+            // Persist field-by-field, not as the snapshot taken before the probe: the await above
+            // gives background components (sensor heartbeat) time to write their own fields, and
+            // writing the stale snapshot back would revert them.
+            var newBaseUrl = settings.BaseUrl;
+            var newToken = settings.Token;
+            var newIgnoreCert = settings.IgnoreCertificateErrors;
+            var dropHostCredentials = originChanged;
+            if (dropHostCredentials)
+            {
+                // BEFORE the store write, kill everything that could act on the old host in
+                // the switch window: the still-connected session would let the sensor
+                // heartbeat register a FRESH webhook on the old host mid-switch (which the
+                // very next push would then hand to the new one), and the WebSocket layer
+                // holds a live copy of the old webhook id that the next connect would
+                // otherwise subscribe against the new host.
+                _connection.Disconnect();
+                _connection.EnablePushChannel(null);
+                _settingsStore.DiscardPreservedSecrets();
+            }
+            _settingsStore.Update(s =>
+            {
+                s.BaseUrl = newBaseUrl;
+                s.Token = newToken;
+                s.IgnoreCertificateErrors = newIgnoreCert;
+                if (dropHostCredentials)
+                {
+                    // The webhook/device identity belongs to the previous host.
+                    s.MobileAppWebhookId = string.Empty;
+                    s.MobileAppDeviceId = string.Empty;
+                }
+            });
+            // Update() declines to persist while settings.json is unreadable (AV/backup lock).
+            // Connecting anyway would run the app on settings the disk does not hold — and on
+            // an origin change it would leave the OLD credentials stored while we talk to the
+            // NEW host. Verify BOTH fields (a same-origin token rotation changes only the
+            // token), and stop honestly if the write did not land.
+            var persistedNow = _settingsStore.Load();
+            if (!string.Equals(persistedNow.BaseUrl, settings.BaseUrl, StringComparison.Ordinal)
+                || !string.Equals(persistedNow.Token, settings.Token, StringComparison.Ordinal))
+            {
+                StatusMessage = _localization["Set_MsgSaveFailed"];
+                return;
+            }
+            _loadedBaseUrl = settings.BaseUrl;
+            _loadedToken = settings.Token;
+            // The WebViews captured the previous URL/token in their navigation, certificate and
+            // auth handlers — rebuild them, or they keep enforcing the old origin's rules (and
+            // carrying the old token) until the app restarts.
+            _quickPanel.ResetWebView();
+            HaDashboardsPage.RequestReset();
+            var result = await _shell.ConnectAsync(settings);
+            StatusMessage = FormatCheck(result);
+            if (result.IsOk)
+                _ = LoadStartViewDashboardsAsync(); // the picker can now list real dashboards
+        }
+        finally
+        {
+            // Always release the busy state: an exception here used to leave the page stuck.
+            IsBusy = false;
+        }
     }
 
     private string FormatCheck(ConnectionCheckResult result) =>
         result.Status == ConnectionCheckStatus.HttpError
             ? string.Format(CultureInfo.CurrentCulture, _localization[result.I18nKey], result.HttpStatusCode)
             : _localization[result.I18nKey];
+
+    /// <summary>Drop control characters from an mDNS-supplied string before it reaches the UI.</summary>
+    private static string Sanitize(string value)
+    {
+        var clean = new string(value.Where(c => !char.IsControl(c)).ToArray()).Trim();
+        return clean.Length > 200 ? clean[..200] : clean;
+    }
 
     /// <summary>Search the local network for Home Assistant (mDNS) and fill in the base URL.</summary>
     [RelayCommand]
@@ -427,7 +583,17 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             var found = await HaCompanion.Core.Discovery.MdnsDiscovery
                 .DiscoverAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(true);
-            var withUrl = found.Where(i => !string.IsNullOrWhiteSpace(i.BaseUrl)).ToList();
+            // Anyone on the LAN can answer an mDNS query, so a response is untrusted input:
+            // keep only absolute http(s) URLs (no file:/javascript:/garbage) and strip control
+            // characters before anything reaches the UI.
+            var withUrl = found
+                .Where(i => !string.IsNullOrWhiteSpace(i.BaseUrl))
+                .Select(i => Sanitize(i.BaseUrl!))
+                // Validate AFTER sanitising: the string offered to the UI must be the exact
+                // one that passed the http(s) check, not a pre-cleanup variant of it.
+                .Where(HaConnectionSettings.IsUsableBaseUrl)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
             if (withUrl.Count == 0)
             {
                 DiscoverStatus = _localization["Set_DiscoverNone"];
@@ -435,10 +601,24 @@ public sealed partial class SettingsViewModel : ObservableObject
             else
             {
                 // One hit fills the box directly; several list their URLs for the user to copy.
-                BaseUrl = withUrl[0].BaseUrl!;
-                DiscoverStatus = withUrl.Count == 1
-                    ? string.Format(CultureInfo.CurrentCulture, _localization["Set_DiscoverFound"], withUrl[0].BaseUrl)
-                    : string.Join("  •  ", withUrl.Select(i => i.BaseUrl));
+                // Filling the box is safe on its own (no request is sent here) — EXCEPT when the
+                // token field already holds a secret and the discovered URL points somewhere
+                // else: the connect path only protects the STORED token, so silently swapping
+                // the URL under a freshly pasted one would aim that secret at whichever LAN
+                // device answered first. In that case only list the URL; the user copies it
+                // deliberately. The token field itself is never wiped here.
+                var candidate = withUrl[0];
+                var tokenAtRisk = !string.IsNullOrWhiteSpace(Token)
+                                  && !HaConnectionSettings.IsSameOrigin(BaseUrl, candidate);
+                if (withUrl.Count == 1 && !tokenAtRisk)
+                {
+                    BaseUrl = candidate;
+                    DiscoverStatus = string.Format(CultureInfo.CurrentCulture, _localization["Set_DiscoverFound"], candidate);
+                }
+                else
+                {
+                    DiscoverStatus = string.Join("  •  ", withUrl);
+                }
             }
         }
         finally

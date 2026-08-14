@@ -50,4 +50,39 @@ public class BoundedIdSetTests
         });
         Assert.Equal(1, admitted);
     }
+
+    [Fact]
+    public void A_forgotten_id_counts_as_new_again()
+    {
+        // Used when a delivery could NOT be queued after all: keeping the id would make the app
+        // suppress Home Assistant's redelivery of a command it never ran.
+        var set = new BoundedIdSet(8);
+        Assert.True(set.TryAdd("cmd-1"));
+        Assert.False(set.TryAdd("cmd-1"));
+        set.Forget("cmd-1");
+        Assert.True(set.TryAdd("cmd-1"));
+    }
+
+    [Fact]
+    public void Forgetting_an_unknown_id_is_harmless()
+    {
+        var set = new BoundedIdSet(4);
+        set.Forget("never-seen");
+        Assert.True(set.TryAdd("never-seen"));
+    }
+
+    [Fact]
+    public void Forgetting_then_re_adding_does_not_evict_the_live_id()
+    {
+        // Forget used to leave the id in the ordering queue. Re-adding it enqueued a SECOND
+        // entry, and when the stale one aged out it removed the live id from the set — so the
+        // next redelivery counted as new and the command ran twice.
+        var set = new BoundedIdSet(3);
+        Assert.True(set.TryAdd("a"));
+        set.Forget("a");
+        Assert.True(set.TryAdd("a"));   // re-added (HA redelivered it)
+        Assert.True(set.TryAdd("b"));
+        Assert.True(set.TryAdd("c"));   // would evict the stale "a" entry in the buggy version
+        Assert.False(set.TryAdd("a"));  // must still be remembered
+    }
 }

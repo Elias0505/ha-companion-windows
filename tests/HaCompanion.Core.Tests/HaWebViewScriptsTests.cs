@@ -31,12 +31,15 @@ public class HaWebViewScriptsTests
         Assert.Equal(expected, HaWebViewScripts.IsSameOrigin(candidate, new Uri("https://ha.local:8123")));
 
     [Fact]
-    public void About_blank_is_an_allowed_top_level_navigation()
+    public void Only_the_ha_origin_may_navigate_the_privileged_webview()
     {
         var baseUri = new Uri("https://ha.local:8123");
-        Assert.True(HaWebViewScripts.IsAllowedTopLevelNavigation("about:blank", baseUri));
         Assert.True(HaWebViewScripts.IsAllowedTopLevelNavigation("https://ha.local:8123/history", baseUri));
         Assert.False(HaWebViewScripts.IsAllowedTopLevelNavigation("https://evil.example/", baseUri));
+        // about:blank inherits the INITIATOR's origin, so allowing it let a hostile iframe card
+        // take over the top-level document and render its own markup inside the app window.
+        Assert.False(HaWebViewScripts.IsAllowedTopLevelNavigation("about:blank", baseUri));
+        Assert.False(HaWebViewScripts.IsAllowedTopLevelNavigation("about:srcdoc", baseUri));
     }
 
     [Fact]
@@ -121,5 +124,14 @@ public class HaWebViewScriptsTests
         // could terminate the script block or the string literal.
         Assert.DoesNotContain("</script>", script, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("hassTokens", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Hide_chrome_script_only_runs_in_the_top_frame()
+    {
+        // Document-created scripts run in EVERY frame. Without this guard the script hid any
+        // element called ".header" inside foreign iframe cards and left a 2s interval walking
+        // their DOM for the lifetime of the document.
+        Assert.Contains("window.top !== window.self", HaWebViewScripts.HideChromeScript, StringComparison.Ordinal);
     }
 }

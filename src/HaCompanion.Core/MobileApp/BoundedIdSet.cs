@@ -32,4 +32,28 @@ public sealed class BoundedIdSet
             return true;
         }
     }
+
+    /// <summary>
+    /// Forget an id again, so a later delivery carrying it counts as new.
+    /// Used when the work the id stands for could NOT be accepted after all (queue full):
+    /// keeping it would make the app suppress Home Assistant's redelivery of a command it
+    /// never actually ran. The id stays in the ordering queue and simply ages out.
+    /// </summary>
+    public void Forget(string id)
+    {
+        lock (_gate)
+        {
+            if (!_set.Remove(id))
+                return;
+            // Drop it from the ordering queue too (set and queue always hold the same ids).
+            // Leaving it there meant a LATER TryAdd of the same id enqueued a second entry, and
+            // when the stale first one aged out it removed the live id from the set — so a third
+            // delivery counted as new and the command (e.g. command_shutdown) ran a second time,
+            // the very thing this class prevents.
+            var kept = _order.Where(x => !string.Equals(x, id, StringComparison.Ordinal)).ToArray();
+            _order.Clear();
+            foreach (var x in kept)
+                _order.Enqueue(x);
+        }
+    }
 }

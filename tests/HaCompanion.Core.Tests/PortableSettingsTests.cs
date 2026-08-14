@@ -63,9 +63,63 @@ public class PortableSettingsTests
     }
 
     [Fact]
-    public void Null_values_do_not_trip_validation()
+    public void An_explicit_null_rejects_the_bundle()
     {
-        var bundle = new JsonObject { ["Hotkey"] = null };
-        Assert.True(PortableSettings.TypesValid(bundle));
+        // A key present with JSON null is not "missing": on the non-nullable int fields it
+        // throws at load, and on a string field it nulls a value the app assumes is set.
+        // {"QuickPanelWidth": null} was the concrete crash — it made settings.json
+        // undeserializable, tripping the .bad fallback that wipes the DPAPI token.
+        Assert.False(PortableSettings.TypesValid(new JsonObject { ["Hotkey"] = null }));
+        Assert.False(PortableSettings.TypesValid(new JsonObject { ["QuickPanelWidth"] = null }));
+    }
+
+    [Theory]
+    [InlineData(3.5)]          // non-integer number
+    [InlineData(1e30)]         // overflows Int32
+    [InlineData(-1e30)]
+    public void A_non_integer_number_rejects_an_int_key(double value)
+    {
+        // JsonValueKind.Number alone isn't enough: these all pass the kind check but throw
+        // when deserialized into the non-nullable int QuickPanelWidth.
+        var bundle = new JsonObject { ["QuickPanelWidth"] = JsonValue.Create(value) };
+        Assert.False(PortableSettings.TypesValid(bundle));
+    }
+
+    [Fact]
+    public void A_plain_integer_is_accepted_for_int_keys()
+    {
+        Assert.True(PortableSettings.TypesValid(new JsonObject { ["QuickPanelWidth"] = 520 }));
+        Assert.True(PortableSettings.TypesValid(new JsonObject { ["IdleSensorThresholdMinutes"] = 15 }));
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("not a url")]
+    [InlineData("homeassistant.local:8123")]
+    [InlineData("file:///C:/x")]
+    public void A_base_url_that_is_not_http_rejects_the_bundle(string url)
+    {
+        // BaseUrl feeds `new Uri(..., Absolute)` at runtime; an unusable value would throw
+        // inside the WebView init or the connect path long after the import succeeded.
+        Assert.False(PortableSettings.TypesValid(new JsonObject { ["BaseUrl"] = url }));
+    }
+
+    [Fact]
+    public void A_valid_or_empty_base_url_is_accepted()
+    {
+        Assert.True(PortableSettings.TypesValid(new JsonObject { ["BaseUrl"] = "http://192.168.1.5:8123" }));
+        Assert.True(PortableSettings.TypesValid(new JsonObject { ["BaseUrl"] = "" })); // not configured yet
+    }
+
+    [Fact]
+    public void Toast_name_is_portable_and_the_device_name_is_not()
+    {
+        // ToastAppName is cosmetic and machine-independent (#9). HaDeviceName is a per-machine
+        // identity (#8): imported onto a second PC, both would register under one name and
+        // fight over notify.mobile_app_<slug>.
+        Assert.Contains("ToastAppName", PortableSettings.Keys);
+        Assert.DoesNotContain("HaDeviceName", PortableSettings.Keys);
+        Assert.True(PortableSettings.TypesValid(new JsonObject { ["ToastAppName"] = "Home Assistant" }));
+        Assert.False(PortableSettings.TypesValid(new JsonObject { ["ToastAppName"] = 42 }));
     }
 }

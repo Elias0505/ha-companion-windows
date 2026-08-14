@@ -5,9 +5,10 @@ using HaCompanion.Core.MobileApp;
 using static HaCompanion.App.Services.CoreAudioInterop;
 using Microsoft.Extensions.Logging;
 
-// Load every P/Invoke target from System32 only. The app installs into a user-writable
-// directory, which is searched before System32 by default — a planted powrprof.dll or
-// user32.dll would otherwise be loaded by a command coming from Home Assistant.
+// Resolve P/Invoke targets from System32 rather than the default search order, which starts
+// with the app's own (user-writable) directory. This is defence in depth, not a guarantee:
+// user32/ole32/shell32 are KnownDLLs and were already safe, and the CLR still probes app-local
+// paths for assemblies. It does close the gap for the non-KnownDLL imports below (powrprof).
 [assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
 
 namespace HaCompanion.App.Services;

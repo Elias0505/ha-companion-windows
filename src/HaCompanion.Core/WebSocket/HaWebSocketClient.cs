@@ -39,10 +39,15 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     private string _token = string.Empty;
     private bool _ignoreCertErrors;
     private int _msgId;
-    private int _notificationSubId; // id of the persistent_notification/subscribe command
-    private int _pushSubId;         // id of the mobile_app push channel subscription (0 = none)
+    private volatile int _notificationSubId; // id of the persistent_notification/subscribe command
+    // volatile: written under _pushGate but read bare on the receive thread's dispatch path —
+    // a stale read there would only misroute one event, but the qualifier makes it impossible.
+    private volatile int _pushSubId; // id of the mobile_app push channel subscription (0 = none)
+    private bool _pushSubscribing;  // a subscribe is claimed and in flight (id not assigned yet)
+    private int _pushClaimGen;      // bumped whenever the claim is revoked; stale subscribes must not publish
     private string? _pushWebhookId;
     private readonly object _pushGate = new(); // serializes the subscribe claim (connect vs EnablePushChannel)
+    private readonly object _lifecycleGate = new(); // makes Start/Stop mutually exclusive
 
     public HaConnectionStatus Status { get; private set; } = HaConnectionStatus.Disconnected;
 
@@ -61,14 +66,26 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     /// <summary>Start (or restart) the supervised connection loop.</summary>
     public void Start(Uri webSocketUri, string token, bool ignoreCertErrors = false)
     {
-        Stop();
-        _uri = webSocketUri;
-        _token = token;
-        _ignoreCertErrors = ignoreCertErrors;
-        _cts = new CancellationTokenSource();
-        var gen = Interlocked.Increment(ref _generation);
-        var ct = _cts.Token;
-        _supervisor = Task.Run(() => SuperviseAsync(gen, ct));
+        // Start and Stop mutate the same fields and must never interleave. ConnectAsync awaits
+        // with ConfigureAwait(false), so two overlapping connects (startup auto-connect racing
+        // Save & Connect) run on DIFFERENT threadpool threads. Without this lock, thread B could
+        // finish its Increment between A's `_cts = new` and A's Increment — A would then own the
+        // highest generation with an already-cancelled token, so B's live session could no longer
+        // publish status (the UI would read "Disconnected" forever while data flowed).
+        // (The old supervisor can still READ _uri/_token unlocked — what keeps the NEW token off
+        // the OLD host is the ordering below: StopCore cancels the old ct BEFORE the new values
+        // are assigned, and every send await checks that ct first.)
+        lock (_lifecycleGate)
+        {
+            StopCore();
+            _uri = webSocketUri;
+            _token = token;
+            _ignoreCertErrors = ignoreCertErrors;
+            _cts = new CancellationTokenSource();
+            var gen = Interlocked.Increment(ref _generation);
+            var ct = _cts.Token;
+            _supervisor = Task.Run(() => SuperviseAsync(gen, ct));
+        }
     }
 
     /// <summary>
@@ -88,62 +105,157 @@ public sealed class HaWebSocketClient : IAsyncDisposable
     /// </summary>
     public void EnablePushChannel(string? webhookId)
     {
-        _pushWebhookId = string.IsNullOrWhiteSpace(webhookId) ? null : webhookId;
-        var socket = _activeSocket;
-        if (socket is null || _pushWebhookId is null)
-            return;
-        // Claim the (single) subscription for this connection atomically — the connect handler
-        // claims it too, and without this both could subscribe and deliver every toast twice.
-        var id = ClaimPushSub();
-        if (id != 0)
-            _ = SendSubscribeAsync(socket, id, CancellationToken.None);
-    }
-
-    /// <summary>Assign this connection's push-sub id if none is live yet; 0 means already claimed.</summary>
-    private int ClaimPushSub()
-    {
+        var newId = string.IsNullOrWhiteSpace(webhookId) ? null : webhookId;
+        int oldSub;
+        var claimed = false;
+        var claimGen = 0;
+        ClientWebSocket? socket;
         lock (_pushGate)
-            return ClaimPushSubLocked();
+        {
+            // Snapshot the socket INSIDE the gate: taken before it, a reconnect between snapshot
+            // and claim let this method claim for the new webhook and then send on the dead
+            // socket — the claim released on failure, but nothing re-subscribed until the next
+            // reconnect.
+            socket = _activeSocket;
+            // Same webhook with a live subscription (or already disabled): nothing to do.
+            if (string.Equals(_pushWebhookId, newId, StringComparison.Ordinal)
+                && (_pushSubId != 0 || _pushSubscribing || newId is null))
+                return;
+            // The webhook id changed (re-registration) or is being cleared: drop the OLD
+            // subscription and claim a fresh one for the new id. Without this the claim below
+            // failed whenever a subscription was still live, so a re-registered webhook was
+            // never subscribed and every notification + PC command stayed dead until restart.
+            // Bumping the generation revokes any subscribe still in flight for the old claim,
+            // so its late onIdAssigned cannot overwrite the new subscription's id.
+            oldSub = _pushSubId;
+            _pushSubId = 0;
+            _pushSubscribing = false;
+            _pushClaimGen++;
+            _pushWebhookId = newId;
+            if (socket is not null)
+                claimed = TryClaimPushSubLocked(out claimGen);
+        }
+        if (socket is null)
+            return; // the connect handler (re)subscribes on the next connection
+        if (oldSub != 0)
+            _ = UnsubscribeAsync(socket, oldSub, CancellationToken.None);
+        if (claimed && newId is not null)
+            _ = SendSubscribeAsync(socket, newId, claimGen, CancellationToken.None);
     }
 
-    /// <summary>Caller must hold <see cref="_pushGate"/>.</summary>
-    private int ClaimPushSubLocked() =>
-        _pushWebhookId is not null && _pushSubId == 0 ? _pushSubId = NextId() : 0;
+    /// <summary>
+    /// Claim the right to subscribe the push channel on this connection. The ID itself is
+    /// assigned later, inside the send lock — see <see cref="SendWithIdAsync"/>. The out
+    /// parameter is the claim's generation: a claim revoked in the meantime (webhook changed,
+    /// reconnect) has a stale generation, and its in-flight subscribe must not publish state.
+    /// Caller must hold <see cref="_pushGate"/>.
+    /// </summary>
+    private bool TryClaimPushSubLocked(out int claimGen)
+    {
+        claimGen = _pushClaimGen;
+        if (_pushWebhookId is null || _pushSubId != 0 || _pushSubscribing)
+            return false;
+        _pushSubscribing = true;
+        return true;
+    }
 
     /// <summary>Acknowledge a pushed notification (the channel is subscribed with support_confirm).</summary>
     public async Task ConfirmPushAsync(string confirmId, CancellationToken ct = default)
     {
         var socket = _activeSocket;
-        if (socket is null || _pushWebhookId is null)
+        var webhookId = _pushWebhookId;
+        if (socket is null || webhookId is null)
             return;
-        await SendRawAsync(socket, JsonSerializer.Serialize(new
+        await SendWithIdAsync(socket, id => JsonSerializer.Serialize(new
         {
-            id = NextId(),
+            id,
             type = "mobile_app/push_notification_confirm",
-            webhook_id = _pushWebhookId,
+            webhook_id = webhookId,
             confirm_id = confirmId,
-        }, JsonOptions), ct).ConfigureAwait(false);
+        }, JsonOptions), onIdAssigned: null, ct).ConfigureAwait(false);
     }
 
-    private async Task SendSubscribeAsync(ClientWebSocket socket, int id, CancellationToken ct)
+    /// <summary>Drop a subscription HA still considers live (e.g. after the webhook id changed).</summary>
+    private async Task UnsubscribeAsync(ClientWebSocket socket, int subscriptionId, CancellationToken ct)
     {
         try
         {
-            await SendRawAsync(socket, JsonSerializer.Serialize(new
+            await SendWithIdAsync(socket, id => JsonSerializer.Serialize(new
             {
                 id,
-                type = "mobile_app/push_notification_channel",
-                webhook_id = _pushWebhookId,
-                support_confirm = true,
-            }, JsonOptions), ct).ConfigureAwait(false);
+                type = "unsubscribe_events",
+                subscription = subscriptionId,
+            }, JsonOptions), onIdAssigned: null, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
+            // Best effort: a stale subscription costs a duplicate delivery at worst, and the
+            // next reconnect resets it anyway.
+            _logger.LogDebug(ex, "Could not unsubscribe the previous push notification channel");
+        }
+    }
+
+    /// <param name="webhookId">
+    /// Passed explicitly, never read from the field: the id can change between claiming the
+    /// subscription and sending it, which would subscribe the new id under the old one's frame.
+    /// </param>
+    /// <param name="claimGen">
+    /// The claim's generation. If the claim was revoked while this subscribe was queued on the
+    /// send lock (webhook re-registered, reconnect), publishing would overwrite the NEW
+    /// subscription's state with this stale one's — so both the publish and the failure-path
+    /// release are generation-checked.
+    /// </param>
+    private async Task SendSubscribeAsync(ClientWebSocket socket, string webhookId, int claimGen, CancellationToken ct)
+    {
+        try
+        {
+            // Publish and send decide TOGETHER inside the send lock (the build callback): if the
+            // claim was revoked while this subscribe was queued, the stale frame must stay off
+            // the wire entirely — HA replaces the live channel on every subscribe for the same
+            // webhook, so a stale frame sent last would leave HA serving a channel whose id we
+            // no longer track, and every push would be dropped until the next reconnect.
+            await SendWithIdAsync(socket, id =>
+            {
+                lock (_pushGate)
+                {
+                    if (claimGen != _pushClaimGen)
+                        return null; // revoked while queued — a newer claim owns the channel now
+                    _pushSubId = id;
+                    _pushSubscribing = false;
+                }
+                return JsonSerializer.Serialize(new
+                {
+                    id,
+                    type = "mobile_app/push_notification_channel",
+                    webhook_id = webhookId,
+                    support_confirm = true,
+                }, JsonOptions);
+            }, onIdAssigned: null, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            lock (_pushGate)
+            {
+                if (claimGen == _pushClaimGen)
+                {
+                    // The send failed AFTER the id was published — undo both so the connect
+                    // handler's next claim (or a retried EnablePushChannel) starts clean.
+                    _pushSubId = 0;
+                    _pushSubscribing = false;
+                }
+            }
             _logger.LogWarning(ex, "Could not subscribe the push notification channel");
         }
     }
 
     public void Stop()
+    {
+        lock (_lifecycleGate)
+            StopCore();
+    }
+
+    /// <remarks>Caller must hold <see cref="_lifecycleGate"/>.</remarks>
+    private void StopCore()
     {
         if (_cts is null)
             return;
@@ -170,18 +282,27 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         var socket = _activeSocket
             ?? throw new InvalidOperationException("Not connected to Home Assistant.");
 
-        var id = NextId();
         var tcs = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _pending[id] = tcs;
+        var id = 0;
 
         try
         {
-            var payload = new JsonObject { ["id"] = id, ["type"] = type };
-            if (fields is not null)
-                foreach (var (key, value) in fields)
-                    payload[key] = value is null ? null : JsonSerializer.SerializeToNode(value, JsonOptions);
-
-            await SendRawAsync(socket, payload.ToJsonString(), ct).ConfigureAwait(false);
+            // Id allocation, pending-registration and the send all happen inside the send lock,
+            // so ids reach HA strictly increasing and the reply always finds its waiter.
+            // The id is captured in onIdAssigned (not just from the return value): if the send
+            // itself throws, the finally below must still remove the registered waiter.
+            await SendWithIdAsync(socket, assignedId =>
+            {
+                var payload = new JsonObject { ["id"] = assignedId, ["type"] = type };
+                if (fields is not null)
+                    foreach (var (key, value) in fields)
+                        payload[key] = value is null ? null : JsonSerializer.SerializeToNode(value, JsonOptions);
+                return payload.ToJsonString();
+            }, assignedId =>
+            {
+                id = assignedId;
+                _pending[assignedId] = tcs;
+            }, ct).ConfigureAwait(false);
 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeout.CancelAfter(TimeSpan.FromSeconds(15));
@@ -192,7 +313,8 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         }
         finally
         {
-            _pending.TryRemove(id, out _);
+            if (id != 0)
+                _pending.TryRemove(id, out _);
         }
     }
 
@@ -282,6 +404,11 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         if (_ignoreCertErrors)
             socket.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
 #pragma warning restore CA5359
+        // Without a keep-alive TIMEOUT the runtime pings but never gives up on a missing pong, so
+        // a half-open connection (VPN drop, sleeping router, paused VM) stayed "Connected" until
+        // TCP retransmission expired ~13 minutes later — during which nothing reconnected.
+        socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+        socket.Options.KeepAliveTimeout = TimeSpan.FromSeconds(20);
 
         await socket.ConnectAsync(_uri, ct).ConfigureAwait(false);
 
@@ -306,41 +433,58 @@ public sealed class HaWebSocketClient : IAsyncDisposable
             }
         }
 
-        _activeSocket = socket;
+        // Generation-guarded like every other shared-state write — and taken under the SAME lock
+        // Start() increments the generation under, so an old supervisor can never publish its
+        // socket over a newer session's (a bare read-then-write left exactly that window: its
+        // cancelled receive loop would exit at once and the finally below nulls _activeSocket
+        // while generation N+1 is genuinely connected).
+        lock (_lifecycleGate)
+        {
+            if (gen != _generation)
+                return;
+            _activeSocket = socket;
+        }
         try
         {
+            // Subscribe to state changes BEFORE announcing Connected: the moment SetStatus runs,
+            // other components start sending (push confirms, dashboard queries) — and this frame
+            // used to allocate its id outside the send lock, so a concurrent sender could put a
+            // higher id on the wire first and HA killed the state subscription with id_reuse.
+            await SendWithIdAsync(socket, id => JsonSerializer.Serialize(new
+            {
+                id,
+                type = "subscribe_events",
+                event_type = "state_changed",
+            }, JsonOptions), onIdAssigned: null, ct).ConfigureAwait(false);
+
             SetStatus(gen, HaConnectionStatus.Connected);
             _sessionReachedConnected = true;
             if (_outageGate.OnRestored())
                 _logger.LogInformation("Home Assistant connection restored");
 
-            // subscribe to state changes
-            await SendRawAsync(socket, JsonSerializer.Serialize(new
-            {
-                id = NextId(),
-                type = "subscribe_events",
-                event_type = "state_changed",
-            }, JsonOptions), ct).ConfigureAwait(false);
-
             // subscribe to persistent notifications (pushed as added/removed/current events)
-            _notificationSubId = NextId();
-            await SendRawAsync(socket, JsonSerializer.Serialize(new
+            await SendWithIdAsync(socket, id => JsonSerializer.Serialize(new
             {
-                id = _notificationSubId,
+                id,
                 type = "persistent_notification/subscribe",
-            }, JsonOptions), ct).ConfigureAwait(false);
+            }, JsonOptions), id => _notificationSubId = id, ct).ConfigureAwait(false);
 
             // mobile_app push channel (notify.mobile_app_<device> deliveries + PC commands).
             // Reset first (the previous connection's subscription is dead), then claim a fresh
             // id atomically so a concurrent EnablePushChannel can't subscribe a second time.
-            int pushId;
+            bool pushClaimed;
+            string? pushWebhook;
+            int pushClaimGen;
             lock (_pushGate)
             {
                 _pushSubId = 0;
-                pushId = ClaimPushSubLocked();
+                _pushSubscribing = false;
+                _pushClaimGen++; // revoke anything still in flight from the previous connection
+                pushClaimed = TryClaimPushSubLocked(out pushClaimGen);
+                pushWebhook = _pushWebhookId;
             }
-            if (pushId != 0)
-                await SendSubscribeAsync(socket, pushId, ct).ConfigureAwait(false);
+            if (pushClaimed && pushWebhook is not null)
+                await SendSubscribeAsync(socket, pushWebhook, pushClaimGen, ct).ConfigureAwait(false);
 
             // receive loop
             while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open)
@@ -378,7 +522,13 @@ public sealed class HaWebSocketClient : IAsyncDisposable
                 var msg = root.TryGetProperty("error", out var e) && e.TryGetProperty("message", out var m)
                     ? m.GetString() : "unknown";
                 _logger.LogWarning("Push channel subscribe rejected: {Message}", msg);
-                _pushSubId = 0; // don't route events to a dead subscription
+                lock (_pushGate)
+                {
+                    // Guarded: a newer claim may have published a fresh id since this reply
+                    // was routed — only forget the subscription the rejection is for.
+                    if (_pushSubId == pushResultId)
+                        _pushSubId = 0; // don't route events to a dead subscription
+                }
             }
             return;
         }
@@ -511,6 +661,46 @@ public sealed class HaWebSocketClient : IAsyncDisposable
         try
         {
             await socket.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _sendLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Allocate the message id and put the frame on the wire as ONE atomic step.
+    ///
+    /// Home Assistant rejects any id that is not strictly increasing ("Identifier values have to
+    /// increase"). Allocating outside the send lock let two concurrent senders take 10 and 11 and
+    /// then acquire the lock in the opposite order, so id 10 went out after 11 and HA killed the
+    /// command — visible as e.g. the dashboard picker collapsing to a single "Overview".
+    /// </summary>
+    /// <param name="build">
+    /// Builds the JSON frame for the id it is given — runs INSIDE the send lock, so it may
+    /// atomically publish state and decide against sending: returning null skips the send
+    /// (the id is simply burned; ids only ever increase). That is how a push subscribe whose
+    /// claim was revoked while queued keeps its stale frame OFF the wire — publishing-but-
+    /// still-sending would let HA adopt the stale channel while we track the new one.
+    /// </param>
+    /// <param name="onIdAssigned">
+    /// Runs with the id, still inside the lock and BEFORE the frame is sent — for state the
+    /// reply handler needs (the pending-command map).
+    /// </param>
+    private async Task<int> SendWithIdAsync(
+        ClientWebSocket socket, Func<int, string?> build, Action<int>? onIdAssigned, CancellationToken ct)
+    {
+        await _sendLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var id = NextId();
+            onIdAssigned?.Invoke(id);
+            var json = build(id);
+            if (json is null)
+                return 0;
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            await socket.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct).ConfigureAwait(false);
+            return id;
         }
         finally
         {

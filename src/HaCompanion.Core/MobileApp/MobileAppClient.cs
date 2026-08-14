@@ -15,6 +15,9 @@ public interface IMobileAppClient
     Task<WebhookPostResult> UpdateRegistrationAsync(string webhookId, MobileAppRegistrationUpdate request, CancellationToken ct = default);
 
     Task<WebhookPostResult> UpdateStatesAsync(string webhookId, IEnumerable<SensorState> states, CancellationToken ct = default);
+
+    /// <summary>update_location — feeds the device_tracker HA auto-creates per registration (#11).</summary>
+    Task<WebhookPostResult> UpdateLocationAsync(string webhookId, string locationName, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IMobileAppClient"/>
@@ -45,4 +48,7 @@ public sealed class MobileAppClient : IMobileAppClient
 
     public Task<WebhookPostResult> UpdateRegistrationAsync(string webhookId, MobileAppRegistrationUpdate request, CancellationToken ct = default) =>
         _rest.PostWebhookAsync(webhookId, new WebhookEnvelope("update_registration", request), ct);
+
+    public Task<WebhookPostResult> UpdateLocationAsync(string webhookId, string locationName, CancellationToken ct = default) =>
+        _rest.PostWebhookAsync(webhookId, new WebhookEnvelope("update_location", new LocationUpdate(locationName)), ct);
 }

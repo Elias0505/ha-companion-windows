@@ -24,10 +24,27 @@ public sealed class HaRestClient : IDisposable
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
+    // Matches the WebSocket receive cap — /api/states is the same payload class either way.
+    private const int MaxResponseBytes = 32 * 1024 * 1024;
+
     private readonly ILogger<HaRestClient> _logger;
-    private HttpClient? _http;
-    private Uri? _baseUri;
-    private string _token = string.Empty;
+    // One immutable object holds client+base+token together: Configure swaps the whole thing in
+    // a single reference assignment, so an in-flight request can never see the new base URL with
+    // the old token (or vice versa), and never has its HttpClient disposed underneath it.
+    private volatile Session? _session;
+
+    /// <param name="Http">For the authenticated API. Follows redirects: instances behind a
+    /// proxy that upgrades http→https rely on it, and .NET strips the Authorization header on a
+    /// cross-host redirect, so the token cannot travel.</param>
+    /// <param name="WebhookHttp">For webhook posts only. Does NOT follow redirects: those posts
+    /// carry no Authorization header because the webhook id in the URL PATH *is* the credential,
+    /// and a redirect would hand that secret to whatever host the response names.</param>
+    private sealed record Session(HttpClient Http, HttpClient WebhookHttp, Uri BaseUri, string Token)
+    {
+        // The generated record ToString would print the bearer token in full — a latent leak
+        // the moment anyone logs or interpolates a session.
+        public override string ToString() => $"Session({BaseUri})";
+    }
 
     public HaRestClient(ILogger<HaRestClient> logger) => _logger = logger;
 
@@ -37,23 +54,35 @@ public sealed class HaRestClient : IDisposable
         var text = baseUri.ToString();
         if (!text.EndsWith('/'))
             text += "/";
-        _baseUri = new Uri(text, UriKind.Absolute);
-        _token = token;
+        var normalized = new Uri(text, UriKind.Absolute);
 
-        _http?.Dispose();
-        var handler = new HttpClientHandler();
+        // Publish the new session as one reference assignment; never dispose the outgoing client
+        // here, because another thread (the sensor heartbeat) may be inside a request on it.
+        _session = new Session(
+            MakeClient(normalized, ignoreCertErrors, followRedirects: true),
+            MakeClient(normalized, ignoreCertErrors, followRedirects: false),
+            normalized,
+            token);
+    }
+
+    private static HttpClient MakeClient(Uri baseUri, bool ignoreCertErrors, bool followRedirects)
+    {
+        var handler = new HttpClientHandler { AllowAutoRedirect = followRedirects };
         if (ignoreCertErrors)
         {
-            // Scoped to the configured host only — the blanket validator would also skip
-            // validation for any REDIRECT target, and webhook posts carry their secret in
-            // the URL path, which a redirect takes along. Everything else keeps normal
-            // certificate checking even while the self-signed opt-in is active.
-            var trustedHost = _baseUri.IdnHost;
+            // Scoped to the configured host only — a blanket validator would also skip
+            // validation for every other host this client ever reaches (including a redirect
+            // target). Everything else keeps normal checking while the opt-in is active.
+            var trustedHost = baseUri.IdnHost;
             handler.ServerCertificateCustomValidationCallback = (request, _, _, errors) =>
                 errors == System.Net.Security.SslPolicyErrors.None
                 || string.Equals(request.RequestUri?.IdnHost, trustedHost, StringComparison.OrdinalIgnoreCase);
         }
-        _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
+        return new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(15),
+            MaxResponseContentBufferSize = MaxResponseBytes,
+        };
     }
 
     /// <summary>Returns true if the base URL + token reach a working Home Assistant API.</summary>
@@ -126,7 +155,7 @@ public sealed class HaRestClient : IDisposable
 
     public async Task CallServiceAsync(string domain, string service, object? data = null, CancellationToken ct = default)
     {
-        using var req = BuildRequest(HttpMethod.Post, $"api/services/{domain}/{service}");
+        using var req = BuildRequest(HttpMethod.Post, $"api/services/{Seg(domain)}/{Seg(service)}");
         req.Content = JsonContent.Create(data ?? new { }, options: JsonOptions);
         using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
         res.EnsureSuccessStatusCode();
@@ -137,7 +166,7 @@ public sealed class HaRestClient : IDisposable
     {
         try
         {
-            using var req = BuildRequest(HttpMethod.Post, $"api/events/{eventType}");
+            using var req = BuildRequest(HttpMethod.Post, $"api/events/{Seg(eventType)}");
             req.Content = JsonContent.Create(data ?? new { }, options: JsonOptionsNoNulls);
             using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode)
@@ -185,10 +214,23 @@ public sealed class HaRestClient : IDisposable
     {
         try
         {
-            using var req = BuildRequest(HttpMethod.Post, $"api/webhook/{webhookId}", authorize: false);
+            // ONE session snapshot for both the URI and the client — reading Current twice could
+            // pair session A's URI with session B's handler across a concurrent Configure.
+            var session = Current;
+            using var req = new HttpRequestMessage(HttpMethod.Post,
+                new Uri(session.BaseUri, $"api/webhook/{Seg(webhookId)}"));
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             req.Content = JsonContent.Create(payload, options: JsonOptionsNoNulls);
-            using var res = await Client.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await session.WebhookHttp.SendAsync(req, ct).ConfigureAwait(false);
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            // This client does not follow redirects (the webhook id in the path is the
+            // credential). If the instance sits behind a redirecting proxy, sensor posts land
+            // here as 3xx while api/ (redirects followed) looks healthy — name the cause.
+            if ((int)res.StatusCode is >= 300 and < 400)
+                _logger.LogWarning(
+                    "Webhook post was redirected (HTTP {Status} → {Location}); webhook posts never follow " +
+                    "redirects, configure the final URL directly", (int)res.StatusCode,
+                    res.Headers.Location?.Host ?? "?");
             // mobile_app always answers with a JSON body. An UNKNOWN webhook id (deleted
             // registration) is answered with an EMPTY 200 (anti-enumeration), not 410 —
             // treat both as "registration gone".
@@ -207,20 +249,36 @@ public sealed class HaRestClient : IDisposable
         }
     }
 
-    private HttpClient Client =>
-        _http ?? throw new InvalidOperationException("HaRestClient is not configured; call Configure() first.");
+    private Session Current =>
+        _session ?? throw new InvalidOperationException("HaRestClient is not configured; call Configure() first.");
 
+    private HttpClient Client => Current.Http;
+
+    /// <summary>
+    /// Build a request against the CURRENT session, so base URL and token always belong
+    /// together even if Configure runs concurrently.
+    /// </summary>
     private HttpRequestMessage BuildRequest(HttpMethod method, string relativePath, bool authorize = true)
     {
-        if (_baseUri is null)
-            throw new InvalidOperationException("HaRestClient is not configured; call Configure() first.");
-
-        var req = new HttpRequestMessage(method, new Uri(_baseUri, relativePath));
+        var session = Current;
+        var req = new HttpRequestMessage(method, new Uri(session.BaseUri, relativePath));
         if (authorize)
-            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.Token);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return req;
     }
 
-    public void Dispose() => _http?.Dispose();
+    /// <summary>
+    /// Escape a value that goes into a URL PATH. Without this a value containing "../", "?" or
+    /// "#" re-targets the request: <c>new Uri(base, "api/webhook/../x")</c> normalizes away the
+    /// segment, so an HA-supplied webhook id could point the unauthenticated POST elsewhere.
+    /// </summary>
+    private static string Seg(string value) => Uri.EscapeDataString(value);
+
+    public void Dispose()
+    {
+        var session = _session;
+        session?.Http.Dispose();
+        session?.WebhookHttp.Dispose();
+    }
 }

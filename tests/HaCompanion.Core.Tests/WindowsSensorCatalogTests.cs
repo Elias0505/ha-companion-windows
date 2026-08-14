@@ -49,6 +49,28 @@ public class WindowsSensorCatalogTests
     }
 
     [Fact]
+    public void Own_app_in_front_reports_hacompanion_instead_of_blank()
+    {
+        // The monitor keeps the companion out of the AppStart/AppStop trigger stream, which
+        // used to leave the sensor state EMPTY whenever the app itself had focus — looking
+        // broken in HA (#10). The flag maps to a process-style lowercase name like every
+        // other value.
+        var values = Values() with { ForegroundProcess = null, IsOwnAppForeground = true };
+        var state = WindowsSensorCatalog.BuildStates(values).Single(s => s.UniqueId == "active_program").State;
+        Assert.Equal("hacompanion", state);
+    }
+
+    [Fact]
+    public void No_foreground_window_still_reports_an_empty_state()
+    {
+        // Locked screen / secure desktop: genuinely nothing in front stays "", so HA can
+        // distinguish "companion focused" from "no window at all".
+        var values = Values() with { ForegroundProcess = null };
+        var state = WindowsSensorCatalog.BuildStates(values).Single(s => s.UniqueId == "active_program").State;
+        Assert.Equal("", state);
+    }
+
+    [Fact]
     public void Localized_names_are_applied_and_missing_ones_fall_back_to_the_id()
     {
         var names = new Dictionary<string, string> { ["is_locked"] = "Gesperrt" };

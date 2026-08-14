@@ -67,9 +67,4 @@ public interface IHaConnection
     /// </summary>
     Task<IReadOnlyList<HaDashboardInfo>> ListDashboardsAsync(CancellationToken ct = default);
 
-    /// <summary>
-    /// Fetch a dashboard's Lovelace config and return the entity ids it references
-    /// (recursively across views/sections/cards), in first-seen order.
-    /// </summary>
-    Task<IReadOnlyList<string>> GetDashboardEntityIdsAsync(string? urlPath, CancellationToken ct = default);
 }

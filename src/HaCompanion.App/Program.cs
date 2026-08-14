@@ -111,8 +111,19 @@ public static class Program
         using var redirected = new SemaphoreSlim(0, 1);
         _ = Task.Run(async () =>
         {
-            await keyInstance.RedirectActivationToAsync(args);
-            redirected.Release();
+            try
+            {
+                await keyInstance.RedirectActivationToAsync(args);
+            }
+            catch (Exception)
+            {
+                // The target died mid-handover; releasing below unblocks Main so this process
+                // exits normally instead of waiting on a handover that will never complete.
+            }
+            finally
+            {
+                redirected.Release();
+            }
         });
         redirected.Wait();
     }

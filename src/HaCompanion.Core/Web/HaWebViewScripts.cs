@@ -28,12 +28,17 @@ public static class HaWebViewScripts
 
     /// <summary>
     /// Whether a top-level navigation may stay inside the privileged WebView.
-    /// Only the HA origin itself (plus the inert about:blank) — everything else
-    /// belongs in the system browser.
+    /// Only the HA origin itself — everything else belongs in the system browser.
+    ///
+    /// <c>about:blank</c> is NOT allowed, despite looking inert: an about:blank document
+    /// inherits the ORIGIN OF ITS INITIATOR, so a hostile Lovelace iframe card doing
+    /// <c>top.location = 'about:blank'</c> would end up same-origin with the whole app window
+    /// and could document.write arbitrary markup into it (convincing in-app phishing). Nothing
+    /// legitimate needs it here: the initial navigation does not raise this event, and
+    /// window.open goes through NewWindowRequested instead.
     /// </summary>
     public static bool IsAllowedTopLevelNavigation(string? uri, Uri baseUri) =>
-        string.Equals(uri, "about:blank", StringComparison.OrdinalIgnoreCase)
-        || IsSameOrigin(uri, baseUri);
+        IsSameOrigin(uri, baseUri);
 
     /// <summary>
     /// Pre-seed <c>localStorage["hassTokens"]</c> so the HA frontend logs in with the
@@ -147,6 +152,11 @@ public static class HaWebViewScripts
     public const string HideChromeScript =
         """
         (function () {
+          // Top frame only. Document-created scripts run in EVERY frame, including foreign
+          // iframe cards — there this script found no HA chrome but still hid any element
+          // called `.header` on the embedded third-party page and left a 2s interval walking
+          // its DOM forever. HA's own chrome only ever exists in the top document.
+          if (window.top !== window.self) return;
           const drawerCss = `
             .mdc-drawer, .mdc-drawer-scrim { display: none !important; }
             .mdc-drawer-app-content { margin-inline-start: 0 !important; }

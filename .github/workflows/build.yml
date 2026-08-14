@@ -52,6 +52,10 @@ jobs:
           global-json-file: global.json
       - name: Restore (locked)
         run: dotnet restore --locked-mode
+      # The Linux job runs the same suite, but the OS-gated branches (launch-whitelist drive
+      # checks) only EXECUTE here — this adds real Windows execution coverage for them.
+      - name: Test HaCompanion.Core (Windows paths)
+        run: dotnet test tests/HaCompanion.Core.Tests/HaCompanion.Core.Tests.csproj -c Release --no-restore
       - name: Publish (self-contained, win-x64)
         run: dotnet publish src/HaCompanion.App/HaCompanion.App.csproj -c Release -r win-x64 -p:Platform=x64 --no-restore -o publish
       - name: Upload artifact

@@ -77,8 +77,34 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
             return check;
         }
 
-        await RefreshStatesAsync(ct).ConfigureAwait(false);
-        _snapshotIsFresh = true; // skip the redundant re-fetch on the imminent Connected event
+        // A (re)connect may target a DIFFERENT instance whose entity ids overlap the old one's.
+        // Stale entries would then win the refresh's timestamp comparison forever (the other
+        // instance's clocks/last_updated are unrelated). Order matters twice here:
+        //  - stop the OLD session BEFORE rebuilding, or its receive loop keeps writing the old
+        //    instance's states (with fresh timestamps) into the map mid-rebuild;
+        //  - fetch BEFORE clearing, so a failed fetch leaves the previous entities visible
+        //    instead of blanking every tile.
+        _ws.Stop();
+        try
+        {
+            var states = await _rest.GetStatesAsync(ct).ConfigureAwait(false);
+            _entities.Clear();
+            foreach (var state in states)
+            {
+                _entities[state.EntityId] = state;
+                EntityUpdated?.Invoke(this, state);
+            }
+            _snapshotIsFresh = true; // skip the redundant re-fetch on the imminent Connected event
+        }
+        catch (Exception ex)
+        {
+            // The check above already proved the instance reachable; a failed snapshot (proxy
+            // hiccup, api/states timing out on a huge install) must not strand us with NO
+            // session — the old one is stopped by now. Start anyway: the supervisor retries
+            // with backoff, and the Connected handler re-fetches the snapshot we are missing
+            // (_snapshotIsFresh stays false).
+            _logger.LogWarning(ex, "Initial state snapshot failed; connecting anyway");
+        }
         _ws.Start(settings.WebSocketUri, settings.Token, settings.IgnoreCertificateErrors);
         return check;
     }
@@ -92,6 +118,16 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         var states = await _rest.GetStatesAsync(ct).ConfigureAwait(false);
         foreach (var state in states)
         {
+            // The snapshot is taken while state_changed events are already flowing, so by the
+            // time it arrives an entity may have moved on. Blind-writing it rolled such an
+            // entity back in the UI until its next change — compare timestamps and keep the
+            // newer one. (Missing timestamps: treat the snapshot as authoritative, as before.)
+            if (_entities.TryGetValue(state.EntityId, out var live)
+                && live.LastUpdated is { } liveAt && state.LastUpdated is { } snapshotAt
+                && liveAt > snapshotAt)
+            {
+                continue;
+            }
             _entities[state.EntityId] = state;
             EntityUpdated?.Invoke(this, state);
         }
@@ -152,20 +188,9 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         return dashboards;
     }
 
-    public async Task<IReadOnlyList<string>> GetDashboardEntityIdsAsync(string? urlPath, CancellationToken ct = default)
-    {
-        var fields = string.IsNullOrEmpty(urlPath)
-            ? null
-            : new Dictionary<string, object?> { ["url_path"] = urlPath };
-
-        var config = await _ws.SendCommandAsync("lovelace/config", fields, ct).ConfigureAwait(false);
-
-        var ids = new List<string>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        ExtractEntityIds(config, ids, seen);
-        return ids;
-    }
-
+    // (The public dashboard-entity-ids wrapper was removed as dead code; this recursive
+    // extractor stays — it is pure, unit-tested, and the natural building block if a
+    // dashboard-scoped feature returns.)
     internal static void ExtractEntityIds(System.Text.Json.JsonElement el, List<string> ids, HashSet<string> seen)
     {
         switch (el.ValueKind)

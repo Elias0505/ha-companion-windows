@@ -51,12 +51,40 @@ public sealed class AppSettings
     /// <summary>Show Home Assistant persistent notifications as native Windows toasts.</summary>
     public bool ShowHaNotifications { get; set; } = true;
 
+    /// <summary>
+    /// App name shown as the heading (attribution line) of Windows toasts.
+    /// Empty = the default "HA Companion". (#9)
+    /// </summary>
+    public string ToastAppName { get; set; } = string.Empty;
+
     /// <summary>Report this PC's state to HA as a mobile_app device (opt-in: the active
     /// program and mic/cam state leave the machine).</summary>
     public bool ReportSensors { get; set; }
 
+    /// <summary>
+    /// Device name shown in Home Assistant (Settings → Devices). Empty = this PC's
+    /// computer name. Renaming updates the HA DEVICE only; existing entity_ids and the
+    /// notify.mobile_app_&lt;slug&gt; service keep their original slug. (#8)
+    /// </summary>
+    public string HaDeviceName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Opt-in: report this PC "home" to the mobile_app device tracker while the app is
+    /// connected, and "not_home" on lock/suspend/shutdown. Off by default — for a laptop
+    /// reaching HA over VPN/cloud, "connected" does not mean "at home". (#11)
+    /// </summary>
+    public bool ReportTrackerHome { get; set; }
+
     /// <summary>Stable device id for the mobile_app registration (GUID, created on enable).</summary>
     public string MobileAppDeviceId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The device name that was actually sent when the mobile_app device was REGISTERED —
+    /// HA derives notify.mobile_app_&lt;slug&gt; and the entity_ids from it once, at that moment.
+    /// Kept so the UI can show the real service name even after the display name was renamed.
+    /// Empty = legacy install (assume the computer name).
+    /// </summary>
+    public string MobileAppRegisteredName { get; set; } = string.Empty;
 
     /// <summary>Webhook id returned by the registration (stored encrypted — it grants HA write access).</summary>
     public string MobileAppWebhookId { get; set; } = string.Empty;

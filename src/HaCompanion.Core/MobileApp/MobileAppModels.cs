@@ -76,6 +76,14 @@ public sealed record WebhookEnvelope(
     [property: JsonPropertyName("type")] string Type,
     [property: JsonPropertyName("data")] object Data);
 
+/// <summary>
+/// Payload of an <c>update_location</c> webhook message (#11). Only <c>location_name</c> is
+/// used — "home"/"not_home" map straight to the device_tracker state; this app never sends
+/// GPS coordinates.
+/// </summary>
+public sealed record LocationUpdate(
+    [property: JsonPropertyName("location_name")] string LocationName);
+
 public enum WebhookOutcome
 {
     Success,

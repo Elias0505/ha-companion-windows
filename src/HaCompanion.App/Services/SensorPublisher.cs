@@ -24,6 +24,13 @@ public interface ISensorPublisher
     /// <summary>Turn reporting off (the HA registration is kept; entities go stale).</summary>
     void Disable();
 
+    /// <summary>
+    /// Push the current registration data (device name, app version) to HA now via
+    /// update_registration. Used when the configurable device name changes (#8) — without it
+    /// the rename would only reach HA on the next re-registration.
+    /// </summary>
+    Task RefreshRegistrationAsync();
+
     /// <summary>Last push time / error for the settings page status line.</summary>
     string StatusText { get; }
 
@@ -50,7 +57,11 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
     private long _registerBackoffUntil;
     private int _registering; // 0/1, claimed atomically via Interlocked
     private bool _audioSensorRegistered; // audio value arrives ~6s after start (hysteresis)
-    private bool _pushChannelReady;      // update_registration + channel subscribe, once per session
+    // The webhook id the push channel was last pointed at (null = none). An ID, not a bool:
+    // the webhook can change behind this class's back (origin change, config import), and a
+    // boolean latch then skipped EnablePushChannel for the NEW id forever — notifications and
+    // every HA→PC command stayed dead until restart.
+    private string? _pushChannelWebhook;
 
     public string StatusText { get; private set; } = "";
 
@@ -76,13 +87,18 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
             if (status == HaConnectionStatus.Connected && _settings.Load().ReportSensors)
                 _ = EnsureRegisteredAndPushAsync();
         };
-        // The heartbeat also repairs a missing registration (e.g. after a 410 mid-session).
+        // The heartbeat also repairs a missing registration (e.g. after a 410 mid-session) AND
+        // a push channel that is not yet pointed at the stored webhook — without the stamp
+        // check, one transient update_registration failure left notifications and every HA→PC
+        // command dead until the next reconnect ("retry on the heartbeat" was a lie).
         _heartbeat = new Timer(_ =>
         {
             var s = _settings.Load();
             if (!s.ReportSensors)
                 return;
-            _ = string.IsNullOrEmpty(s.MobileAppWebhookId) ? EnsureRegisteredAndPushAsync() : PushAsync();
+            var needsRegistration = string.IsNullOrEmpty(s.MobileAppWebhookId)
+                || !string.Equals(_pushChannelWebhook, s.MobileAppWebhookId, StringComparison.Ordinal);
+            _ = needsRegistration ? EnsureRegisteredAndPushAsync() : PushAsync();
         }, null, HeartbeatMs, HeartbeatMs);
 
         if (_settings.Load().ReportSensors)
@@ -91,19 +107,19 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
 
     public async Task<bool> EnableAsync()
     {
-        var settings = _settings.Load();
-        settings.ReportSensors = true;
-        if (string.IsNullOrEmpty(settings.MobileAppDeviceId))
-            settings.MobileAppDeviceId = Guid.NewGuid().ToString("N");
-        _settings.Save(settings);
+        _settings.Update(s =>
+        {
+            s.ReportSensors = true;
+            if (string.IsNullOrEmpty(s.MobileAppDeviceId))
+                s.MobileAppDeviceId = Guid.NewGuid().ToString("N");
+        });
         return await EnsureRegisteredAndPushAsync().ConfigureAwait(false);
     }
 
     public void Disable()
     {
-        var settings = _settings.Load();
-        settings.ReportSensors = false;
-        _settings.Save(settings);
+        _settings.Update(s => s.ReportSensors = false);
+        _pushChannelWebhook = null; // a fresh Enable must re-establish the push channel
         SetStatus("");
         // Best-effort: hide the entities in HA instead of leaving them stale forever
         // (stale-devices analog). Re-enabling registers them back as enabled.
@@ -120,6 +136,9 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                 return;
             await _client.RegisterSensorsAsync(
                 settings.MobileAppWebhookId, BuildDefinitions(disabled: true)).ConfigureAwait(false);
+            // The tracker would otherwise freeze at its last value ("home") forever.
+            if (settings.ReportTrackerHome)
+                await PushLocationAsync("not_home", settings.MobileAppWebhookId).ConfigureAwait(false);
             _logger.LogInformation("PC sensors disabled in Home Assistant (reporting turned off)");
         }
         catch (Exception ex)
@@ -142,6 +161,12 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
             try
             {
                 PushAsync().Wait(2000);
+                // Tracker opt-in: the machine is going away — mark it not_home on the same
+                // bounded budget. (A crash or pulled cable cannot run this; the tracker then
+                // stays "home" until the next reconnect — documented limitation.)
+                var s = _settings.Load();
+                if (s.ReportTrackerHome && !string.IsNullOrEmpty(s.MobileAppWebhookId))
+                    PushLocationAsync("not_home", s.MobileAppWebhookId).Wait(2000);
             }
             catch
             {
@@ -193,8 +218,23 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                 {
                     if (string.IsNullOrEmpty(settings.MobileAppDeviceId))
                     {
-                        settings.MobileAppDeviceId = Guid.NewGuid().ToString("N");
-                        _settings.Save(settings);
+                        var newDeviceId = Guid.NewGuid().ToString("N");
+                        _settings.Update(s =>
+                        {
+                            if (string.IsNullOrEmpty(s.MobileAppDeviceId))
+                                s.MobileAppDeviceId = newDeviceId;
+                        });
+                        // Register with what was actually STORED — never a throwaway local id.
+                        // The store may refuse the write (settings.json momentarily unreadable);
+                        // registering anyway would orphan one HA device per retry.
+                        var storedDeviceId = _settings.Load().MobileAppDeviceId;
+                        if (string.IsNullOrEmpty(storedDeviceId))
+                        {
+                            _registerBackoffUntil = Environment.TickCount64 + RegisterBackoffMs;
+                            SetStatus(_loc["Set_SensorsError"]);
+                            return false;
+                        }
+                        settings.MobileAppDeviceId = storedDeviceId;
                     }
                     var result = await _client.RegisterAsync(BuildRegistrationRequest(settings.MobileAppDeviceId))
                         .ConfigureAwait(false);
@@ -204,14 +244,37 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                         SetStatus(_loc["Set_SensorsError"]);
                         return false;
                     }
-                    settings = _settings.Load();
-                    settings.MobileAppWebhookId = result.WebhookId;
-                    _settings.Save(settings);
-                    _logger.LogInformation("mobile_app device registered as {Name}", Environment.MachineName);
+                    var webhookId = result.WebhookId;
+                    var registeredName = EffectiveDeviceName();
+                    _settings.Update(s =>
+                    {
+                        s.MobileAppWebhookId = webhookId;
+                        // HA derives notify.mobile_app_<slug> and the entity_ids from the name
+                        // AT THIS MOMENT; remember it so the UI keeps showing the real service
+                        // even after a later display rename.
+                        s.MobileAppRegisteredName = registeredName;
+                    });
+                    _logger.LogInformation("mobile_app device registered as {Name}", registeredName);
+                }
+
+                // Always the STORED id from here on. If the store refused the write above
+                // (settings.json momentarily unreadable) this is empty — back off rather than
+                // posting to api/webhook/<empty> and pointing the push channel at nothing.
+                var storedWebhook = _settings.Load().MobileAppWebhookId;
+                if (string.IsNullOrEmpty(storedWebhook))
+                {
+                    // The HA-side registration DID happen; that device is now orphaned there.
+                    // Name it so the user can clean it up, then back off.
+                    _logger.LogWarning(
+                        "Registered mobile_app device could not be stored locally (settings.json unwritable); "
+                        + "an orphaned device may remain in Home Assistant");
+                    _registerBackoffUntil = Environment.TickCount64 + RegisterBackoffMs;
+                    SetStatus(_loc["Set_SensorsError"]);
+                    return false;
                 }
 
                 var outcome = await _client.RegisterSensorsAsync(
-                    _settings.Load().MobileAppWebhookId, BuildDefinitions()).ConfigureAwait(false);
+                    storedWebhook, BuildDefinitions()).ConfigureAwait(false);
                 if (outcome.Outcome == WebhookOutcome.RegistrationGone)
                 {
                     MarkGone();
@@ -222,22 +285,41 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
                 // Push channel (HA -> PC notifications/commands): older registrations lack
                 // app_data — upgrading once per session is idempotent and cheap. Then
                 // subscribe the websocket channel so notify.mobile_app_<device> arrives here.
-                if (!_pushChannelReady)
+                // Compared by ID, not a done-bool: the webhook can change behind our back
+                // (origin change, import, concurrent MarkGone), and only an ID comparison
+                // notices and re-points the channel.
+                var channelWebhook = storedWebhook;
+                if (!string.Equals(_pushChannelWebhook, channelWebhook, StringComparison.Ordinal))
                 {
-                    _pushChannelReady = true;
-                    var webhookId = _settings.Load().MobileAppWebhookId;
                     // update_registration accepts only a subset of the registration keys —
                     // sending the full request made HA reject (and silently drop) the update.
                     var update = MobileAppRegistrationUpdate.FromRegistration(
                         BuildRegistrationRequest(_settings.Load().MobileAppDeviceId));
-                    var updateResult = await _client.UpdateRegistrationAsync(webhookId, update).ConfigureAwait(false);
-                    if (updateResult.Outcome != WebhookOutcome.Success)
-                        _logger.LogWarning("update_registration failed: {Outcome} (HTTP {Status})",
+                    var updateResult = await _client.UpdateRegistrationAsync(channelWebhook, update).ConfigureAwait(false);
+                    if (updateResult.Outcome == WebhookOutcome.RegistrationGone)
+                    {
+                        // The registration died between RegisterSensors and here — treat it like
+                        // every other 410 instead of pointing the channel at a dead webhook.
+                        MarkGone();
+                        continue;
+                    }
+                    _connection.EnablePushChannel(channelWebhook);
+                    if (updateResult.Outcome == WebhookOutcome.Success)
+                    {
+                        // Only a successful app_data upgrade makes the channel subscribable for
+                        // registrations from older builds — on failure, leave the stamp unset so
+                        // the next heartbeat retries the upgrade instead of latching a dead state.
+                        _pushChannelWebhook = channelWebhook;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("update_registration failed: {Outcome} (HTTP {Status}) — retrying on the next heartbeat",
                             updateResult.Outcome, updateResult.StatusCode);
-                    _connection.EnablePushChannel(webhookId);
+                    }
                 }
 
                 await PushCoreAsync().ConfigureAwait(false);
+                await PushLocationAsync("home", storedWebhook).ConfigureAwait(false);
                 return true;
             }
             return false;
@@ -306,18 +388,60 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
     private void MarkGone()
     {
         _logger.LogWarning("mobile_app registration gone — re-registering");
-        var settings = _settings.Load();
-        settings.MobileAppWebhookId = string.Empty;
-        _settings.Save(settings);
+        _settings.Update(s => s.MobileAppWebhookId = string.Empty);
         _audioSensorRegistered = false;
+        // The push channel was bound to the now-dead webhook id. Clear the one-shot latch so the
+        // re-registration below actually re-subscribes it — otherwise notifications and every
+        // HA→PC command stay dead until the app restarts.
+        _pushChannelWebhook = null;
     }
 
-    private static MobileAppRegistrationRequest BuildRegistrationRequest(string deviceId) => new(
+    /// <summary>
+    /// Opt-in device-tracker feed (#11): "home" while connected, "not_home" when the machine
+    /// goes away. Deliberately NEVER interprets <see cref="WebhookOutcome.RegistrationGone"/>:
+    /// that outcome is derived from HA's empty-200 anti-enumeration answer, and if any HA
+    /// version answered update_location with a truly empty body, reacting to it here would
+    /// wipe the webhook and loop re-registrations. The sensor push right before this call is
+    /// the authoritative liveness check.
+    /// </summary>
+    private async Task PushLocationAsync(string locationName, string webhookId)
+    {
+        if (!_settings.Load().ReportTrackerHome)
+            return;
+        try
+        {
+            var result = await _client.UpdateLocationAsync(webhookId, locationName).ConfigureAwait(false);
+            if (result.Outcome == WebhookOutcome.Success)
+                _logger.LogInformation("Device tracker set to {Location}", locationName);
+            else
+                _logger.LogWarning("update_location ({Location}) failed: {Outcome} (HTTP {Status})",
+                    locationName, result.Outcome, result.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "update_location ({Location}) failed", locationName);
+        }
+    }
+
+    /// <summary>The name this PC registers/updates under in HA — the setting, or the computer name.</summary>
+    private string EffectiveDeviceName() =>
+        MobileAppDeviceName.Resolve(_settings.Load().HaDeviceName, Environment.MachineName);
+
+    public async Task RefreshRegistrationAsync()
+    {
+        // Clearing the channel stamp makes EnsureRegisteredAndPushAsync re-run its
+        // update_registration block, which carries the (renamed) device_name. Never clear the
+        // webhook id for a rename — that would orphan the HA device and register a new one.
+        _pushChannelWebhook = null;
+        await EnsureRegisteredAndPushAsync().ConfigureAwait(false);
+    }
+
+    private MobileAppRegistrationRequest BuildRegistrationRequest(string deviceId) => new(
         deviceId,
         "hacompanion.windows",
         "HA Companion",
         typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0",
-        Environment.MachineName,
+        EffectiveDeviceName(),
         "HA Companion",
         "Windows PC",
         "Windows",
@@ -333,7 +457,8 @@ public sealed class SensorPublisher : ISensorPublisher, IDisposable
             s.IsLocked, s.SessionState,
             IsIdle: s.IdleMinutes >= threshold, s.IdleMinutes,
             s.ForegroundProcess, s.IsFullscreen, s.MicInUse, s.CamInUse,
-            s.DisplayOn, s.AudioPlaying, s.AppStartedAt);
+            s.DisplayOn, s.AudioPlaying, s.AppStartedAt,
+            IsOwnAppForeground: s.IsOwnAppForeground);
     }
 
     private IReadOnlyList<SensorDefinition> BuildDefinitions(bool disabled = false)

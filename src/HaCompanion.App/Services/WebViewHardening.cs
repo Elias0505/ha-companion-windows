@@ -27,7 +27,12 @@ public static class WebViewHardening
     /// frozen origin would then treat the NEW instance as foreign (bouncing it to the system
     /// browser) while still trusting the OLD one's certificate.
     /// </param>
-    public static void Apply(CoreWebView2 core, Func<Uri> currentBaseUri, bool allowCertErrorsForBase)
+    /// <param name="allowCertErrorsForBase">
+    /// Also read per event, for the same reason — and because it is a SECURITY setting: passing
+    /// the bool by value meant the handler was only attached when the option was on, so turning
+    /// it back off left the old handler accepting bad certificates until the app restarted.
+    /// </param>
+    public static void Apply(CoreWebView2 core, Func<Uri> currentBaseUri, Func<bool> allowCertErrorsForBase)
     {
         core.NavigationStarting += (_, args) =>
         {
@@ -47,13 +52,12 @@ public static class WebViewHardening
                 OpenExternally(args.Uri);
         };
 
-        if (allowCertErrorsForBase)
-        {
-            core.ServerCertificateErrorDetected += (_, args) =>
-                args.Action = HaWebViewScripts.IsSameOrigin(args.RequestUri, currentBaseUri())
-                    ? CoreWebView2ServerCertificateErrorAction.AlwaysAllow
-                    : CoreWebView2ServerCertificateErrorAction.Default;
-        }
+        // Always subscribe; decide per event. Default = let WebView2 show its own warning.
+        core.ServerCertificateErrorDetected += (_, args) =>
+            args.Action = allowCertErrorsForBase()
+                          && HaWebViewScripts.IsSameOrigin(args.RequestUri, currentBaseUri())
+                ? CoreWebView2ServerCertificateErrorAction.AlwaysAllow
+                : CoreWebView2ServerCertificateErrorAction.Default;
     }
 
     private static void OpenExternally(string? uri)

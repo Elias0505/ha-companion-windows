@@ -116,6 +116,7 @@ public sealed partial class SettingsPage : Page
             if (file is null)
                 return;
             var json = await FileIO.ReadTextAsync(file);
+            var urlBeforeImport = App.Services.GetRequiredService<ISettingsStore>().Load().BaseUrl;
             var ok = App.Services.GetRequiredService<IConfigBackupService>().Import(json);
             // Re-apply everything that reads from the stores at runtime.
             if (ok)
@@ -131,6 +132,20 @@ public sealed partial class SettingsPage : Page
                 // while the executor already reads the new values live.
                 ViewModel.ReloadFromSettings();
                 App.Services.GetRequiredService<MyPcViewModel>().ReloadPermissions();
+                // The WebSocket layer holds a LIVE copy of the webhook id. An import that
+                // changed the URL dropped it from the store — re-point the channel at whatever
+                // the store holds now, or the next reconnect would subscribe the OLD host's
+                // webhook (a write-capable credential) against the imported URL.
+                var stored = App.Services.GetRequiredService<ISettingsStore>().Load();
+                var conn = App.Services.GetRequiredService<HaCompanion.Core.Services.IHaConnection>();
+                conn.EnablePushChannel(string.IsNullOrEmpty(stored.MobileAppWebhookId) ? null : stored.MobileAppWebhookId);
+                // A changed origin also means the RUNNING session belongs to a configuration
+                // that no longer exists. Left connected, the sensor heartbeat would register a
+                // fresh webhook on the OLD host and store it — to be replayed against the new
+                // URL later. Disconnect; connecting to the imported instance needs a new token
+                // via Save & Connect anyway.
+                if (!HaCompanion.Core.Configuration.HaConnectionSettings.IsSameOrigin(urlBeforeImport, stored.BaseUrl))
+                    conn.Disconnect();
             }
             BackupStatus.Text = Loc[ok ? "Backup_Imported" : "Backup_Invalid"];
         }
@@ -209,7 +224,17 @@ public sealed partial class SettingsPage : Page
 
         try
         {
-            App.Services.GetRequiredService<IConfigResetService>().Reset();
+            if (!App.Services.GetRequiredService<IConfigResetService>().Reset())
+            {
+                // Something (AV, backup tool) held a file — the token may still be on disk.
+                // Saying "restarting" here would falsely report a completed reset; the reset
+                // is idempotent, so the user can simply retry. Reload the view model too:
+                // its in-memory copy of the (possibly just-deleted) credentials must not be
+                // written back by a later Save & Connect.
+                ViewModel.ReloadFromSettings();
+                ResetStatus.Text = Loc["Reset_Failed"];
+                return;
+            }
             ResetStatus.Text = Loc["Reset_Restarting"];
             // Everything still in memory (view models, connection, hotkeys) belongs to the
             // configuration we just deleted — a fresh process is the honest way back.

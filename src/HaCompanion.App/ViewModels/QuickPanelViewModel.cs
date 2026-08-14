@@ -91,16 +91,12 @@ public sealed partial class QuickPanelViewModel : ObservableObject
     {
         if (_syncingDefaultFlag)
             return;
-        var settings = _settingsStore.Load();
-        settings.QuickPanelStartView = value ? EncodeView(SelectedDashboard) : "last";
-        _settingsStore.Save(settings);
+        _settingsStore.Update(s => s.QuickPanelStartView = value ? EncodeView(SelectedDashboard) : "last");
     }
 
     partial void OnSortByCategoryChanged(bool value)
     {
-        var settings = _settingsStore.Load();
-        settings.QuickPanelSortByCategory = value;
-        _settingsStore.Save(settings);
+        _settingsStore.Update(s => s.QuickPanelSortByCategory = value);
         RebuildGroups();
     }
 
@@ -215,12 +211,8 @@ public sealed partial class QuickPanelViewModel : ObservableObject
         if (!_rebuildingDashboards)
         {
             var encoded = EncodeView(value);
-            var settings = _settingsStore.Load();
-            if (settings.QuickPanelLastView != encoded)
-            {
-                settings.QuickPanelLastView = encoded;
-                _settingsStore.Save(settings);
-            }
+            if (_settingsStore.Load().QuickPanelLastView != encoded)
+                _settingsStore.Update(s => s.QuickPanelLastView = encoded);
         }
         SyncDefaultFlag(); // the pin reflects whether THIS view is the configured default
     }

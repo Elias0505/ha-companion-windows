@@ -90,10 +90,21 @@ public sealed partial class MyPcViewModel : ObservableObject
     [ObservableProperty]
     private string _whitelistError = "";
 
-    /// <summary>notify.mobile_app_&lt;slug&gt; — shown in the mini docs so users can copy it.</summary>
-#pragma warning disable CA1822
-    public string NotifyServiceName => "notify.mobile_app_" + Slugify(Environment.MachineName);
-#pragma warning restore CA1822
+    /// <summary>
+    /// notify.mobile_app_&lt;slug&gt; — shown in the mini docs so users can copy it. Derived from
+    /// the name that was SENT AT REGISTRATION, not the current display name: HA fixes the
+    /// service slug at that moment, and showing the renamed value would point users at a
+    /// service that does not exist. Refreshed via <see cref="ReloadPermissions"/>.
+    /// </summary>
+    public string NotifyServiceName
+    {
+        get
+        {
+            var registered = _settings.Load().MobileAppRegisteredName;
+            return "notify.mobile_app_" + Slugify(
+                string.IsNullOrEmpty(registered) ? Environment.MachineName : registered);
+        }
+    }
 
     public bool ShowHttpWarning =>
         _settings.Load().BaseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
@@ -223,7 +234,7 @@ public sealed partial class MyPcViewModel : ObservableObject
         var s = _monitor.Current;
         string YesNo(bool b) => _loc[b ? "Pc_Yes" : "Pc_No"];
         StatusLine1 = $"{_loc[s.IsLocked ? "Pc_Locked" : "Pc_Unlocked"]}"
-                      + $" · {_loc["Pc_Program"]}: {(string.IsNullOrEmpty(s.ForegroundProcess) ? "—" : s.ForegroundProcess)}"
+                      + $" · {_loc["Pc_Program"]}: {(s.IsOwnAppForeground ? "hacompanion" : string.IsNullOrEmpty(s.ForegroundProcess) ? "—" : s.ForegroundProcess)}"
                       + $" · {_loc["Pc_Fullscreen"]}: {YesNo(s.IsFullscreen)}";
         StatusLine2 = $"{_loc["Pc_Mic"]}: {YesNo(s.MicInUse)}"
                       + $" · {_loc["Pc_Cam"]}: {YesNo(s.CamInUse)}"
@@ -236,7 +247,11 @@ public sealed partial class MyPcViewModel : ObservableObject
 
     /// <summary>Re-read the command permissions from the store (e.g. after a config import
     /// rewrote them) so the toggles never show a stale state.</summary>
-    public void ReloadPermissions() => LoadPermissions();
+    public void ReloadPermissions()
+    {
+        LoadPermissions();
+        OnPropertyChanged(nameof(NotifyServiceName)); // may change after (re-)registration/import
+    }
 
     private void LoadPermissions()
     {
@@ -256,15 +271,11 @@ public sealed partial class MyPcViewModel : ObservableObject
     {
         if (_loading)
             return;
-        var s = _settings.Load();
-        s.AllowCmdLock = AllowLock;
-        s.AllowCmdMonitorOff = AllowMonitorOff;
-        s.AllowCmdVolume = AllowVolume;
-        s.AllowCmdSleep = AllowSleep;
-        s.AllowCmdShutdown = AllowShutdown;
-        s.AllowCmdLaunch = AllowLaunch;
-        // Persist only canonical, existing .exe paths; everything else is named in the
-        // error text instead of silently riding along until command_launch fails.
+        // Validate OUTSIDE the store's lock (TryValidateEntry probes the filesystem; a dead
+        // UNC path can stall for seconds), then persist only the fields this page owns.
+        // Writing a whole Load()ed snapshot here could revert a webhook id the sensor
+        // heartbeat stored in the meantime — and other snapshot writers could revive an
+        // AllowCmd* toggle the user just switched off.
         var valid = new List<string>();
         var invalid = new List<string>();
         foreach (var entry in LaunchWhitelistText
@@ -275,11 +286,19 @@ public sealed partial class MyPcViewModel : ObservableObject
             else
                 invalid.Add(entry);
         }
-        s.LaunchWhitelist = valid;
         WhitelistError = invalid.Count == 0
             ? ""
             : string.Format(CultureInfo.CurrentCulture, _loc["Cmd_WhitelistInvalid"], string.Join("; ", invalid));
-        _settings.Save(s);
+        _settings.Update(s =>
+        {
+            s.AllowCmdLock = AllowLock;
+            s.AllowCmdMonitorOff = AllowMonitorOff;
+            s.AllowCmdVolume = AllowVolume;
+            s.AllowCmdSleep = AllowSleep;
+            s.AllowCmdShutdown = AllowShutdown;
+            s.AllowCmdLaunch = AllowLaunch;
+            s.LaunchWhitelist = valid;
+        });
     }
 
     partial void OnAllowLockChanged(bool value) => SavePermissions();

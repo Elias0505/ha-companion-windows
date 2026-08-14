@@ -13,7 +13,11 @@ public sealed record WindowsSensorValues(
     bool CamInUse,
     bool DisplayOn,
     bool? AudioPlaying,      // null = probe unavailable -> sensor omitted entirely
-    DateTimeOffset LastStart);
+    DateTimeOffset LastStart,
+    // The companion's own window is in front. Kept separate from ForegroundProcess so the
+    // automation triggers stay silent about the app itself while the active_program sensor
+    // can still say "hacompanion" instead of going blank (#10).
+    bool IsOwnAppForeground = false);
 
 /// <summary>
 /// The fixed set of PC sensors pushed to HA. unique_ids are stable English identifiers
@@ -54,7 +58,11 @@ public static class WindowsSensorCatalog
             new("idle_minutes", Name("idle_minutes"), Sensor, v.IdleMinutes, Icon: "mdi:timer-sand",
                 DeviceClass: "duration", UnitOfMeasurement: "min", StateClass: "measurement",
                 EntityCategory: Diagnostic, Disabled: dis),
-            new("active_program", Name("active_program"), Sensor, v.ForegroundProcess ?? "", Icon: "mdi:application",
+            // Own app in front reports its process-style name like every other program would —
+            // a blank state looked broken (#10). Lowercase on purpose: sensor STATES stay
+            // language-independent (unlike the localized display names).
+            new("active_program", Name("active_program"), Sensor,
+                v.IsOwnAppForeground ? "hacompanion" : v.ForegroundProcess ?? "", Icon: "mdi:application",
                 Disabled: dis),
             new("fullscreen", Name("fullscreen"), BinarySensor, v.IsFullscreen, Icon: "mdi:fullscreen", Disabled: dis),
             new("microphone_in_use", Name("microphone_in_use"), BinarySensor, v.MicInUse, Icon: "mdi:microphone",

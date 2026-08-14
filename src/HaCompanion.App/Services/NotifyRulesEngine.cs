@@ -55,7 +55,14 @@ public sealed class NotifyRulesEngine : INotifyRulesEngine
         _connection.EntityUpdated += OnEntityUpdated;
     }
 
-    public void Reload() => _rules = _store.Load();
+    public void Reload()
+    {
+        // Assign under the same gate every reader uses: Reload runs on the UI thread while
+        // OnEntityUpdated iterates _rules on the WebSocket dispatch thread.
+        var rules = _store.Load();
+        lock (_gate)
+            _rules = rules;
+    }
 
     private void OnEntityUpdated(object? sender, HaEntityState newState)
     {
@@ -106,10 +113,22 @@ public sealed class NotifyRulesEngine : INotifyRulesEngine
     /// key per distinct value forever. Expired entries (older than the window) are dead weight.</summary>
     private void PruneCooldown(long now)
     {
-        if (_cooldown.Count <= 64)
+        const int softCap = 64;
+        const int hardCap = 512;
+        if (_cooldown.Count <= softCap)
             return;
         foreach (var key in _cooldown.Where(kv => now - kv.Value >= CooldownMs).Select(kv => kv.Key).ToList())
             _cooldown.Remove(key);
+        // A burst producing more than `hardCap` DISTINCT keys inside the cooldown window has
+        // nothing expired to drop, so the pass above frees nothing and the map grows unchecked.
+        // Evict the oldest entries so the worst case stays bounded.
+        if (_cooldown.Count <= hardCap)
+            return;
+        foreach (var key in _cooldown.OrderBy(kv => kv.Value).Take(_cooldown.Count - hardCap)
+                     .Select(kv => kv.Key).ToList())
+        {
+            _cooldown.Remove(key);
+        }
     }
 
     /// <summary>"Ein"/"Aus"/"Offen"/"Geschlossen" for binary-ish states, raw value otherwise.</summary>

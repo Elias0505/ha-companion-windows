@@ -67,19 +67,28 @@ public sealed class ConfigResetService : IConfigResetService
         }
 
         // 2. Every file we own: settings (token!), layout, shortcuts, automations, stats,
-        //    notification rules and the logs. Anything the user dropped in stays.
-        foreach (var file in Directory.Exists(_dir) ? Directory.GetFiles(_dir) : Array.Empty<string>())
+        //    notification rules and the logs. Anything the user dropped in stays. The sweep runs
+        //    under the store's lock (ReplaceOnDisk): a background Update() landing between the
+        //    delete and the cache drop would otherwise re-create settings.json with the token
+        //    the reset just removed.
+        _settings.ReplaceOnDisk(() =>
         {
-            try
+            foreach (var file in Directory.Exists(_dir) ? Directory.GetFiles(_dir) : Array.Empty<string>())
             {
-                File.Delete(file);
+                try
+                {
+                    File.Delete(file);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    complete = false;
+                    _logger.LogWarning(ex, "Reset: {File} is in use", Path.GetFileName(file));
+                }
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                complete = false;
-                _logger.LogWarning(ex, "Reset: {File} is in use", Path.GetFileName(file));
-            }
-        }
+            // Give up any preserved (undecryptable) secret blob too — a factory reset must not
+            // leave one behind for a later save to resurrect.
+            _settings.DiscardPreservedSecrets();
+        });
 
         // 3. The WebView2 profiles hold the Home Assistant session cookies, so a reset has to
         //    take them too - but never from inside the running app: the browser processes keep
@@ -88,10 +97,6 @@ public sealed class ConfigResetService : IConfigResetService
         //    CompletePending() runs before anything opens a WebView.
         if (Folders.Any(f => Directory.Exists(Path.Combine(_dir, f))))
             MarkPending();
-
-        // 4. Drop the cached settings object. Without this a later Save() would write the
-        //    stale cache straight back over the file we just deleted.
-        _settings.Invalidate();
 
         return complete;
     }
@@ -103,8 +108,19 @@ public sealed class ConfigResetService : IConfigResetService
     /// old files (and the old token inside them) would linger forever. Called at startup,
     /// before any WebView exists, so nothing holds the folders open.
     /// </summary>
+    // Written once the legacy (persistent, token-bearing) profiles have been swept. Without it
+    // the sweep ran on EVERY start: in-private WebView2 still materializes an EBWebView folder,
+    // so each launch deleted the freshly built code cache and paid for a cold first load.
+    // Versioned: a future build that must re-sweep (e.g. after a downgrade re-created a
+    // persistent profile) bumps the suffix instead of inventing a second mechanism.
+    private const string PurgedMarker = "webview-profiles.purged.v1";
+
     public void PurgeLegacyWebViewProfiles()
     {
+        var marker = Path.Combine(_dir, PurgedMarker);
+        if (File.Exists(marker))
+            return;
+
         foreach (var folder in Folders)
         {
             // The WHOLE profile, not just localStorage: the HTTP cache holds responses and
@@ -121,9 +137,22 @@ public sealed class ConfigResetService : IConfigResetService
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // Locked by a shutting-down browser process — retried on the next start.
+                // Locked by a shutting-down browser process — retried on the next start
+                // (the marker below is only written once every folder is gone).
                 _logger.LogWarning(ex, "Could not remove legacy WebView profile in {Folder}", folder);
+                return;
             }
+        }
+
+        try
+        {
+            Directory.CreateDirectory(_dir);
+            File.WriteAllText(marker, "1");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Not fatal: without the marker the (now cheap) sweep just runs again next start.
+            _logger.LogDebug(ex, "Could not write the WebView purge marker");
         }
     }
 

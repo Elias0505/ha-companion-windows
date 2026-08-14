@@ -10,6 +10,13 @@ public interface INotificationService
     /// <summary>Register with the OS notification system. Call once at startup, before any UI.</summary>
     void Initialize();
 
+    /// <summary>
+    /// Change the toast heading (attribution line) at runtime by re-registering the
+    /// notification identity (#9). Empty = the default "HA Companion". Applies to toasts
+    /// shown from now on; already-visible ones keep the old heading.
+    /// </summary>
+    void ApplyDisplayName(string? displayName);
+
     void Show(string title, string message);
 
     /// <summary>

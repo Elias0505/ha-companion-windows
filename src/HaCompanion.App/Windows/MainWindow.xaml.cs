@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using HaCompanion.App.Services;
 using HaCompanion.App.ViewModels;
 using HaCompanion.App.Views;
+using HaCompanion.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -230,7 +231,23 @@ public sealed partial class MainWindow : Window
             hotkeys.ClearActions(); // entity shortcuts too, not just the panel hotkey
         }
         catch { }
+        try
+        {
+            // Stop the connection supervisor before the process goes away, so it cannot start a
+            // fresh reconnect (or fire status events into half-torn-down UI) during shutdown.
+            // Best effort and non-blocking — exiting must never wait on the network.
+            App.Services.GetRequiredService<IHaConnection>().Disconnect();
+        }
+        catch { }
         Tray.Dispose();
+        try
+        {
+            // Last: give every IDisposable singleton (HTTP clients, timers, the file logger)
+            // its orderly teardown instead of dying with the process. Best effort — a throwing
+            // Dispose must never block the exit.
+            (App.Services as IDisposable)?.Dispose();
+        }
+        catch { }
     }
 
     private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)

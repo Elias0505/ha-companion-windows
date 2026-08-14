@@ -148,6 +148,11 @@
                                       IsOn="{x:Bind ViewModel.Autostart, Mode=TwoWay}" />
                         <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_HaNotify], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.ShowHaNotifications, Mode=TwoWay}" />
+                        <TextBox Header="{Binding [Set_ToastName], Source={StaticResource Loc}}"
+                                 Text="{x:Bind ViewModel.ToastAppName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                 PlaceholderText="HA Companion" MaxLength="64" />
+                        <TextBlock Text="{Binding [Set_ToastNameHint], Source={StaticResource Loc}}"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 
@@ -158,6 +163,16 @@
                         <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_Sensors], Source={StaticResource Loc}}"
                                       IsOn="{x:Bind ViewModel.ReportSensors, Mode=TwoWay}" />
                         <TextBlock Text="{Binding [Set_SensorsHint], Source={StaticResource Loc}}"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                        <TextBox Header="{Binding [Set_SensorsDeviceName], Source={StaticResource Loc}}"
+                                 Text="{x:Bind ViewModel.HaDeviceName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                 PlaceholderText="{x:Bind ViewModel.DeviceNamePlaceholder}"
+                                 MaxLength="64" />
+                        <TextBlock Text="{Binding [Set_SensorsDeviceNameHint], Source={StaticResource Loc}}"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                        <ToggleSwitch OnContent="{Binding [Common_On], Source={StaticResource Loc}}" OffContent="{Binding [Common_Off], Source={StaticResource Loc}}" Header="{Binding [Set_TrackerHome], Source={StaticResource Loc}}"
+                                      IsOn="{x:Bind ViewModel.ReportTrackerHome, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding [Set_TrackerHomeHint], Source={StaticResource Loc}}"
                                    Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                         <NumberBox Header="{Binding [Set_SensorsIdle], Source={StaticResource Loc}}"
                                    Value="{x:Bind ViewModel.IdleSensorMinutes, Mode=TwoWay}"

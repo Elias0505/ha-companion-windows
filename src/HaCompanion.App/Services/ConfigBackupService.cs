@@ -113,15 +113,35 @@ public sealed class ConfigBackupService : IConfigBackupService
                 return false;
             }
 
-            // Validate EVERYTHING before writing anything — a half-applied bundle (files in,
-            // settings rejected) could leave the config inconsistent, and a type-confused
-            // settings value would make settings.json unparseable, which the load-time
-            // fallback then overwrites with defaults (destroying the stored token).
+            // Only understand bundles up to our own format version. A newer bundle may carry
+            // keys/semantics this build can't validate, so reject rather than half-apply it.
+            var version = bundle["_version"]?.GetValue<int>() ?? 0;
+            if (version <= 0 || version > Version)
+            {
+                _logger.LogWarning("Import rejected: unsupported bundle version {Version}", version);
+                return false;
+            }
+
+            // Validate EVERYTHING that can be validated before writing anything — a half-applied
+            // bundle (files in, settings rejected) leaves the config inconsistent, and a
+            // type-confused settings value would make settings.json unparseable, which the
+            // load-time fallback then overwrites with defaults (destroying the stored token).
+            // (Environmental IO failures during the writes themselves remain the one residual
+            // way to end up half-applied.)
             var imported = bundle["settings"]?.AsObject();
             if (imported is not null && !PortableSettings.TypesValid(imported))
             {
                 _logger.LogWarning("Import rejected: a setting has the wrong type");
                 return false;
+            }
+            if (imported is not null)
+            {
+                // Dry-run the part of the settings merge that can REJECT: an unparseable
+                // existing settings.json must fail the import here, before the payload files
+                // are replaced — not halfway through.
+                var settingsPath = Path.Combine(_dir, "settings.json");
+                if (File.Exists(settingsPath))
+                    _ = JsonNode.Parse(File.ReadAllText(settingsPath)); // throws into the outer catch
             }
 
             Directory.CreateDirectory(_dir);
@@ -145,33 +165,39 @@ public sealed class ConfigBackupService : IConfigBackupService
             }
 
             // Merge portable settings into the existing settings.json (keeps token/webhook).
+            // The whole read-merge-write runs under the store's own lock (ReplaceOnDisk): a
+            // background Update() landing in between would otherwise persist the PRE-import
+            // snapshot — re-pairing the previous host's token with the imported URL.
             if (imported is not null)
             {
-                var settingsPath = Path.Combine(_dir, "settings.json");
-                var current = File.Exists(settingsPath)
-                    ? JsonNode.Parse(File.ReadAllText(settingsPath))?.AsObject() ?? new JsonObject()
-                    : new JsonObject();
-
-                var oldBaseUrl = current["BaseUrl"]?.GetValue<string>() ?? string.Empty;
-                foreach (var key in PortableSettingKeys)
-                    if (imported.TryGetPropertyValue(key, out var val))
-                        current[key] = val?.DeepClone();
-
-                // A changed BaseUrl must never reunite the stored token with a different host:
-                // drop the credentials so the user re-authenticates against the imported URL
-                // instead of silently leaking the token to it on the next connect.
-                var newBaseUrl = current["BaseUrl"]?.GetValue<string>() ?? string.Empty;
-                if (!string.Equals(oldBaseUrl.TrimEnd('/'), newBaseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+                _settings.ReplaceOnDisk(() =>
                 {
-                    current.Remove("TokenProtected");
-                    current.Remove("WebhookIdProtected");
-                    current.Remove("MobileAppDeviceId");
-                }
+                    var settingsPath = Path.Combine(_dir, "settings.json");
+                    var current = File.Exists(settingsPath)
+                        ? JsonNode.Parse(File.ReadAllText(settingsPath))?.AsObject() ?? new JsonObject()
+                        : new JsonObject();
 
-                WriteAtomic(settingsPath, current.ToJsonString(Indented));
-                // Drop the store's cache so the next Load() re-reads the just-written file.
-                // (Save(Load()) would re-serialize the STALE cache over the imported values.)
-                _settings.Invalidate();
+                    var oldBaseUrl = current["BaseUrl"]?.GetValue<string>() ?? string.Empty;
+                    foreach (var key in PortableSettingKeys)
+                        if (imported.TryGetPropertyValue(key, out var val))
+                            current[key] = val?.DeepClone();
+
+                    // A changed BaseUrl must never reunite the stored token with a different host:
+                    // drop the credentials so the user re-authenticates against the imported URL
+                    // instead of silently leaking the token to it on the next connect.
+                    var newBaseUrl = current["BaseUrl"]?.GetValue<string>() ?? string.Empty;
+                    if (!string.Equals(oldBaseUrl.TrimEnd('/'), newBaseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+                    {
+                        current.Remove("TokenProtected");
+                        current.Remove("WebhookIdProtected");
+                        current.Remove("MobileAppDeviceId");
+                        // Also give up a blob the store kept in memory because it could not be
+                        // decrypted here — otherwise the next save would put it back.
+                        _settings.DiscardPreservedSecrets();
+                    }
+
+                    WriteAtomic(settingsPath, current.ToJsonString(Indented));
+                });
             }
 
             return true;

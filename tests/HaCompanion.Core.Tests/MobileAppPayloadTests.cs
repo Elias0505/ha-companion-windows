@@ -131,4 +131,14 @@ public class MobileAppPayloadTests
         Assert.Contains("\"state\":false", json);
         Assert.Contains("\"state\":12", json);
     }
+
+    [Fact]
+    public void Update_location_uses_snake_case_location_name()
+    {
+        // The device_tracker feed (#11): HA maps location_name straight to the tracker state.
+        // Wire format must be snake_case regardless of the app-wide camelCase default.
+        var json = JsonSerializer.Serialize(
+            new WebhookEnvelope("update_location", new LocationUpdate("home")), Web);
+        Assert.Equal("""{"type":"update_location","data":{"location_name":"home"}}""", json);
+    }
 }

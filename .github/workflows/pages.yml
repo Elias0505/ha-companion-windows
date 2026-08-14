@@ -52,6 +52,8 @@ jobs:
         if: ${{ !github.event.repository.private }}
         with:
           path: site
+          # v4+ drops dotfiles from the artifact by default — keep site/.nojekyll in.
+          include-hidden-files: true
 
   deploy:
     name: Deploy to GitHub Pages

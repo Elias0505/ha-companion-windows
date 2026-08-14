@@ -53,16 +53,15 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
     // in arrival order, off the WebSocket dispatch thread. BOUNDED on purpose — each
     // queued item holds a private clone of the payload (up to the 32 MB receive cap),
     // and the WebSocket producer never waits for this reader, so an unbounded queue let
-    // a push flood grow to gigabytes. Oldest entries are dropped under flood.
+    // a push flood grow to gigabytes.
     private const int QueueCap = 64;
 
-    private readonly Channel<(JsonElement Payload, PushMessage Message)> _queue =
-        Channel.CreateBounded<(JsonElement, PushMessage)>(
-            new BoundedChannelOptions(QueueCap)
-            {
-                SingleReader = true,
-                FullMode = BoundedChannelFullMode.DropOldest,
-            });
+    // Under flood the OLDEST queued delivery is evicted — the newest is the command the user just
+    // triggered. TryWrite cannot report this (it returns true for every Drop* mode), so the drop
+    // is observed through the itemDropped callback: the evicted delivery's confirm id is released
+    // again, otherwise it would stay recorded as "handled", HA's redelivery would be suppressed
+    // as a duplicate and re-confirmed, and the command would be lost for good.
+    private readonly Channel<(JsonElement Payload, PushMessage Message)> _queue;
 
     // Rate limits per command kind: a caller who can invoke notify.mobile_app_<device> in
     // a loop must not be able to spawn processes without bound. Volume/mute stay responsive
@@ -77,6 +76,8 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
     };
 
     private readonly Dictionary<PcCommand, long> _lastRun = new();
+    private long _lastDropLogMs = -6000; // throttles the queue-full warning (one per burst); negative
+                                         // start so a flood within the first seconds of uptime still logs
 
     /// <summary>False when this command came too soon after the previous one of its kind.</summary>
     private bool RateLimitAllows(PcCommand command)
@@ -103,6 +104,30 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
         _loc = loc;
         _ui = ui;
         _logger = logger;
+
+        // Built here rather than in a field initializer: the drop callback needs _logger and
+        // _seenConfirmIds. It is the only way to learn that the queue evicted something —
+        // TryWrite returns true for every Drop* mode.
+        _queue = Channel.CreateBounded<(JsonElement, PushMessage)>(
+            new BoundedChannelOptions(QueueCap)
+            {
+                SingleReader = true,
+                FullMode = BoundedChannelFullMode.DropOldest,
+            },
+            itemDropped: dropped =>
+            {
+                // Release the id so a redelivery is not suppressed as a duplicate. (Best effort:
+                // if the drop follows a duplicate we already confirmed, HA considers it delivered
+                // and won't retry — under flood, losing the oldest is the least-bad option.)
+                if (dropped.Item2.ConfirmId is { } confirmId)
+                    _seenConfirmIds.Forget(confirmId);
+                // Eviction IS the flood path and this runs on the WebSocket dispatch thread —
+                // log at most once per burst instead of once per dropped item.
+                var now = Environment.TickCount64;
+                var last = Interlocked.Read(ref _lastDropLogMs);
+                if (now - last > 5000 && Interlocked.CompareExchange(ref _lastDropLogMs, now, last) == last)
+                    _logger.LogWarning("Push queue full; dropping oldest deliveries");
+            });
     }
 
     public void Initialize()
@@ -116,8 +141,9 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
             _connection.EnablePushChannel(webhookId);
     }
 
-    /// <summary>Called by the sensor publisher after a (re-)registration created a new webhook id.</summary>
-    public void OnWebhookChanged(string webhookId) => _connection.EnablePushChannel(webhookId);
+    // A push notification has no business being anywhere near this size; the WebSocket cap is
+    // 32 MB per frame, and QUEUING such clones is how a flood once grew to gigabytes.
+    private const int MaxQueuedPayloadBytes = 512 * 1024;
 
     private void OnPush(object? sender, JsonElement payload)
     {
@@ -126,16 +152,30 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
             if (!PushMessageParser.TryParse(payload, out var message))
                 return;
 
+            // Byte-bound BEFORE the clone: the count bound alone still allowed 64 × 32 MB.
+            // Confirm (so HA stops redelivering the oversized blob) but never queue or run it.
+            var rawLength = payload.GetRawText().Length;
+            if (rawLength > MaxQueuedPayloadBytes)
+            {
+                _logger.LogWarning("Discarding an oversized push delivery ({Size} chars)", rawLength);
+                if (message.ConfirmId is { } oversized)
+                    _ = ConfirmSafeAsync(oversized);
+                return;
+            }
+
             if (message.ConfirmId is { } confirmId && !_seenConfirmIds.TryAdd(confirmId))
             {
                 // Redelivery of something already handled (or in flight): the earlier
                 // confirm was lost, so confirm again — but never execute again.
-                _logger.LogInformation("Duplicate push delivery {ConfirmId} suppressed", confirmId);
+                _logger.LogInformation("Duplicate push delivery {ConfirmId} suppressed",
+                    PcCommands.ForLog(confirmId));
                 _ = ConfirmSafeAsync(confirmId);
                 return;
             }
 
             // Clone: the payload's backing JsonDocument dies with this event handler.
+            // If the queue is full this evicts the OLDEST entry; the drop callback in the
+            // constructor releases that entry's confirm id so HA can redeliver it.
             _queue.Writer.TryWrite((payload.Clone(), message));
         }
         catch (Exception ex)
@@ -222,7 +262,7 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
         catch (Exception ex)
         {
             // Not fatal: HA will redeliver and the dedup set absorbs the copy.
-            _logger.LogWarning(ex, "Push confirm failed for {ConfirmId}", confirmId);
+            _logger.LogWarning(ex, "Push confirm failed for {ConfirmId}", PcCommands.ForLog(confirmId));
         }
     }
 
@@ -235,7 +275,7 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
             ["tag"] = e.Tag,
             ["device_id"] = _settings.Load().MobileAppDeviceId,
         });
-        _logger.LogInformation("Notification action fired: {Action}", e.Action);
+        _logger.LogInformation("Notification action fired: {Action}", PcCommands.ForLog(e.Action));
     }
 
     private void AddHistory(ReceivedItem item) => _ui.Post(() =>

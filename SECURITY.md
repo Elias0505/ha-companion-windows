@@ -29,6 +29,18 @@ Areas worth extra scrutiny:
   toggles certificate handling, never enables an HA→PC command, and never seeds
   the launch whitelist; and if it changes the HA URL, the stored token and
   webhook id are dropped so they can never be sent to a different host.
+- **The token is bound to one origin.** The stored token is only ever sent to
+  the scheme/host/port it was saved for (an http→https upgrade of the same host
+  is the one allowed exception). Pointing the URL at a different origin —
+  typed by hand, imported, or filled in by the network search — never carries
+  it along: connecting is refused until the user enters a different token for
+  the new instance, and only then are the old host's webhook id and device id
+  dropped. An imported backup that changes the URL discards the stored
+  credentials outright. Network discovery (mDNS) answers come from whoever is
+  on the LAN, so a response only ever pre-fills the URL field (and not even
+  that while the token field holds a secret and the found instance is a
+  different host); it never carries credentials with it and never connects on
+  its own.
 
 Out of scope: issues that require the attacker to already control the local
 Windows user account (the app runs unprivileged and per-user by design), and

@@ -6,7 +6,7 @@
 
 **Website: [elias0505.github.io/ha-companion-windows](https://elias0505.github.io/ha-companion-windows/)**
 
-A **fully native Windows 11 companion app for [Home Assistant](https://www.home-assistant.io/)** — built in C# with **.NET 9 + WinUI 3 (Windows App SDK)**. Fluent design, a dark clean UI, live REST + WebSocket integration, an editable quick-action panel opened by a global hotkey, real Home-Assistant (MDI) icons, and your actual Lovelace dashboards embedded 1:1.
+A **fully native Windows 11 companion app for [Home Assistant](https://www.home-assistant.io/)** — built in C# with **.NET 10 + WinUI 3 (Windows App SDK)**. Fluent design, a dark clean UI, live REST + WebSocket integration, an editable quick-action panel opened by a global hotkey, real Home-Assistant (MDI) icons, and your actual Lovelace dashboards embedded 1:1.
 
 *Not affiliated with or endorsed by the Home Assistant project / Nabu Casa. "Home Assistant" is a trademark of its respective owners; this app is an independent client "for Home Assistant".*
 
@@ -48,7 +48,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - **HA notifications** — persistent notifications appear as native Windows toasts (optional).
 - **Robust connection** — instant reconnect on network change / resume from sleep; exponential backoff resets after healthy sessions.
 - **Start with Windows** — optional autostart, silently into the tray; tray icon mirrors the connection state.
-- **Network discovery** — a search button finds your Home Assistant on the LAN via mDNS and fills in the URL (where multicast is allowed).
+- **Network discovery** — a search button finds your Home Assistant on the LAN via mDNS. A single hit fills in the URL (never while a token you pasted could be sent to a different host); multiple hits are listed to pick from manually.
 - **Diagnostics & self-repair** — a one-click redacted diagnostics report (never contains your token), an "open log folder" shortcut, and an actionable repair banner that guides you when a token is revoked or a certificate is untrusted.
 - **Honest actions** — the connection is tested *before* settings are saved with a precise reason on failure (auth / DNS / TLS / timeout); failed actions surface an error instead of silently lying.
 - **File logging** — app.log / crash.log under %LOCALAPPDATA%\HaCompanion for easy diagnosis.
@@ -66,8 +66,8 @@ Clean **MVVM**, split into two projects:
 
 | Project | Target | What |
 |---|---|---|
-| `HaCompanion.Core` | `net9.0` (platform-neutral) | Home Assistant REST + WebSocket clients, models, connection service. No UI, unit-testable, builds on any OS. |
-| `HaCompanion.App` | `net9.0-windows` (WinUI 3) | Views, ViewModels, tray, notifications, secure settings store, DI composition root. Windows-only. |
+| `HaCompanion.Core` | `net10.0` (platform-neutral) | Home Assistant REST + WebSocket clients, models, connection service. No UI, unit-testable, builds on any OS. |
+| `HaCompanion.App` | `net10.0-windows` (WinUI 3) | Views, ViewModels, tray, notifications, secure settings store, DI composition root. Windows-only. |
 
 - **DI**: `Microsoft.Extensions.DependencyInjection`
 - **MVVM**: `CommunityToolkit.Mvvm` (source-generated observable properties & commands)
@@ -102,7 +102,7 @@ set HACOMPANION_AUTOSTART=1        :: cmd, before the line above
 
 ## Run it from source
 
-**Only prerequisite: the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).** No Visual Studio, no separate "Windows App SDK" install — WinUI 3 is restored automatically from NuGet. Windows 10 (19041+) or Windows 11.
+**Only prerequisite: the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).** No Visual Studio, no separate "Windows App SDK" install — WinUI 3 is restored automatically from NuGet. Windows 10 (19041+) or Windows 11.
 
 ```powershell
 # from the repo root — build & launch (Debug)
@@ -132,7 +132,7 @@ This produces a **self-contained** build — the resulting `HaCompanion.exe` bun
 3. Paste a **Long-Lived Access Token** (Home Assistant → your profile → *Long-lived access tokens* → *Create token*).
 4. Connect. Pick the entities you want as quick-action tiles.
 
-Tip: on a network with mDNS enabled, the **search button** next to the base URL finds your Home Assistant automatically.
+Tip: on a network with mDNS enabled, the **search button** next to the base URL finds your Home Assistant. A single result fills the field automatically — unless the token field already holds a secret and the found instance is a different host; then the result is only listed, so a rogue LAN device can never redirect your token.
 
 ---
 
@@ -223,7 +223,9 @@ Logs live in `%LOCALAPPDATA%\HaCompanion\` (`app.log`, `crash.log`) — *Open lo
 - **No MQTT.** This app uses the HA `mobile_app` API by design (no broker, no YAML). Features that require a real `media_player` entity are out of scope.
 - **`is_locked` has no `lock` device class** on purpose: Home Assistant's `lock` binary class means *on = unlocked*, which would invert the meaning; the sensor stays a plain binary_sensor (`on = locked`).
 - **Network discovery needs mDNS.** If your network blocks/disables multicast, the search finds nothing — just enter the URL manually.
+- **Changing the HA address asks for a new token.** The stored token belongs to one instance; pointing the URL at a different scheme/host/port is refused until you paste a token for the new one (an http→https upgrade of the same host goes through). A typo destroys nothing — correct the address and reconnect.
 - **The PC-sensor entities are enabled by default** (all 11 are core to the app's purpose); turn the whole feature off in Settings to hide them in HA.
+- **The `device_tracker` entity is created by Home Assistant itself** for every mobile_app registration. By default this app never feeds it, so it shows *unknown* — either disable the entity in HA (Settings → Entities) or turn on **Device tracker: "home" while connected** in Settings (meant for desktops; a crash or network loss can leave it on *home* until the next connect).
 - **Windows only** (Windows 10 19041+ / Windows 11). The `HaCompanion.Core` library is cross-platform, but the app is WinUI 3.
 
 ## Removing the app
@@ -243,7 +245,7 @@ Two things it deliberately leaves alone:
 - **The `mobile_app` device in Home Assistant.** Only HA can delete that: Settings → Devices & Services → *Mobile App* → your PC → delete. Without this, its (now dead) sensors stay in HA.
 - **The WebView2 runtime**, because it is shared with other apps on your PC.
 
-**Just want a clean slate?** No need to uninstall: Settings → **Reset to factory settings** deletes the configuration, token, tiles, rules and logs, switches autostart off and restarts the app in its first-run state. If anything is worth keeping, export a backup first (Settings → *Back up configuration → Export*).
+**Just want a clean slate?** No need to uninstall: Settings → **Reset to factory settings** deletes the configuration, token, tiles, rules and logs, switches autostart off and restarts the app in its first-run state. (If another program briefly holds a file, the reset reports a failure instead of restarting — just run it again.) If anything is worth keeping, export a backup first (Settings → *Back up configuration → Export*).
 
 Running a copy you built or unzipped yourself? Windows knows nothing about it: quit from the tray, delete the folder, delete `%LOCALAPPDATA%\HaCompanion`, and — if you enabled autostart — the `HaCompanion` value under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`.
 

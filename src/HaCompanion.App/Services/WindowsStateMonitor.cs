@@ -15,6 +15,7 @@ public sealed record WindowsStateSnapshot
     public string SessionState { get; init; } = "active"; // active | locked | logged_out
     public int IdleMinutes { get; init; }
     public string? ForegroundProcess { get; init; }       // normalized (A3)
+    public bool IsOwnAppForeground { get; init; }         // our own window is in front (#10)
     public bool IsFullscreen { get; init; }               // (A3)
     public bool MicInUse { get; init; }                   // (A3)
     public bool CamInUse { get; init; }                   // (A3)
@@ -98,6 +99,7 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
     private bool _displayBaselineSeen;
     private int _idleMinutes;
     private string? _foregroundProcess;
+    private bool _ownAppForeground;
     private bool _isFullscreen;
     private bool _micInUse;
     private bool _camInUse;
@@ -126,6 +128,7 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
                     SessionState = _sessionState,
                     IdleMinutes = _idleMinutes,
                     ForegroundProcess = _foregroundProcess,
+                    IsOwnAppForeground = _ownAppForeground,
                     IsFullscreen = _isFullscreen,
                     MicInUse = _micInUse,
                     CamInUse = _camInUse,
@@ -310,10 +313,16 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
     {
         var hwnd = GetForegroundWindow();
         string? name = null;
+        var ownInFront = false;
         if (hwnd != IntPtr.Zero)
         {
             _ = GetWindowThreadProcessId(hwnd, out var pid);
-            if (pid != 0 && pid != _ownPid)
+            // Our own process stays out of the AppStart/AppStop TRIGGER stream (an automation
+            // firing every time the user opens the quick panel would be noise), but the
+            // active_program SENSOR must still tell "this app is in front" apart from "no
+            // foreground window at all" — a blank sensor looked broken (#10).
+            ownInFront = pid != 0 && pid == _ownPid;
+            if (pid != 0 && !ownInFront)
                 name = ProcessNameOf(pid);
         }
         var normalized = string.IsNullOrEmpty(name) ? null : RuleMatcher.NormalizeProcessName(name);
@@ -323,7 +332,9 @@ public sealed class WindowsStateMonitor : IWindowsStateMonitor, IDisposable
         lock (_gate)
         {
             previous = _foregroundProcess;
-            changed = !string.Equals(previous, normalized, StringComparison.Ordinal);
+            changed = !string.Equals(previous, normalized, StringComparison.Ordinal)
+                      || _ownAppForeground != ownInFront;
+            _ownAppForeground = ownInFront;
             if (changed)
                 _foregroundProcess = normalized;
         }

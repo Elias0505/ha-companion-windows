@@ -67,6 +67,7 @@ public sealed partial class QuickPanelWindow : Window
     private readonly DispatcherQueueTimer _animTimer;
     private readonly DispatcherQueueTimer _previewTimer;
     private Task? _webInitTask;
+    private int _webResetGen; // bumped by ResetWebView; an in-flight init with a stale value abandons itself
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
     private bool _isOpen;        // desired end state (target), also the sole intent flag
@@ -80,6 +81,7 @@ public sealed partial class QuickPanelWindow : Window
 
     // Slide geometry in absolute screen pixels, recomputed from the primary monitor per show.
     private int _winY, _winW, _winH, _restX, _offX;
+    private int _workLeftPx; // left edge of the chosen monitor's work area (live-drag clamp)
     private double _scale = 1.0; // primary-monitor DPI scale (physical px per DIP)
     private int _animFromX, _animToX;
     private long _animStartMs;
@@ -115,6 +117,7 @@ public sealed partial class QuickPanelWindow : Window
     private bool _dragResizing;
     private int _dragStartCursorX;
     private int _dragStartWidthPx;
+    private int _dragStartWidthDip; // width at press — persist only when the drag changed it
     private int _dragMoveCount;
 
     public QuickPanelWindow(QuickPanelViewModel viewModel)
@@ -200,10 +203,25 @@ public sealed partial class QuickPanelWindow : Window
 
         _scale = dpi / 96.0;
         _winW = (int)Math.Round(_panelWidthDip * _scale);
+        // The stored width is clamped to absolute DIP bounds, which says nothing about THIS
+        // display: 900 DIP at 150% needs 1350 px, more than a 1366-px screen has. Without this
+        // the panel would spill past the left edge onto the neighbouring monitor. Clamp the
+        // CONTENT width too — RootGrid is right-aligned to _panelWidthDip, so a wider content
+        // in a narrower window would clip at the LEFT edge, exactly where the resize grip sits.
+        var workWidth = mi.rcWork.Right - mi.rcWork.Left;
+        if (_winW > workWidth)
+        {
+            _panelWidthDip = (int)Math.Floor(workWidth / _scale);
+            // Re-derive the window width from the FLOORED dip — clamping only _winW left the
+            // window up to scale-1 px wider than the content, showing a background strip at
+            // the left edge, right under the resize grip.
+            _winW = (int)Math.Round(_panelWidthDip * _scale);
+        }
         _winY = mi.rcWork.Top;
         _winH = mi.rcWork.Bottom - mi.rcWork.Top;
         _restX = mi.rcWork.Right - _winW; // flush to the right edge of the chosen display
         _offX = mi.rcWork.Right;          // just off that right edge
+        _workLeftPx = mi.rcWork.Left;     // for the live-drag clamp
     }
 
     /// <summary>
@@ -311,6 +329,11 @@ public sealed partial class QuickPanelWindow : Window
     {
         async Task Run(Task previous)
         {
+            // Yield first: an async method runs synchronously up to its first await, and the
+            // body below pumps messages (AppWindow.Show). Without the yield, a reentrant
+            // WarmHiddenAsync started from that pump would read the OLD _warmChain — the
+            // assignment at the bottom hasn't happened yet — and the two passes would overlap.
+            await Task.Yield();
             try { await previous; } catch { /* chain must survive a failed pass */ }
 
             var wasShown = _windowShown;
@@ -575,8 +598,75 @@ public sealed partial class QuickPanelWindow : Window
     /// </summary>
     public void ResetWebView()
     {
+        // Forgetting the task is not enough: a CoreWebView2 cannot be re-pointed. Its navigation
+        // and certificate handlers stay bound to the old origin, and its document-created scripts
+        // — one of which CONTAINS the old token — can only be dropped by disposing the control.
+        // Swapping in a fresh WebView2 is the only way to make the reset real.
+        var stale = PanelWeb;
+        var host = stale.Parent as Grid;
+        if (host is null)
+            return; // unexpected layout — leave the panel as it is (state untouched, above all the gen)
+
+        _webResetGen++;    // an in-flight InitWebAsync sees this and abandons itself
         _webInitTask = null;
+
+        var index = host.Children.IndexOf(stale);
+        host.Children.Remove(stale);
+        try { stale.Close(); }
+        catch (Exception) { /* already torn down */ }
+
+        var fresh = new Microsoft.UI.Xaml.Controls.WebView2 { FlowDirection = FlowDirection.LeftToRight };
+        // Re-create the XAML binding that governed the old control (it lived in markup).
+        fresh.SetBinding(UIElement.VisibilityProperty, new Microsoft.UI.Xaml.Data.Binding
+        {
+            Path = new PropertyPath(nameof(ViewModel.ShowDashboard)),
+            Converter = (Microsoft.UI.Xaml.Data.IValueConverter)((FrameworkElement)Content).Resources["BoolToVisibility"],
+        });
+        Grid.SetRow(fresh, Grid.GetRow(stale));
+        Grid.SetColumn(fresh, Grid.GetColumn(stale));
+        host.Children.Insert(index < 0 ? host.Children.Count : index, fresh);
+        PanelWeb = fresh;
+
         ViewModel.ApplyStartView();
+        // ApplyStartView only ASSIGNS the selection; when it is unchanged (token-only change,
+        // same dashboard) no property-change fires, nothing re-initializes the fresh control,
+        // and the panel would show an empty white WebView. Re-request the current dashboard
+        // explicitly instead of relying on the change notification.
+        //
+        // Hidden window: WebView2 initialization needs a SHOWN window (the reason
+        // WarmHiddenAsync exists) — starting it here directly could leave _webInitTask
+        // permanently pending and kill the dashboard view for the session. Run the re-request
+        // as a warm pass instead: parked off-screen, init + navigate, re-hidden.
+        if (ViewModel.ShowDashboard && ViewModel.SelectedDashboard is { } current)
+        {
+            // `_windowShown && !_warming`, mirroring SetTarget: during a warm pass the window
+            // only LOOKS shown — its pass will re-hide it, which would yank the window out from
+            // under a direct init. Routing through the warm chain also serializes with any pass
+            // already in flight.
+            if (_windowShown && !_warming)
+            {
+                OnDashboardRequested(this, current);
+            }
+            else
+            {
+                _ = WarmHiddenAsync(async () =>
+                {
+                    try
+                    {
+                        await EnsureWebAsync();
+                        var url = string.IsNullOrEmpty(current.UrlPath)
+                            ? _baseUrl
+                            : $"{_baseUrl}/{current.UrlPath}";
+                        PanelWeb.CoreWebView2?.Navigate(url);
+                        await Task.Delay(250); // let the navigation take hold before re-hiding
+                    }
+                    catch
+                    {
+                        // WebView2 runtime missing — favourites still work.
+                    }
+                });
+            }
+        }
     }
 
     /// <summary>The configured HA origin as of right now (never a captured snapshot).</summary>
@@ -590,30 +680,44 @@ public sealed partial class QuickPanelWindow : Window
 
     private async Task InitWebAsync()
     {
+        // Capture ONCE: both the control and the reset generation. A ResetWebView while one of
+        // the awaits below is pending swaps PanelWeb for a fresh control — this (now stale) init
+        // must keep talking to the OLD control it started on (which is closed, so it throws
+        // harmlessly) and must never inject its captured URL/token into the NEW one.
+        var web = PanelWeb;
+        var gen = _webResetGen;
         var settings = _settingsStore.Load();
-        _baseUrl = settings.BaseUrl.TrimEnd('/');
+        var baseUrl = settings.BaseUrl.TrimEnd('/');
 
         var userDataFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "HaCompanion", "WebView2Panel");
         var env = await CoreWebView2Environment.CreateWithOptionsAsync(
             null, userDataFolder, new CoreWebView2EnvironmentOptions());
+        if (gen != _webResetGen)
+            throw new OperationCanceledException("WebView was reset during initialization.");
         // InPrivate: a persistent profile would flush the seeded hassTokens localStorage
         // entry to disk in cleartext, defeating the DPAPI protection of settings.json and
         // outliving token rotation. The auth script re-seeds the token per document, so an
         // in-memory profile keeps auto-login working with nothing written to disk.
         var controllerOptions = env.CreateCoreWebView2ControllerOptions();
         controllerOptions.IsInPrivateModeEnabled = true;
-        await PanelWeb.EnsureCoreWebView2Async(env, controllerOptions);
+        await web.EnsureCoreWebView2Async(env, controllerOptions);
+        if (gen != _webResetGen)
+            throw new OperationCanceledException("WebView was reset during initialization.");
 
-        var baseUri = new Uri(_baseUrl, UriKind.Absolute);
-        WebViewHardening.Apply(PanelWeb.CoreWebView2, CurrentBaseUri, settings.IgnoreCertificateErrors);
+        _baseUrl = baseUrl; // publish only once this init is known to be the current one
+        var baseUri = new Uri(baseUrl, UriKind.Absolute);
+        // Both callbacks read live settings: turning the certificate exception back off must
+        // take effect immediately, not after a restart.
+        WebViewHardening.Apply(web.CoreWebView2, CurrentBaseUri,
+            () => _settingsStore.Load().IgnoreCertificateErrors);
 
-        await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+        await web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
             HaWebViewScripts.BuildAuthScript(baseUri, settings.Token));
-        await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+        await web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
             HaWebViewScripts.HideChromeScript);
-        await PanelWeb.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+        await web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
             HaWebViewScripts.CameraStillFixScript);
     }
 
@@ -799,6 +903,7 @@ public sealed partial class QuickPanelWindow : Window
         _ = GetCursorPos(out var pt);
         _dragStartCursorX = pt.X;
         _dragStartWidthPx = _winW;
+        _dragStartWidthDip = _panelWidthDip;
         _dragMoveCount = 0;
         PerfReset();
         _dragResizing = grip.CapturePointer(e.Pointer);
@@ -815,7 +920,12 @@ public sealed partial class QuickPanelWindow : Window
         // Screen-space delta keeps the drag stable even though the grabbed edge moves under it.
         // Dragging the left grip leftwards (negative delta) widens the panel.
         var widthPx = _dragStartWidthPx - (pt.X - _dragStartCursorX);
-        var dip = Math.Clamp((int)Math.Round(widthPx / _scale), MinPanelWidthDip, MaxPanelWidthDip);
+        // Clamp to the monitor too, not only the absolute DIP bounds: on a screen narrower than
+        // MaxPanelWidthDip the panel could otherwise be dragged past the left edge — taking the
+        // grip itself off-screen, with no way to drag back.
+        var maxDipHere = Math.Max(MinPanelWidthDip, (int)Math.Floor((_offX - _workLeftPx) / _scale));
+        var dip = Math.Clamp((int)Math.Round(widthPx / _scale),
+            MinPanelWidthDip, Math.Min(MaxPanelWidthDip, maxDipHere));
         _panelWidthDip = dip;
         _winW = (int)Math.Round(dip * _scale);
         _restX = _offX - _winW; // the right edge stays docked to the monitor edge
@@ -839,10 +949,16 @@ public sealed partial class QuickPanelWindow : Window
         RootGrid.Width = _panelWidthDip;
         Log($"grip released moves={_dragMoveCount} finalWpx={_winW} dip={_panelWidthDip} perf: moves={_perfEvents} late={_perfLate} maxGap={_perfMaxGapMs}ms");
 
-        // Persist the new width so it survives reopening and the Settings slider reflects it.
-        var settings = _settingsStore.Load();
-        settings.QuickPanelWidth = _panelWidthDip;
-        _settingsStore.Save(settings);
+        // Persist ONLY the width (Update, not a whole snapshot) so this can never revert a
+        // field another component wrote while the user was dragging — and only when the drag
+        // actually CHANGED it: a bare click (or a zero-delta jitter move) on the grip would
+        // otherwise persist the monitor-clamped value (e.g. 900→819 on a small screen),
+        // silently shrinking the stored width the user chose for their bigger display.
+        if (_dragMoveCount > 0 && _panelWidthDip != _dragStartWidthDip)
+        {
+            var widthDip = _panelWidthDip;
+            _settingsStore.Update(s => s.QuickPanelWidth = widthDip);
+        }
         e.Handled = true;
     }
 
