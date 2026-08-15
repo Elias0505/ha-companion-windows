@@ -77,4 +77,92 @@ public class LaunchWhitelistTests : IDisposable
         // C:\real.exe:evil.exe reports extension ".exe" but is an NTFS ADS — not launchable.
         Assert.False(LaunchWhitelist.TryValidateEntry(_exe + ":evil.exe", out _));
     }
+
+    // ----- TryParseEntry: path + optional arguments (issue #17) -----
+
+    [Fact]
+    public void Plain_path_parses_with_empty_args()
+    {
+        Assert.True(LaunchWhitelist.TryParseEntry(_exe, out var path, out var args));
+        Assert.Equal(_exe, path);
+        Assert.Equal("", args);
+    }
+
+    [Fact]
+    public void Quoted_path_with_args_parses()
+    {
+        Assert.True(LaunchWhitelist.TryParseEntry($"\"{_exe}\" -c -g \"United Kingdom\"",
+            out var path, out var args));
+        Assert.Equal(_exe, path);
+        Assert.Equal("-c -g \"United Kingdom\"", args);
+    }
+
+    [Fact]
+    public void Quoted_path_without_args_parses()
+    {
+        Assert.True(LaunchWhitelist.TryParseEntry($"\"{_exe}\"", out var path, out var args));
+        Assert.Equal(_exe, path);
+        Assert.Equal("", args);
+    }
+
+    [Fact]
+    public void Unquoted_path_with_args_splits_at_the_exe_boundary()
+    {
+        Assert.True(LaunchWhitelist.TryParseEntry(_exe + " -c -g uk", out var path, out var args));
+        Assert.Equal(_exe, path);
+        Assert.Equal("-c -g uk", args);
+    }
+
+    [Fact]
+    public void Exe_inside_a_directory_name_does_not_fool_the_split()
+    {
+        // A directory literally named "tools.exe files" — the first ".exe " boundary is
+        // NOT the executable; only File.Exists on the real path decides.
+        var sub = Path.Combine(_dir, "tools.exe files");
+        Directory.CreateDirectory(sub);
+        var inner = Path.Combine(sub, "app.exe");
+        File.WriteAllText(inner, "");
+
+        Assert.True(LaunchWhitelist.TryParseEntry(inner + " --flag", out var path, out var args));
+        Assert.Equal(inner, path);
+        Assert.Equal("--flag", args);
+
+        Assert.True(LaunchWhitelist.TryParseEntry(inner, out path, out args));
+        Assert.Equal(inner, path);
+        Assert.Equal("", args);
+    }
+
+    [Fact]
+    public void Control_characters_reject_the_whole_entry() =>
+        Assert.False(LaunchWhitelist.TryParseEntry(_exe + " -flag\u0001evil", out _, out _));
+
+    [Fact]
+    public void Unterminated_quote_is_rejected() =>
+        Assert.False(LaunchWhitelist.TryParseEntry("\"" + _exe, out _, out _));
+
+    [Fact]
+    public void Oversized_args_are_rejected() =>
+        Assert.False(LaunchWhitelist.TryParseEntry(
+            $"\"{_exe}\" {new string('a', LaunchWhitelist.MaxArgsLength + 1)}", out _, out _));
+
+    [Theory]
+    [InlineData(@"""\\server\share\app.exe"" -x")] // UNC stays rejected with args too
+    [InlineData(@"\\server\share\app.exe -x")]
+    public void Unc_paths_with_args_are_rejected(string entry) =>
+        Assert.False(LaunchWhitelist.TryParseEntry(entry, out _, out _));
+
+    [Fact]
+    public void Ads_suffix_with_args_is_rejected() =>
+        Assert.False(LaunchWhitelist.TryParseEntry($"\"{_exe}:evil.exe\" -x", out _, out _));
+
+    [Fact]
+    public void Canonical_form_round_trips()
+    {
+        Assert.Equal(_exe, LaunchWhitelist.CanonicalEntry(_exe, ""));
+        var canonical = LaunchWhitelist.CanonicalEntry(_exe, "-c 1");
+        Assert.Equal($"\"{_exe}\" -c 1", canonical);
+        Assert.True(LaunchWhitelist.TryParseEntry(canonical, out var path, out var args));
+        Assert.Equal(_exe, path);
+        Assert.Equal("-c 1", args);
+    }
 }

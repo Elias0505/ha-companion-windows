@@ -64,6 +64,7 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             PcCommand.Sleep => s.AllowCmdSleep,
             PcCommand.Shutdown => s.AllowCmdShutdown,
             PcCommand.Launch => s.AllowCmdLaunch,
+            PcCommand.CloseApp => s.AllowCmdCloseApp,
             _ => false,
         };
     }
@@ -125,6 +126,9 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
 
                 case PcCommand.Launch:
                     return LaunchWhitelisted(param);
+
+                case PcCommand.CloseApp:
+                    return CloseWhitelisted(param);
             }
             _logger.LogInformation("PC command executed: {Command}{Param}", command,
                 param is null ? "" : $" ({PcCommands.ForLog(param)})");
@@ -141,32 +145,116 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
     {
         if (string.IsNullOrWhiteSpace(app))
             return PcCommandResult.BadParameter;
-        // Match against the whitelist by full path or by file name — but always START the
-        // whitelist entry, never the received string (no argument/path smuggling).
-        var entry = _settings.Load().LaunchWhitelist.FirstOrDefault(w =>
-            string.Equals(w, app, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(System.IO.Path.GetFileNameWithoutExtension(w), app, StringComparison.OrdinalIgnoreCase));
-        if (entry is null)
+        // The HA message only SELECTS which pre-approved entry runs (matched by the full
+        // entry string incl. its arguments — that disambiguates two entries sharing one
+        // exe —, by the full path, or by the bare file name). What is STARTED is always
+        // the locally stored entry: path and arguments both come from the whitelist,
+        // never from the received string (no argument/path smuggling).
+        string? matchedPath = null;
+        string? matchedArgs = null;
+        foreach (var candidate in _settings.Load().LaunchWhitelist)
         {
-            _logger.LogWarning("command_launch rejected: '{App}' is not whitelisted", PcCommands.ForLog(app));
-            return PcCommandResult.BadParameter;
+            if (!LaunchWhitelist.TryParseEntry(candidate, out var path, out var args))
+                continue; // stale entry (file gone) — skip, maybe another matches
+            if (string.Equals(candidate, app, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(path, app, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(System.IO.Path.GetFileNameWithoutExtension(path), app, StringComparison.OrdinalIgnoreCase))
+            {
+                matchedPath = path;
+                matchedArgs = args;
+                break;
+            }
         }
-        if (!LaunchWhitelist.TryValidateEntry(entry, out var fullPath))
+        if (matchedPath is null)
         {
-            _logger.LogWarning(
-                "command_launch rejected: whitelist entry '{Entry}' is not an existing absolute .exe path", entry);
-            return PcCommandResult.Failed;
+            _logger.LogWarning("command_launch rejected: '{App}' is not whitelisted (or its entry no longer validates)",
+                PcCommands.ForLog(app));
+            return PcCommandResult.BadParameter;
         }
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName = fullPath,
+            FileName = matchedPath,
+            Arguments = matchedArgs ?? "",
             // No shell: a plain CreateProcess on the .exe — no PATH lookup, no
             // App-Paths aliases, no URL/.lnk/.bat handlers.
             UseShellExecute = false,
-            WorkingDirectory = System.IO.Path.GetDirectoryName(fullPath)!,
+            WorkingDirectory = System.IO.Path.GetDirectoryName(matchedPath)!,
         });
-        _logger.LogInformation("PC command executed: Launch ({Entry})", fullPath);
+        _logger.LogInformation("PC command executed: Launch ({Path}{Args})", matchedPath,
+            string.IsNullOrEmpty(matchedArgs) ? "" : " " + matchedArgs);
         return PcCommandResult.Ok;
+    }
+
+    private PcCommandResult CloseWhitelisted(string? app)
+    {
+        if (string.IsNullOrWhiteSpace(app)
+            || !CloseAppWhitelist.TryValidateName(app, out var requested))
+        {
+            return PcCommandResult.BadParameter;
+        }
+        // Same philosophy as launch: HA picks from the locally approved names only — a
+        // compromised HA must not be able to shoot down arbitrary processes (backup or
+        // security tools, say).
+        var allowed = _settings.Load().CloseAppWhitelist.Any(entry =>
+            CloseAppWhitelist.TryValidateName(entry, out var normalized)
+            && string.Equals(normalized, requested, StringComparison.Ordinal));
+        if (!allowed)
+        {
+            _logger.LogWarning("command_close_app rejected: '{App}' is not in the close allowlist",
+                PcCommands.ForLog(app));
+            return PcCommandResult.BadParameter;
+        }
+
+        var ownSession = System.Diagnostics.Process.GetCurrentProcess().SessionId;
+        var ownPid = Environment.ProcessId;
+        var targets = System.Diagnostics.Process.GetProcessesByName(requested)
+            .Where(p => p.Id != ownPid && SafeSessionId(p) == ownSession)
+            .ToList();
+        try
+        {
+            if (targets.Count == 0)
+            {
+                _logger.LogInformation("command_close_app: no running '{App}' — nothing to close", requested);
+                return PcCommandResult.Ok; // the goal (not running) is already met
+            }
+
+            // Graceful first: give windowed apps their save prompt; force-kill only what is
+            // still alive after the grace period (and everything windowless).
+            foreach (var p in targets)
+            {
+                try { _ = p.CloseMainWindow(); }
+                catch (Exception) { /* exited in between / no window */ }
+            }
+            var deadline = Environment.TickCount64 + 2000;
+            foreach (var p in targets)
+            {
+                try
+                {
+                    var remaining = (int)Math.Max(0, deadline - Environment.TickCount64);
+                    if (!p.WaitForExit(remaining))
+                        p.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex)
+                {
+                    // Access denied (elevated process) or it exited mid-kill — log, keep going.
+                    _logger.LogWarning(ex, "command_close_app: could not close pid {Pid}", p.Id);
+                }
+            }
+            _logger.LogInformation("PC command executed: CloseApp ({App}, {Count} process(es))",
+                requested, targets.Count);
+            return PcCommandResult.Ok;
+        }
+        finally
+        {
+            foreach (var p in targets)
+                p.Dispose();
+        }
+    }
+
+    private static int SafeSessionId(System.Diagnostics.Process p)
+    {
+        try { return p.SessionId; }
+        catch (Exception) { return -1; } // exited / access denied → never a target
     }
 
     // ----- volume via Core Audio (declarations shared via CoreAudioInterop) -----

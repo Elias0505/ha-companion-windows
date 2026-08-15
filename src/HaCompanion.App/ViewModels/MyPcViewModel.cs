@@ -82,13 +82,21 @@ public sealed partial class MyPcViewModel : ObservableObject
     [ObservableProperty] private bool _allowSleep;
     [ObservableProperty] private bool _allowShutdown;
     [ObservableProperty] private bool _allowLaunch;
+    [ObservableProperty] private bool _allowCloseApp;
 
     [ObservableProperty]
     private string _launchWhitelistText = "";
 
+    [ObservableProperty]
+    private string _closeWhitelistText = "";
+
     /// <summary>Names the whitelist entries that were NOT saved (empty = all valid).</summary>
     [ObservableProperty]
     private string _whitelistError = "";
+
+    /// <summary>Names the close-list entries that were NOT saved (empty = all valid).</summary>
+    [ObservableProperty]
+    private string _closeWhitelistError = "";
 
     /// <summary>
     /// notify.mobile_app_&lt;slug&gt; — shown in the mini docs so users can copy it. Derived from
@@ -263,7 +271,9 @@ public sealed partial class MyPcViewModel : ObservableObject
         AllowSleep = s.AllowCmdSleep;
         AllowShutdown = s.AllowCmdShutdown;
         AllowLaunch = s.AllowCmdLaunch;
+        AllowCloseApp = s.AllowCmdCloseApp;
         LaunchWhitelistText = string.Join("; ", s.LaunchWhitelist);
+        CloseWhitelistText = string.Join("; ", s.CloseAppWhitelist);
         _loading = false;
     }
 
@@ -281,14 +291,36 @@ public sealed partial class MyPcViewModel : ObservableObject
         foreach (var entry in LaunchWhitelistText
                      .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            if (LaunchWhitelist.TryValidateEntry(entry, out var fullPath))
-                valid.Add(fullPath);
+            // Entries may carry ARGUMENTS after the path (#17); the canonical stored form
+            // quotes the path when arguments are present, so later parses are deterministic.
+            if (LaunchWhitelist.TryParseEntry(entry, out var fullPath, out var args))
+                valid.Add(LaunchWhitelist.CanonicalEntry(fullPath, args));
             else
                 invalid.Add(entry);
         }
         WhitelistError = invalid.Count == 0
             ? ""
             : string.Format(CultureInfo.CurrentCulture, _loc["Cmd_WhitelistInvalid"], string.Join("; ", invalid));
+
+        var validClose = new List<string>();
+        var invalidClose = new List<string>();
+        foreach (var entry in CloseWhitelistText
+                     .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (CloseAppWhitelist.TryValidateName(entry, out var normalized))
+            {
+                if (!validClose.Contains(normalized))
+                    validClose.Add(normalized);
+            }
+            else
+            {
+                invalidClose.Add(entry);
+            }
+        }
+        CloseWhitelistError = invalidClose.Count == 0
+            ? ""
+            : string.Format(CultureInfo.CurrentCulture, _loc["Cmd_CloseWhitelistInvalid"], string.Join("; ", invalidClose));
+
         _settings.Update(s =>
         {
             s.AllowCmdLock = AllowLock;
@@ -297,7 +329,9 @@ public sealed partial class MyPcViewModel : ObservableObject
             s.AllowCmdSleep = AllowSleep;
             s.AllowCmdShutdown = AllowShutdown;
             s.AllowCmdLaunch = AllowLaunch;
+            s.AllowCmdCloseApp = AllowCloseApp;
             s.LaunchWhitelist = valid;
+            s.CloseAppWhitelist = validClose;
         });
     }
 
@@ -314,6 +348,10 @@ public sealed partial class MyPcViewModel : ObservableObject
     partial void OnAllowLaunchChanged(bool value) => SavePermissions();
 
     partial void OnLaunchWhitelistTextChanged(string value) => SavePermissions();
+
+    partial void OnAllowCloseAppChanged(bool value) => SavePermissions();
+
+    partial void OnCloseWhitelistTextChanged(string value) => SavePermissions();
 
     private static string Slugify(string name)
     {

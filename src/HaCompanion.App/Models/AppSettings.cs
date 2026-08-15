@@ -108,8 +108,14 @@ public sealed class AppSettings
 
     public bool AllowCmdLaunch { get; set; }
 
-    /// <summary>Only these executables may be started by command_launch (full paths).</summary>
+    public bool AllowCmdCloseApp { get; set; }
+
+    /// <summary>Only these executables may be started by command_launch — full paths,
+    /// optionally with arguments (the arguments live HERE, never in the HA message).</summary>
     public List<string> LaunchWhitelist { get; set; } = new();
+
+    /// <summary>Only these process names may be closed by command_close_app.</summary>
+    public List<string> CloseAppWhitelist { get; set; } = new();
 
     public bool HasConnection =>
         !string.IsNullOrWhiteSpace(BaseUrl) && !string.IsNullOrWhiteSpace(Token);

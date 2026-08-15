@@ -43,7 +43,7 @@ A **fully native Windows 11 companion app for [Home Assistant](https://www.home-
 - **Windows → HA automations** — an *Automations* tab that manages your rules: **WHEN** a Windows event fires (lock/unlock, sign-in/out, sleep/resume, shutdown, display on/off, idle ≥ N min, a program becomes active, fullscreen, microphone/camera/audio, **or a time-of-day schedule on chosen weekdays**) → optional **conditions** (any number, all must hold: a time window, a **PC state** like *locked/fullscreen/mic in use*, a **numeric sensor comparison** like *temperature < 18*, or an HA entity on/off) → **THEN** one or more HA actions, optionally with **data** — for lights an explicit mode per action: *unchanged* (default — no forced values), brightness, **colour (swatches)**, brightness + colour, or colour temperature; plus media volume, target temperature, cover position, fan speed. Hand-added extra keys in `automations.json` survive editing, and the rule list shows each action's values (including a colour dot). Rules are **named, editable, duplicable and testable** ("run now"), remember when they last ran, and quick-start templates get you going in a click. Live dot shows when a trigger's state currently holds.
 - **PC as an HA device** — opt-in, reports this PC to Home Assistant as a `mobile_app` device (locked, session, idle, active program, fullscreen, microphone, camera, display, audio, last start) so you can automate *in HA* on your PC's state. Privacy-first: off by default, one toggle.
 - **My PC tab** — live PC status, **local notification rules** ("notify me when the front door opens / a light turns on" — no HA automation needed), HA→PC **command permissions**, and a received-notifications history.
-- **HA → PC** — Home Assistant can push notifications to your PC (with **clickable action buttons** that fire events back to HA) and send **commands** (`notify.mobile_app_<pc>` with `command_lock` / `command_sleep` / `command_shutdown` / `command_monitor_off` / `command_volume` (target in `data.level`, 0–100) / `command_mute` / `command_launch`). Every command is individually opt-in; the risky ones (shutdown, sleep, launch) stay off until you enable them, and `command_launch` only starts programs from your whitelist.
+- **HA → PC** — Home Assistant can push notifications to your PC (with **clickable action buttons** that fire events back to HA) and send **commands** (`notify.mobile_app_<pc>` with `command_lock` / `command_sleep` / `command_shutdown` / `command_monitor_off` / `command_volume` (target in `data.level`, 0–100) / `command_mute` / `command_launch` / `command_close_app`). Every command is individually opt-in; the risky ones (shutdown, sleep, launch, close) stay off until you enable them, `command_launch` only starts programs from your whitelist (arguments included — they live in the whitelist entry, not in the HA message), and `command_close_app` only closes processes from its own allowlist.
 - **Backup** — export/import your whole configuration (layout, shortcuts, automations, notification rules, settings) as one portable JSON — no secrets included. Importing never flips a security setting (certificate handling, PC-command permissions, the launch whitelist stay yours), and changing the HA URL on import clears the stored token so it is never sent to a different host.
 - **HA notifications** — persistent notifications appear as native Windows toasts (optional).
 - **Robust connection** — instant reconnect on network change / resume from sleep; exponential backoff resets after healthy sessions.
@@ -202,7 +202,37 @@ Send a notification **to** the PC (a toast, optionally with action buttons), or 
     message: "command_volume"
     data:
       level: 40
+
+# Launch a whitelisted program. data.app selects the whitelist entry — by file
+# name, full path, or the full entry string:
+- service: notify.mobile_app_my_pc
+  data:
+    message: "command_launch"
+    data:
+      app: "notepad"
+
+# Launch with ARGUMENTS: put them in the whitelist entry itself (My PC →
+# allowed programs), e.g.
+#   "C:\Program Files\NordVPN\NordVPN.exe" -c -g "United Kingdom"
+# and select it from HA as usual (app: "NordVPN"). Two entries can share one
+# .exe with different arguments — then select by the full entry string:
+- service: notify.mobile_app_my_pc
+  data:
+    message: "command_launch"
+    data:
+      app: '"C:\Program Files\NordVPN\NordVPN.exe" -c -g "United Kingdom"'
+
+# Close a program from the close list (My PC → programs that may be closed).
+# Asks it to close first; whatever still runs after 2 s is force-terminated
+# (unsaved data is lost). data.app is the process name, with or without .exe:
+- service: notify.mobile_app_my_pc
+  data:
+    message: "command_close_app"
+    data:
+      app: "notepad"
 ```
+
+Arguments always live in the **whitelist entry**, never in the HA message — that is intentional, not a gap: Home Assistant only *selects* which locally pre-approved action runs, so a compromised HA cannot compose new commands, start arbitrary programs, or kill arbitrary processes. Heads-up for Microsoft Store apps: paths under `C:\Program Files\WindowsApps\…` contain the version number and break on every app update — prefer the classic install path if the program offers one.
 
 ## Troubleshooting
 

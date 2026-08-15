@@ -14,6 +14,7 @@ public class PcCommandsTests
     [InlineData("command_volume", PcCommand.Volume)]
     [InlineData("command_mute", PcCommand.Mute)]
     [InlineData("command_launch", PcCommand.Launch)]
+    [InlineData("command_close_app", PcCommand.CloseApp)]
     public void Known_commands_parse_and_round_trip(string key, PcCommand expected)
     {
         Assert.True(PcCommands.TryParse(key, out var cmd));
@@ -33,6 +34,7 @@ public class PcCommandsTests
     [InlineData(PcCommand.Shutdown, true)]
     [InlineData(PcCommand.Sleep, true)]
     [InlineData(PcCommand.Launch, true)]
+    [InlineData(PcCommand.CloseApp, true)]
     [InlineData(PcCommand.Lock, false)]
     [InlineData(PcCommand.MonitorOff, false)]
     [InlineData(PcCommand.Volume, false)]
@@ -43,6 +45,7 @@ public class PcCommandsTests
     [Theory]
     [InlineData(PcCommand.Volume, "level")]
     [InlineData(PcCommand.Launch, "app")]
+    [InlineData(PcCommand.CloseApp, "app")]
     [InlineData(PcCommand.Lock, null)]
     public void Param_fields_are_declared(PcCommand cmd, string? field) =>
         Assert.Equal(field, PcCommands.ParamField(cmd));

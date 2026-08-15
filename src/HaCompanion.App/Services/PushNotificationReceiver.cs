@@ -69,6 +69,7 @@ public sealed class PushNotificationReceiver : IPushNotificationReceiver
     private static readonly Dictionary<PcCommand, TimeSpan> MinInterval = new()
     {
         [PcCommand.Launch] = TimeSpan.FromSeconds(5),
+        [PcCommand.CloseApp] = TimeSpan.FromSeconds(5),
         [PcCommand.Shutdown] = TimeSpan.FromSeconds(60),
         [PcCommand.Sleep] = TimeSpan.FromSeconds(10),
         [PcCommand.Lock] = TimeSpan.FromSeconds(2),

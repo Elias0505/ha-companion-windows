@@ -98,6 +98,7 @@ public enum PcCommand
     Volume,   // data.level 0..100
     Mute,
     Launch,   // data.app (must be whitelisted by the app)
+    CloseApp, // data.app (process name; must be in the local close allowlist) — issue #17
 }
 
 public static class PcCommands
@@ -117,6 +118,7 @@ public static class PcCommands
             case "command_volume_level": command = PcCommand.Volume; return true;
             case "command_mute": command = PcCommand.Mute; return true;
             case "command_launch": command = PcCommand.Launch; return true;
+            case "command_close_app": command = PcCommand.CloseApp; return true;
             default: command = default; return false;
         }
     }
@@ -130,18 +132,20 @@ public static class PcCommands
         PcCommand.Volume => "command_volume",
         PcCommand.Mute => "command_mute",
         PcCommand.Launch => "command_launch",
+        PcCommand.CloseApp => "command_close_app",
         _ => throw new ArgumentOutOfRangeException(nameof(command)),
     };
 
     /// <summary>Commands that stay OFF until the user explicitly enables them.</summary>
     public static bool IsCritical(PcCommand command) =>
-        command is PcCommand.Shutdown or PcCommand.Sleep or PcCommand.Launch;
+        command is PcCommand.Shutdown or PcCommand.Sleep or PcCommand.Launch or PcCommand.CloseApp;
 
     /// <summary>Which data field carries the parameter (null = parameterless).</summary>
     public static string? ParamField(PcCommand command) => command switch
     {
         PcCommand.Volume => "level",
         PcCommand.Launch => "app",
+        PcCommand.CloseApp => "app",
         _ => null,
     };
 

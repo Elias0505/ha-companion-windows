@@ -42,6 +42,7 @@ public static class PortableSettings
         "IgnoreCertificateErrors", "LaunchWhitelist",
         "AllowCmdLock", "AllowCmdMonitorOff", "AllowCmdVolume",
         "AllowCmdSleep", "AllowCmdShutdown", "AllowCmdLaunch",
+        "AllowCmdCloseApp", "CloseAppWhitelist",
     };
 
     /// <summary>Credentials must be discarded when this key changes on import.</summary>

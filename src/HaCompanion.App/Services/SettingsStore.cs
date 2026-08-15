@@ -155,7 +155,9 @@ public sealed class SettingsStore : ISettingsStore
             AllowCmdSleep = persisted.AllowCmdSleep,
             AllowCmdShutdown = persisted.AllowCmdShutdown,
             AllowCmdLaunch = persisted.AllowCmdLaunch,
+            AllowCmdCloseApp = persisted.AllowCmdCloseApp,
             LaunchWhitelist = persisted.LaunchWhitelist ?? new List<string>(),
+            CloseAppWhitelist = persisted.CloseAppWhitelist ?? new List<string>(),
             Token = token,
         };
     }
@@ -293,7 +295,9 @@ public sealed class SettingsStore : ISettingsStore
             AllowCmdSleep = settings.AllowCmdSleep,
             AllowCmdShutdown = settings.AllowCmdShutdown,
             AllowCmdLaunch = settings.AllowCmdLaunch,
+            AllowCmdCloseApp = settings.AllowCmdCloseApp,
             LaunchWhitelist = settings.LaunchWhitelist.ToList(),
+            CloseAppWhitelist = settings.CloseAppWhitelist.ToList(),
             TokenProtected = ProtectOrKeep(settings.Token, _diskTokenProtected, _tokenDecryptFailed),
         };
 
@@ -399,7 +403,9 @@ public sealed class SettingsStore : ISettingsStore
         AllowCmdSleep = s.AllowCmdSleep,
         AllowCmdShutdown = s.AllowCmdShutdown,
         AllowCmdLaunch = s.AllowCmdLaunch,
+        AllowCmdCloseApp = s.AllowCmdCloseApp,
         LaunchWhitelist = s.LaunchWhitelist.ToList(),
+        CloseAppWhitelist = s.CloseAppWhitelist.ToList(),
     };
 
     private string Protect(string plain)
@@ -472,7 +478,9 @@ public sealed class SettingsStore : ISettingsStore
         public bool AllowCmdSleep { get; set; }
         public bool AllowCmdShutdown { get; set; }
         public bool AllowCmdLaunch { get; set; }
+        public bool AllowCmdCloseApp { get; set; }
         public List<string>? LaunchWhitelist { get; set; }
+        public List<string>? CloseAppWhitelist { get; set; }
         public string TokenProtected { get; set; } = string.Empty;
     }
 }

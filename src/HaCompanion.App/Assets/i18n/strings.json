@@ -223,7 +223,7 @@
     "Cmd_VolumeHint": "For the volume command, include the target level:",
     "Cmd_NeedsDevice": "Requires PC sensors to be enabled (Settings) so this PC exists as a device in HA.",
     "Cmd_HttpWarn": "⚠ Connection is unencrypted (http) — better use commands over https only.",
-    "Cmd_Whitelist": "Allowed programs (full paths, separated by ;)",
+    "Cmd_Whitelist": "Allowed programs (full paths, arguments optional; separated by ;)",
     "Cmd_command_lock": "Lock (command_lock)",
     "Cmd_command_sleep": "Sleep (command_sleep)",
     "Cmd_command_shutdown": "Shut down (command_shutdown)",
@@ -231,6 +231,10 @@
     "Cmd_command_volume": "Volume (command_volume)",
     "Cmd_command_mute": "Mute (command_mute)",
     "Cmd_command_launch": "Launch program (command_launch)",
+    "Cmd_command_close_app": "Close program (command_close_app)",
+    "Cmd_CloseWhitelist": "Programs that may be closed (process names, separated by ;)",
+    "Cmd_CloseWhitelistHint": "Asks the program to close first; anything still running after 2 seconds is force-terminated — unsaved data is lost.",
+    "Cmd_CloseWhitelistInvalid": "Not saved (process name only — no paths or wildcards): {0}",
     "Rx_Title": "Received",
     "Rx_Empty": "Nothing received yet.",
     "Backup_Title": "Back up configuration",
@@ -333,7 +337,7 @@
     "Reset_Confirm": "Reset",
     "Reset_Restarting": "Configuration deleted — restarting…",
     "Reset_Failed": "Reset failed.",
-    "Cmd_WhitelistInvalid": "Not saved (must be the full path of an existing .exe): {0}"
+    "Cmd_WhitelistInvalid": "Not saved (must be the full path of an existing .exe, optionally followed by arguments): {0}"
   },
   "de": {
     "Nav_Start": "Start",
@@ -559,7 +563,7 @@
     "Cmd_VolumeHint": "Beim Lautstärke-Befehl den Zielwert mitschicken:",
     "Cmd_NeedsDevice": "Benötigt aktivierte PC-Sensoren (Einstellungen), damit dein PC als Gerät in HA existiert.",
     "Cmd_HttpWarn": "⚠ Verbindung ist unverschlüsselt (http) — Befehle besser nur über https nutzen.",
-    "Cmd_Whitelist": "Erlaubte Programme (volle Pfade, mit ; getrennt)",
+    "Cmd_Whitelist": "Erlaubte Programme (volle Pfade, optional mit Argumenten, mit ; getrennt)",
     "Cmd_command_lock": "Sperren (command_lock)",
     "Cmd_command_sleep": "Ruhezustand (command_sleep)",
     "Cmd_command_shutdown": "Herunterfahren (command_shutdown)",
@@ -567,6 +571,10 @@
     "Cmd_command_volume": "Lautstärke (command_volume)",
     "Cmd_command_mute": "Stumm (command_mute)",
     "Cmd_command_launch": "Programm starten (command_launch)",
+    "Cmd_command_close_app": "Programm schließen (command_close_app)",
+    "Cmd_CloseWhitelist": "Programme, die geschlossen werden dürfen (Prozessnamen, mit ; getrennt)",
+    "Cmd_CloseWhitelistHint": "Bittet das Programm zuerst, sich zu schließen; was nach 2 Sekunden noch läuft, wird zwangsweise beendet — ungespeicherte Daten gehen verloren.",
+    "Cmd_CloseWhitelistInvalid": "Nicht gespeichert (nur Prozessname — keine Pfade oder Platzhalter): {0}",
     "Rx_Title": "Empfangen",
     "Rx_Empty": "Noch nichts empfangen.",
     "Backup_Title": "Konfiguration sichern",
@@ -669,7 +677,7 @@
     "Reset_Confirm": "Zurücksetzen",
     "Reset_Restarting": "Konfiguration gelöscht — App startet neu …",
     "Reset_Failed": "Zurücksetzen fehlgeschlagen.",
-    "Cmd_WhitelistInvalid": "Nicht gespeichert (muss der vollständige Pfad einer vorhandenen .exe sein): {0}"
+    "Cmd_WhitelistInvalid": "Nicht gespeichert (muss der vollständige Pfad einer vorhandenen .exe sein, optional gefolgt von Argumenten): {0}"
   },
   "es": {
     "Nav_Start": "Inicio",
@@ -895,7 +903,7 @@
     "Cmd_VolumeHint": "Para el comando de volumen, incluye el nivel deseado:",
     "Cmd_NeedsDevice": "Requiere sensores del PC activados (Ajustes) para que este PC exista como dispositivo en HA.",
     "Cmd_HttpWarn": "⚠ La conexión no está cifrada (http) — mejor usar comandos solo con https.",
-    "Cmd_Whitelist": "Programas permitidos (rutas completas, separadas por ;)",
+    "Cmd_Whitelist": "Programas permitidos (rutas completas, argumentos opcionales; separadas por ;)",
     "Cmd_command_lock": "Bloquear (command_lock)",
     "Cmd_command_sleep": "Suspender (command_sleep)",
     "Cmd_command_shutdown": "Apagar (command_shutdown)",
@@ -903,6 +911,10 @@
     "Cmd_command_volume": "Volumen (command_volume)",
     "Cmd_command_mute": "Silenciar (command_mute)",
     "Cmd_command_launch": "Iniciar programa (command_launch)",
+    "Cmd_command_close_app": "Cerrar programa (command_close_app)",
+    "Cmd_CloseWhitelist": "Programas que se pueden cerrar (nombres de proceso, separados por ;)",
+    "Cmd_CloseWhitelistHint": "Primero pide al programa que se cierre; lo que siga en ejecución tras 2 segundos se termina a la fuerza — los datos sin guardar se pierden.",
+    "Cmd_CloseWhitelistInvalid": "No guardado (solo el nombre del proceso — sin rutas ni comodines): {0}",
     "Rx_Title": "Recibido",
     "Rx_Empty": "Aún no se ha recibido nada.",
     "Backup_Title": "Copia de seguridad",
@@ -1005,7 +1017,7 @@
     "Reset_Confirm": "Restablecer",
     "Reset_Restarting": "Configuración eliminada: reiniciando…",
     "Reset_Failed": "Error al restablecer.",
-    "Cmd_WhitelistInvalid": "No guardado (debe ser la ruta completa de un .exe existente): {0}"
+    "Cmd_WhitelistInvalid": "No guardado (debe ser la ruta completa de un .exe existente, opcionalmente seguida de argumentos): {0}"
   },
   "fr": {
     "Nav_Start": "Accueil",
@@ -1231,7 +1243,7 @@
     "Cmd_VolumeHint": "Pour la commande de volume, incluez le niveau cible :",
     "Cmd_NeedsDevice": "Nécessite les capteurs du PC activés (Paramètres) pour que ce PC existe comme appareil dans HA.",
     "Cmd_HttpWarn": "⚠ Connexion non chiffrée (http) — utilisez de préférence les commandes via https.",
-    "Cmd_Whitelist": "Programmes autorisés (chemins complets, séparés par ;)",
+    "Cmd_Whitelist": "Programmes autorisés (chemins complets, arguments optionnels, séparés par ;)",
     "Cmd_command_lock": "Verrouiller (command_lock)",
     "Cmd_command_sleep": "Veille (command_sleep)",
     "Cmd_command_shutdown": "Arrêter (command_shutdown)",
@@ -1239,6 +1251,10 @@
     "Cmd_command_volume": "Volume (command_volume)",
     "Cmd_command_mute": "Muet (command_mute)",
     "Cmd_command_launch": "Lancer un programme (command_launch)",
+    "Cmd_command_close_app": "Fermer un programme (command_close_app)",
+    "Cmd_CloseWhitelist": "Programmes pouvant être fermés (noms de processus, séparés par ;)",
+    "Cmd_CloseWhitelistHint": "Demande d'abord au programme de se fermer ; ce qui tourne encore après 2 secondes est arrêté de force — les données non enregistrées sont perdues.",
+    "Cmd_CloseWhitelistInvalid": "Non enregistré (nom de processus uniquement — pas de chemins ni de jokers) : {0}",
     "Rx_Title": "Reçu",
     "Rx_Empty": "Rien reçu pour l'instant.",
     "Backup_Title": "Sauvegarde de la configuration",
@@ -1341,7 +1357,7 @@
     "Reset_Confirm": "Réinitialiser",
     "Reset_Restarting": "Configuration supprimée — redémarrage…",
     "Reset_Failed": "Échec de la réinitialisation.",
-    "Cmd_WhitelistInvalid": "Non enregistré (doit être le chemin complet d'un .exe existant) : {0}"
+    "Cmd_WhitelistInvalid": "Non enregistré (doit être le chemin complet d'un .exe existant, éventuellement suivi d'arguments) : {0}"
   },
   "zh": {
     "Nav_Start": "主页",
@@ -1567,7 +1583,7 @@
     "Cmd_VolumeHint": "音量命令需附带目标音量：",
     "Cmd_NeedsDevice": "需要启用电脑传感器（设置），此电脑才会作为设备存在于 HA 中。",
     "Cmd_HttpWarn": "⚠ 连接未加密 (http) — 建议仅通过 https 使用命令。",
-    "Cmd_Whitelist": "允许的程序（完整路径，用 ; 分隔）",
+    "Cmd_Whitelist": "允许的程序（完整路径，可带参数，用 ; 分隔）",
     "Cmd_command_lock": "锁定 (command_lock)",
     "Cmd_command_sleep": "睡眠 (command_sleep)",
     "Cmd_command_shutdown": "关机 (command_shutdown)",
@@ -1575,6 +1591,10 @@
     "Cmd_command_volume": "音量 (command_volume)",
     "Cmd_command_mute": "静音 (command_mute)",
     "Cmd_command_launch": "启动程序 (command_launch)",
+    "Cmd_command_close_app": "关闭程序 (command_close_app)",
+    "Cmd_CloseWhitelist": "允许关闭的程序（进程名，用 ; 分隔）",
+    "Cmd_CloseWhitelistHint": "先请求程序自行关闭；2 秒后仍在运行的将被强制结束——未保存的数据会丢失。",
+    "Cmd_CloseWhitelistInvalid": "未保存（仅限进程名——不能包含路径或通配符）：{0}",
     "Rx_Title": "已接收",
     "Rx_Empty": "尚未收到任何内容。",
     "Backup_Title": "备份配置",
@@ -1677,7 +1697,7 @@
     "Reset_Confirm": "重置",
     "Reset_Restarting": "配置已删除，正在重启…",
     "Reset_Failed": "重置失败。",
-    "Cmd_WhitelistInvalid": "未保存（必须是现有 .exe 文件的完整路径）：{0}"
+    "Cmd_WhitelistInvalid": "未保存（必须是现有 .exe 文件的完整路径，可后跟参数）：{0}"
   },
   "hi": {
     "Nav_Start": "होम",
@@ -1903,7 +1923,7 @@
     "Cmd_VolumeHint": "वॉल्यूम कमांड के साथ लक्ष्य स्तर भी भेजें:",
     "Cmd_NeedsDevice": "पीसी सेंसर सक्षम होने चाहिए (सेटिंग्स) ताकि यह पीसी HA में डिवाइस के रूप में मौजूद हो।",
     "Cmd_HttpWarn": "⚠ कनेक्शन अनएन्क्रिप्टेड है (http) — कमांड केवल https पर उपयोग करें।",
-    "Cmd_Whitelist": "अनुमत प्रोग्राम (पूरे पथ, ; से अलग)",
+    "Cmd_Whitelist": "अनुमत प्रोग्राम (पूरे पथ, वैकल्पिक आर्ग्युमेंट्स के साथ, ; से अलग)",
     "Cmd_command_lock": "लॉक (command_lock)",
     "Cmd_command_sleep": "स्लीप (command_sleep)",
     "Cmd_command_shutdown": "शटडाउन (command_shutdown)",
@@ -1911,6 +1931,10 @@
     "Cmd_command_volume": "वॉल्यूम (command_volume)",
     "Cmd_command_mute": "म्यूट (command_mute)",
     "Cmd_command_launch": "प्रोग्राम चलाएँ (command_launch)",
+    "Cmd_command_close_app": "प्रोग्राम बंद करें (command_close_app)",
+    "Cmd_CloseWhitelist": "बंद किए जा सकने वाले प्रोग्राम (प्रोसेस नाम, ; से अलग)",
+    "Cmd_CloseWhitelistHint": "पहले प्रोग्राम से बंद होने का अनुरोध करता है; 2 सेकंड बाद भी चल रहे प्रोग्राम को ज़बरदस्ती समाप्त किया जाता है — बिना सहेजा डेटा खो जाता है।",
+    "Cmd_CloseWhitelistInvalid": "सहेजा नहीं गया (केवल प्रोसेस नाम — पथ या वाइल्डकार्ड नहीं): {0}",
     "Rx_Title": "प्राप्त",
     "Rx_Empty": "अभी कुछ प्राप्त नहीं हुआ।",
     "Backup_Title": "कॉन्फ़िगरेशन बैकअप",
@@ -2013,7 +2037,7 @@
     "Reset_Confirm": "रीसेट",
     "Reset_Restarting": "कॉन्फ़िगरेशन हटाया गया — पुनः प्रारंभ हो रहा है…",
     "Reset_Failed": "रीसेट विफल।",
-    "Cmd_WhitelistInvalid": "सहेजा नहीं गया (किसी मौजूदा .exe का पूरा पथ होना चाहिए): {0}"
+    "Cmd_WhitelistInvalid": "सहेजा नहीं गया (किसी मौजूदा .exe का पूरा पथ होना चाहिए, वैकल्पिक रूप से आर्ग्युमेंट्स के साथ): {0}"
   },
   "ar": {
     "Nav_Start": "البدء",
@@ -2239,7 +2263,7 @@
     "Cmd_VolumeHint": "لأمر مستوى الصوت، أرفق القيمة المطلوبة:",
     "Cmd_NeedsDevice": "يتطلب تمكين مستشعرات الكمبيوتر (الإعدادات) حتى يظهر هذا الكمبيوتر كجهاز في HA.",
     "Cmd_HttpWarn": "⚠ الاتصال غير مشفر (http) — يفضل استخدام الأوامر عبر https فقط.",
-    "Cmd_Whitelist": "البرامج المسموح بها (مسارات كاملة، مفصولة بـ ;)",
+    "Cmd_Whitelist": "البرامج المسموح بها (مسارات كاملة، مع وسائط اختيارية، مفصولة بـ ;)",
     "Cmd_command_lock": "قفل (command_lock)",
     "Cmd_command_sleep": "السكون (command_sleep)",
     "Cmd_command_shutdown": "إيقاف التشغيل (command_shutdown)",
@@ -2247,6 +2271,10 @@
     "Cmd_command_volume": "مستوى الصوت (command_volume)",
     "Cmd_command_mute": "كتم الصوت (command_mute)",
     "Cmd_command_launch": "تشغيل برنامج (command_launch)",
+    "Cmd_command_close_app": "إغلاق برنامج (command_close_app)",
+    "Cmd_CloseWhitelist": "البرامج التي يمكن إغلاقها (أسماء العمليات، مفصولة بـ ;)",
+    "Cmd_CloseWhitelistHint": "يطلب من البرنامج الإغلاق أولاً؛ ما يظل قيد التشغيل بعد ثانيتين يُنهى قسراً — تُفقد البيانات غير المحفوظة.",
+    "Cmd_CloseWhitelistInvalid": "لم يُحفظ (اسم العملية فقط — بلا مسارات أو أحرف بدل): {0}",
     "Rx_Title": "الوارد",
     "Rx_Empty": "لم يتم استلام أي شيء بعد.",
     "Backup_Title": "النسخ الاحتياطي للتكوين",
@@ -2349,6 +2377,6 @@
     "Reset_Confirm": "إعادة التعيين",
     "Reset_Restarting": "تم حذف التكوين — جار إعادة التشغيل…",
     "Reset_Failed": "فشلت إعادة التعيين.",
-    "Cmd_WhitelistInvalid": "لم يُحفظ (يجب أن يكون المسار الكامل لملف ‎.exe موجود): {0}"
+    "Cmd_WhitelistInvalid": "لم يُحفظ (يجب أن يكون المسار الكامل لملف ‎.exe موجود، مع وسائط اختيارية بعده): {0}"
   }
 }

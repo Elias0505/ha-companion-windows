@@ -159,6 +159,8 @@
                               IsOn="{Binding AllowShutdown, Mode=TwoWay}" OnContent="" OffContent="" />
                 <ToggleSwitch Header="{Binding [Cmd_command_launch], Source={StaticResource Loc}}"
                               IsOn="{Binding AllowLaunch, Mode=TwoWay}" OnContent="" OffContent="" />
+                <ToggleSwitch Header="{Binding [Cmd_command_close_app], Source={StaticResource Loc}}"
+                              IsOn="{Binding AllowCloseApp, Mode=TwoWay}" OnContent="" OffContent="" />
             </ItemsControl>
 
             <TextBox Header="{Binding [Cmd_Whitelist], Source={StaticResource Loc}}"
@@ -167,6 +169,16 @@
             <TextBlock Text="{Binding WhitelistError}" TextWrapping="Wrap"
                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                        Visibility="{Binding AllowLaunch, Converter={StaticResource BoolToVisibility}}" />
+
+            <TextBox Header="{Binding [Cmd_CloseWhitelist], Source={StaticResource Loc}}"
+                     Text="{Binding CloseWhitelistText, Mode=TwoWay}"
+                     Visibility="{Binding AllowCloseApp, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding [Cmd_CloseWhitelistHint], Source={StaticResource Loc}}"
+                       FontSize="13" Opacity="0.7" TextWrapping="Wrap"
+                       Visibility="{Binding AllowCloseApp, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding CloseWhitelistError}" TextWrapping="Wrap"
+                       Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                       Visibility="{Binding AllowCloseApp, Converter={StaticResource BoolToVisibility}}" />
 
             <!-- ===== received history ===== -->
             <TextBlock Text="{Binding [Rx_Title], Source={StaticResource Loc}}"
