@@ -68,6 +68,7 @@ public sealed partial class QuickPanelWindow : Window
     private readonly DispatcherQueueTimer _previewTimer;
     private Task? _webInitTask;
     private int _webResetGen; // bumped by ResetWebView; an in-flight init with a stale value abandons itself
+    private long _lastWebRebuildMs; // rate-limits the ProcessFailed auto-rebuild (no crash loops)
     private string _baseUrl = string.Empty;
     private int _panelWidthDip = DefaultPanelWidthDip;
     private bool _isOpen;        // desired end state (target), also the sole intent flag
@@ -719,6 +720,30 @@ public sealed partial class QuickPanelWindow : Window
             HaWebViewScripts.HideChromeScript);
         await web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
             HaWebViewScripts.CameraStillFixScript);
+
+        // A dead browser process (crash, AV kill, OOM) leaves this control a husk: every
+        // Navigate silently no-ops and the dashboard view is blank for the rest of the
+        // session while favourites keep working. Rebuild automatically instead — the swap
+        // machinery exists precisely for this. Rate-limited so a crash loop cannot spin.
+        web.CoreWebView2.ProcessFailed += (_, e) =>
+        {
+            var now = Environment.TickCount64;
+            if (now - _lastWebRebuildMs < 15_000)
+                return; // a crash loop must not spin rebuilds
+            if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.BrowserProcessExited)
+            {
+                _lastWebRebuildMs = now;
+                Log("webview BROWSER process died — rebuilding the control");
+                DispatcherQueue.TryEnqueue(ResetWebView);
+            }
+            else if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.RenderProcessExited)
+            {
+                _lastWebRebuildMs = now;
+                Log("webview renderer died — reloading");
+                DispatcherQueue.TryEnqueue(() => { try { web.CoreWebView2?.Reload(); } catch { } });
+            }
+            // Everything else (unresponsive renderer, helper crashes) recovers on its own.
+        };
     }
 
     private void OnEscape(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)

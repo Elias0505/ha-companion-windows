@@ -24,6 +24,8 @@ public sealed partial class HaDashboardsPage : Page
     private readonly ISettingsStore _settingsStore;
     private readonly IHaConnection _connection;
     private bool _initialized;
+    private bool _dashboardListComplete; // false until ListDashboardsAsync succeeded once
+    private long _lastWebRebuildMs;      // rate-limits the ProcessFailed auto-heal
     private int _initGen = -1;   // _resetGen an in-flight init belongs to (-1 = none). A plain bool
                                  // here deadlocked the post-reset init: the STALE init still held it,
                                  // so the fresh control was never initialized until a re-visit.
@@ -41,6 +43,13 @@ public sealed partial class HaDashboardsPage : Page
         InitializeComponent();
         Loaded += OnLoaded;
         _current = this;
+        // Self-heal without a re-visit: once the connection comes up, a fallback-only picker
+        // (initialized while the network was still down) reloads the real dashboard list.
+        _connection.StatusChanged += (_, status) =>
+        {
+            if (status == HaConnectionStatus.Connected && _initialized && !_dashboardListComplete)
+                DispatcherQueue.TryEnqueue(() => _ = LoadDashboardListAsync());
+        };
     }
 
     /// <summary>
@@ -99,7 +108,14 @@ public sealed partial class HaDashboardsPage : Page
         Web = fresh;
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e) => await EnsureInitializedAsync();
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        await EnsureInitializedAsync();
+        // A dashboard list that fell back to "Overview" (connection was still coming up when
+        // the page first initialized) is retried on every visit until it succeeds once.
+        if (_initialized && !_dashboardListComplete)
+            await LoadDashboardListAsync();
+    }
 
     private async Task EnsureInitializedAsync()
     {
@@ -185,6 +201,26 @@ public sealed partial class HaDashboardsPage : Page
             WebViewHardening.Apply(web.CoreWebView2, CurrentBaseUri,
                 () => _settingsStore.Load().IgnoreCertificateErrors);
 
+            // A dead browser process (crash, AV kill) leaves this control a husk — every
+            // Navigate silently no-ops for the rest of the session. Rebuild automatically;
+            // a dead renderer only needs a Reload. Rate-limited against crash loops.
+            web.CoreWebView2.ProcessFailed += (_, e) =>
+            {
+                var now = Environment.TickCount64;
+                if (now - _lastWebRebuildMs < 15_000)
+                    return;
+                if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.BrowserProcessExited)
+                {
+                    _lastWebRebuildMs = now;
+                    DispatcherQueue.TryEnqueue(ResetWebView);
+                }
+                else if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.RenderProcessExited)
+                {
+                    _lastWebRebuildMs = now;
+                    DispatcherQueue.TryEnqueue(() => { try { web.CoreWebView2?.Reload(); } catch { } });
+                }
+            };
+
             // Pre-seed hassTokens so the HA frontend logs in without any prompt.
             await web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
                 HaWebViewScripts.BuildAuthScript(baseUri, settings.Token));
@@ -233,9 +269,15 @@ public sealed partial class HaDashboardsPage : Page
         try
         {
             dashboards = await _connection.ListDashboardsAsync();
+            _dashboardListComplete = true;
         }
         catch (Exception)
         {
+            // Typical at logon: the page initializes while the connection is still coming up
+            // (VPN/Wi-Fi race). The WebView itself works regardless (token login), so the user
+            // sees the overview — but this fallback list must NOT be final, or the picker
+            // stays a lone "Overview" for the whole session (the Photovoltaik-tabs report).
+            _dashboardListComplete = false;
             dashboards = [new HaDashboardInfo(null, "Overview", null)];
             ShowInfo(App.Services.GetRequiredService<LocalizationService>()["Dash_ListFailed"], InfoBarSeverity.Informational);
         }

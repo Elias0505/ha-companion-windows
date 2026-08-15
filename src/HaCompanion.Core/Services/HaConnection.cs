@@ -74,6 +74,15 @@ public sealed class HaConnection : IHaConnection, IAsyncDisposable
         {
             _logger.LogWarning("Home Assistant REST validation failed for {BaseUrl}: {Reason}",
                 settings.BaseUrl, check.Status);
+            // A NETWORK-class failure must still start the supervisor, or nothing ever retries:
+            // autostart at logon races the VPN/Wi-Fi coming up, the first check hits DnsError,
+            // and without a running supervisor even PokeReconnect (the connectivity watcher's
+            // "network is back" signal) is a no-op — the app then sits on "Disconnected"
+            // forever. The supervisor retries with backoff and, on genuine auth/TLS problems,
+            // stops terminally on its own. Only failures the RETRY cannot cure (bad token,
+            // certificate rejected) keep the old report-and-stop behavior.
+            if (check.Status is not ConnectionCheckStatus.AuthFailed and not ConnectionCheckStatus.TlsError)
+                _ws.Start(settings.WebSocketUri, settings.Token, settings.IgnoreCertificateErrors);
             return check;
         }
 
