@@ -25,7 +25,7 @@ jobs:
           global-json-file: global.json
       # build-mode none = source-level extraction; a traced WinUI build would
       # need windows-latest plus the full WindowsAppSDK toolchain for no gain.
-      - uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+      - uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           languages: csharp
           build-mode: none
