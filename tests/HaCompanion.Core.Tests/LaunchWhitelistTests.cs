@@ -165,4 +165,54 @@ public class LaunchWhitelistTests : IDisposable
         Assert.Equal(_exe, path);
         Assert.Equal("-c 1", args);
     }
+
+    // ----- SelectorMatches: which HA string selects which entry (issue #17 follow-up) -----
+
+    private static bool Selects(string entry, string selector)
+    {
+        Assert.True(LaunchWhitelist.TryParseEntry(entry, out var path, out var args));
+        return LaunchWhitelist.SelectorMatches(entry, path, args, selector);
+    }
+
+    [Fact]
+    public void Unquoted_selector_matches_the_canonical_quoted_entry()
+    {
+        // The reported failure: entries are STORED quoted, but HA users naturally send
+        // the unquoted spelling — both must select the same entry.
+        var entry = LaunchWhitelist.CanonicalEntry(_exe, "-c -g \"United States\"");
+        Assert.True(Selects(entry, _exe + " -c -g \"United States\""));
+    }
+
+    [Fact]
+    public void Canonical_selector_still_matches()
+    {
+        var entry = LaunchWhitelist.CanonicalEntry(_exe, "-c -g \"United States\"");
+        Assert.True(Selects(entry, entry));
+    }
+
+    [Fact]
+    public void Full_string_selector_disambiguates_two_entries_sharing_one_exe()
+    {
+        var uk = LaunchWhitelist.CanonicalEntry(_exe, "-c -g \"United Kingdom\"");
+        var us = LaunchWhitelist.CanonicalEntry(_exe, "-c -g \"United States\"");
+        var selector = _exe + " -c -g \"United States\"";
+        Assert.False(Selects(uk, selector));
+        Assert.True(Selects(us, selector));
+    }
+
+    [Fact]
+    public void Bare_name_and_full_path_still_match_an_entry_with_args()
+    {
+        var entry = LaunchWhitelist.CanonicalEntry(_exe, "-c 1");
+        Assert.True(Selects(entry, "APP")); // file name, case-insensitive
+        Assert.True(Selects(entry, _exe));
+    }
+
+    [Fact]
+    public void Unrelated_selector_matches_nothing()
+    {
+        var entry = LaunchWhitelist.CanonicalEntry(_exe, "-c 1");
+        Assert.False(Selects(entry, "notepad"));
+        Assert.False(Selects(entry, _exe + " -c 2"));
+    }
 }

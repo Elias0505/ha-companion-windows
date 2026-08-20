@@ -90,6 +90,27 @@ public static class LaunchWhitelist
         string.IsNullOrEmpty(args) ? fullPath : $"\"{fullPath}\" {args}";
 
     /// <summary>
+    /// True when the selector string received from Home Assistant selects the whitelist
+    /// entry <paramref name="entry"/> (already parsed into <paramref name="entryPath"/> and
+    /// <paramref name="entryArgs"/>). Accepted selector forms: the full entry string — quoted
+    /// or unquoted, both parse to the same path+args, so the natural YAML spelling matches
+    /// the canonical stored form (issue #17 follow-up) —, the full path, or the bare file
+    /// name. What is STARTED always stays the stored entry, never the selector.
+    /// </summary>
+    public static bool SelectorMatches(string entry, string entryPath, string entryArgs, string selector)
+    {
+        if (string.Equals(entry, selector, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(entryPath, selector, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(Path.GetFileNameWithoutExtension(entryPath), selector, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        return TryParseEntry(selector, out var selectorPath, out var selectorArgs)
+            && string.Equals(entryPath, selectorPath, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(entryArgs, selectorArgs, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// True when the entry is launchable; <paramref name="fullPath"/> then holds its
     /// canonical form (that path, never the string Home Assistant sent, is started).
     /// </summary>

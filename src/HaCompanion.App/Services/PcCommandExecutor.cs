@@ -147,18 +147,17 @@ public sealed class PcCommandExecutor : IPcCommandExecutor
             return PcCommandResult.BadParameter;
         // The HA message only SELECTS which pre-approved entry runs (matched by the full
         // entry string incl. its arguments — that disambiguates two entries sharing one
-        // exe —, by the full path, or by the bare file name). What is STARTED is always
-        // the locally stored entry: path and arguments both come from the whitelist,
-        // never from the received string (no argument/path smuggling).
+        // exe, in the quoted stored form or the natural unquoted spelling —, by the full
+        // path, or by the bare file name). What is STARTED is always the locally stored
+        // entry: path and arguments both come from the whitelist, never from the received
+        // string (no argument/path smuggling).
         string? matchedPath = null;
         string? matchedArgs = null;
         foreach (var candidate in _settings.Load().LaunchWhitelist)
         {
             if (!LaunchWhitelist.TryParseEntry(candidate, out var path, out var args))
                 continue; // stale entry (file gone) — skip, maybe another matches
-            if (string.Equals(candidate, app, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(path, app, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(System.IO.Path.GetFileNameWithoutExtension(path), app, StringComparison.OrdinalIgnoreCase))
+            if (LaunchWhitelist.SelectorMatches(candidate, path, args, app))
             {
                 matchedPath = path;
                 matchedArgs = args;

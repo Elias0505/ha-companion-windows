@@ -215,12 +215,13 @@ Send a notification **to** the PC (a toast, optionally with action buttons), or 
 # allowed programs), e.g.
 #   "C:\Program Files\NordVPN\NordVPN.exe" -c -g "United Kingdom"
 # and select it from HA as usual (app: "NordVPN"). Two entries can share one
-# .exe with different arguments — then select by the full entry string:
+# .exe with different arguments — then select by the full entry string. The
+# path may be quoted or not; the arguments must match the entry verbatim:
 - service: notify.mobile_app_my_pc
   data:
     message: "command_launch"
     data:
-      app: '"C:\Program Files\NordVPN\NordVPN.exe" -c -g "United Kingdom"'
+      app: C:\Program Files\NordVPN\NordVPN.exe -c -g "United Kingdom"
 
 # Close a program from the close list (My PC → programs that may be closed).
 # Asks it to close first; whatever still runs after 2 s is force-terminated
