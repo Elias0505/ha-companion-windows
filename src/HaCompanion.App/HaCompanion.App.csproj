@@ -46,7 +46,7 @@
          no longer carry Microsoft.WindowsAppRuntime.Insights.Resource.dll — so
          AppNotificationManager.Register() throws 0x8007007E and toasts die. -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260710003" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.8249" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
